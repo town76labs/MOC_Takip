@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-[#303030] text-slate-100 antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-white/10 bg-[#0d0d0d] shadow-card;
+  }
+  .panel-title {
+    @apply text-sm font-semibold text-white;
+  }
+  .panel-subtitle {
+    @apply text-xs text-white/55;
+  }
+  .metric-card {
+    @apply card relative overflow-hidden p-4 transition hover:border-white/20 hover:shadow-elevated;
+  }
+  .metric-card::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-1 bg-slate-200;
+  }
+  .filter-tile {
+    @apply rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-left shadow-sm transition hover:border-red-400/70 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-400/30;
+  }
+  .filter-tile-active {
+    @apply border-red-400 bg-red-500/20 ring-2 ring-red-400/30;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+  .btn-ghost {
+    @apply btn text-slate-700 hover:bg-slate-100;
+  }
+  .input {
+    @apply w-full rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white shadow-sm
+           placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:border-red-400;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium;
+  }
+  .upload-panel-red {
+    @apply border-red-400/20 bg-[#db2f32] text-white;
+  }
+  .upload-panel-dark {
+    @apply border-white/10 bg-black text-white;
+  }
+}
+
+.fintech-shell .text-slate-950,
+.fintech-shell .text-slate-900,
+.fintech-shell .text-slate-800 {
+  color: rgb(248 250 252);
+}
+
+.fintech-shell .text-slate-700,
+.fintech-shell .text-slate-600 {
+  color: rgb(203 213 225);
+}
+
+.fintech-shell .text-slate-500,
+.fintech-shell .text-slate-400 {
+  color: rgb(148 163 184);
+}
+
+.fintech-shell .border-slate-100,
+.fintech-shell .border-slate-200,
+.fintech-shell .border-slate-300 {
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.fintech-shell .bg-white,
+.fintech-shell .bg-slate-50,
+.fintech-shell .bg-slate-100 {
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+.fintech-shell thead.bg-slate-50\/90,
+.fintech-shell thead.bg-slate-50 {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.fintech-shell tbody.bg-white {
+  background-color: rgb(13 13 13);
+}
+
+.fintech-shell .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.fintech-shell .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(255 255 255 / 0.08);
+}
+
+.fintech-shell .metric-card {
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.08), transparent 42%),
+    rgb(12 12 12);
+}
+
+.fintech-shell .metric-card:hover {
+  transform: translateY(-1px);
+}
+
+.fintech-shell .upload-panel-red .text-slate-500,
+.fintech-shell .upload-panel-red .text-slate-700,
+.fintech-shell .upload-panel-red .text-slate-900 {
+  color: rgb(255 255 255);
+}
+
+.fintech-shell .upload-panel-red label {
+  border-color: rgb(255 255 255 / 0.32);
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+.fintech-shell .upload-panel-red label:hover {
+  background-color: rgb(255 255 255 / 0.12);
+}
+
+.fintech-shell .upload-panel-red .text-slate-400 {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.fintech-shell .upload-panel-red .bg-emerald-50\/70,
+.fintech-shell .upload-panel-dark .bg-emerald-50\/70 {
+  background-color: rgb(16 185 129 / 0.14);
+}
+
+.fintech-shell .upload-panel-red .border-emerald-200,
+.fintech-shell .upload-panel-dark .border-emerald-200 {
+  border-color: rgb(16 185 129 / 0.35);
+}
+
+.fintech-shell .upload-panel-red .text-emerald-900,
+.fintech-shell .upload-panel-dark .text-emerald-900 {
+  color: rgb(209 250 229);
+}
+
+.fintech-shell .upload-panel-red .text-emerald-700,
+.fintech-shell .upload-panel-dark .text-emerald-700 {
+  color: rgb(110 231 183);
+}
+
+.fintech-shell .recharts-legend-item-text,
+.fintech-shell .recharts-text {
+  fill: rgb(226 232 240);
+  color: rgb(226 232 240) !important;
+}
