@@ -47,8 +47,10 @@ const TECHNICAL_TARGET_USERS = [
   'Onur KARADUMAN',
   'Gökhan KAYA',
   'Hüseyin Kaan AYAZ',
-  'Mehmet Burak ARICILAR',
+  'Burak ARICILAR',
   'Hakan ÇELİK',
+  'Fatih ALTINDAŞ',
+  'Tuna PINAR',
 ];
 
 const TECHNICAL_TARGET_USER_SET = new Set(

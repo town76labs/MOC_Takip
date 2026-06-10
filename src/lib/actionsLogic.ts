@@ -34,8 +34,10 @@ export const TARGET_SORUMLULAR = [
   'Onur KARADUMAN',
   'Gökhan KAYA',
   'Hüseyin Kaan AYAZ',
-  'Mehmet Burak ARICILAR',
+  'Burak ARICILAR',
   'Hakan ÇELİK',
+  'Fatih ALTINDAŞ',
+  'Tuna PINAR',
 ];
 
 /** Bir satırı aksiyon kategorilerinden birine yerleştir. */
