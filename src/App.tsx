@@ -4,6 +4,7 @@ import {
   ChevronDown,
   FileSpreadsheet,
   LayoutDashboard,
+  ShieldCheck,
   Sparkles,
   Zap,
 } from 'lucide-react';
@@ -12,6 +13,7 @@ import { DashboardTabs, type TabKey } from './components/DashboardTabs';
 import { useDataStore } from './store/dataStore';
 import { TechnicalDashboard } from './components/technical/TechnicalDashboard';
 import { ActionsDashboard } from './components/actions/ActionsDashboard';
+import { SCEDashboard } from './components/sce/SCEDashboard';
 
 type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy';
 
@@ -31,9 +33,15 @@ function App() {
   const clearTechnical = useDataStore((s) => s.clearTechnical);
   const clearActions = useDataStore((s) => s.clearActions);
   const clearMOCTakip = useDataStore((s) => s.clearMOCTakip);
+  const sceFile = useDataStore((s) => s.sceFile);
+  const sceLoading = useDataStore((s) => s.sceLoading);
+  const sceError = useDataStore((s) => s.sceError);
+  const uploadSCE = useDataStore((s) => s.uploadSCE);
+  const clearSCE = useDataStore((s) => s.clearSCE);
 
   const [activeTab, setActiveTab] = useState<TabKey>('technical');
   const [uploadsOpen, setUploadsOpen] = useState(false);
+  const [sceUploadsOpen, setSceUploadsOpen] = useState(false);
   const [appMode, setAppMode] = useState<AppMode>('select');
 
   const allLoaded = !!technicalFile && !!actionsFile && !!mocTakipFile;
@@ -180,13 +188,15 @@ function App() {
   }
 
   if (appMode === 'sce') {
+    const showSCEUpload = !sceFile || sceUploadsOpen;
+
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm ring-1 ring-white/10">
-                <LayoutDashboard size={18} />
+                <ShieldCheck size={18} />
               </div>
               <div className="min-w-0">
                 <h1 className="text-base font-semibold leading-tight text-white">
@@ -196,25 +206,88 @@ function App() {
                   Safety Critical Element
                 </p>
               </div>
+              {sceFile && (
+                <button
+                  type="button"
+                  onClick={() => setSceUploadsOpen((open) => !open)}
+                  aria-expanded={sceUploadsOpen}
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:inline-flex"
+                >
+                  <FileSpreadsheet size={16} />
+                  SCE Excel Dosyası
+                  <ChevronDown
+                    size={16}
+                    className={`transition ${
+                      sceUploadsOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setAppMode('legal')}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-            >
-              <ArrowLeft size={16} />
-              Yasal Bakımlar
-            </button>
+            <div className="flex items-center gap-2">
+              {sceFile && (
+                <button
+                  type="button"
+                  onClick={() => setSceUploadsOpen((open) => !open)}
+                  aria-expanded={sceUploadsOpen}
+                  aria-label="SCE Excel dosyası panelini aç veya kapat"
+                  className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:hidden"
+                >
+                  <FileSpreadsheet size={18} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAppMode('legal')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+              >
+                <ArrowLeft size={16} />
+                Yasal Bakımlar
+              </button>
+            </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="card p-10 text-center">
-            <h2 className="text-lg font-semibold text-white">
-              SCE Dashboard
-            </h2>
-          </div>
+          {showSCEUpload && (
+            <section className="mb-6 max-w-3xl">
+              <FileUpload
+                title="SCE Ekipmanları Excel'i"
+                subtitle="SCE ekipmanları, bakım planları ve periyodik bakım durumları"
+                hint="A sütununda fabrika kodu bulunmalıdır: 1000, 1001, 1002, 1007, 1008, 1009, 1010 veya 1014."
+                fileMeta={sceFile}
+                loading={sceLoading}
+                error={sceError}
+                onFile={uploadSCE}
+                onClear={clearSCE}
+                accentColorClass="from-sky-400 to-sky-600"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
+
+          {!sceFile ? (
+            <div className="card mx-auto max-w-3xl p-10 text-center">
+              <ShieldCheck
+                size={34}
+                className="mx-auto mb-4 text-sky-400"
+              />
+              <h2 className="text-lg font-semibold text-white">
+                Başlamak için SCE Excel dosyasını yükleyin
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-white/50">
+                Dosya tarayıcınızda işlenir. A sütunundaki kodlar fabrika
+                kategorilerine otomatik ayrılır.
+              </p>
+            </div>
+          ) : (
+            <SCEDashboard />
+          )}
         </main>
+
+        <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
+          Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
+        </footer>
       </div>
     );
   }

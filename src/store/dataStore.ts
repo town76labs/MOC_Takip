@@ -1,10 +1,17 @@
 import { create } from 'zustand';
-import type { ActionRow, ParseError, TechnicalRow, TechnicalStatus } from '../types';
+import type {
+  ActionRow,
+  ParseError,
+  SCERow,
+  TechnicalRow,
+  TechnicalStatus,
+} from '../types';
 import {
   parseMOCTakipExcel,
   parseActionsExcel,
   parseTechnicalExcel,
 } from '../lib/excelParser';
+import { parseSCEExcel } from '../lib/sceParser';
 
 interface FileMeta {
   name: string;
@@ -17,17 +24,21 @@ interface DataState {
   technicalRows: TechnicalRow[];
   actionRows: ActionRow[];
   mocTakipMocNos: string[];
+  sceRows: SCERow[];
   technicalFile: FileMeta | null;
   actionsFile: FileMeta | null;
   mocTakipFile: FileMeta | null;
+  sceFile: FileMeta | null;
 
   // Yükleme/hata durumları
   technicalLoading: boolean;
   actionsLoading: boolean;
   mocTakipLoading: boolean;
+  sceLoading: boolean;
   technicalError: ParseError | null;
   actionsError: ParseError | null;
   mocTakipError: ParseError | null;
+  sceError: ParseError | null;
 
   // Global filtreler
   selectedCompanies: string[];
@@ -37,9 +48,11 @@ interface DataState {
   uploadTechnical: (file: File) => Promise<void>;
   uploadActions: (file: File) => Promise<void>;
   uploadMOCTakip: (file: File) => Promise<void>;
+  uploadSCE: (file: File) => Promise<void>;
   clearTechnical: () => void;
   clearActions: () => void;
   clearMOCTakip: () => void;
+  clearSCE: () => void;
   setSelectedCompanies: (v: string[]) => void;
   setSelectedTechnicalStatuses: (v: TechnicalStatus[]) => void;
 }
@@ -48,15 +61,19 @@ export const useDataStore = create<DataState>((set) => ({
   technicalRows: [],
   actionRows: [],
   mocTakipMocNos: [],
+  sceRows: [],
   technicalFile: null,
   actionsFile: null,
   mocTakipFile: null,
+  sceFile: null,
   technicalLoading: false,
   actionsLoading: false,
   mocTakipLoading: false,
+  sceLoading: false,
   technicalError: null,
   actionsError: null,
   mocTakipError: null,
+  sceError: null,
   selectedCompanies: [],
   selectedTechnicalStatuses: [],
 
@@ -122,6 +139,26 @@ export const useDataStore = create<DataState>((set) => ({
     });
   },
 
+  uploadSCE: async (file: File) => {
+    set({ sceLoading: true, sceError: null });
+    const { data, error } = await parseSCEExcel(file);
+    if (error) {
+      set({
+        sceLoading: false,
+        sceError: error,
+        sceRows: [],
+        sceFile: null,
+      });
+      return;
+    }
+    set({
+      sceLoading: false,
+      sceRows: data,
+      sceFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+      sceError: null,
+    });
+  },
+
   clearTechnical: () =>
     set({
       technicalRows: [],
@@ -141,6 +178,12 @@ export const useDataStore = create<DataState>((set) => ({
       mocTakipFile: null,
       mocTakipError: null,
       selectedTechnicalStatuses: [],
+    }),
+  clearSCE: () =>
+    set({
+      sceRows: [],
+      sceFile: null,
+      sceError: null,
     }),
 
   setSelectedCompanies: (v) => set({ selectedCompanies: v }),

@@ -83,3 +83,47 @@ export interface ParseError {
   foundHeaders?: string[];
   details?: string[];
 }
+
+export type SCECompany = 'PETKIM' | 'STAR' | 'STAD';
+
+export type SCEFactory =
+  | 'ISKELE'
+  | 'ETILEN'
+  | 'AROMATIKLER'
+  | 'AYPE'
+  | 'AYPE-T'
+  | 'PA'
+  | 'PP'
+  | 'YYPE';
+
+export type SCECategory = 'all' | 'plans' | 'periodic';
+
+export interface SCERow {
+  rowId: string;
+  sirket: SCECompany;
+  fabrika: SCEFactory;
+  fabrikaKodu: string;
+  ekipmanNo: string;
+  tagNo: string;
+  ekipmanAdi: string;
+  sutunELabel: string;
+  sutunE: string;
+  sutunFLabel: string;
+  sutunF: string;
+  sutunGLabel: string;
+  sutunG: string;
+  ekipmanTuru: string;
+  sceGrubu: string;
+  sceGozdenGecirme: string;
+  sceSebebi: string;
+  bakimPlaniNo: string;
+  bakimKalemiNo: string;
+  bakimPlani: string;
+  bakimPeriyodu: string;
+  deferralSureci: string;
+  periyodikBakimDurumu: string;
+  sonBakimTarihi: string;
+  sonBakimBildirimSiparis: string;
+  sonrakiBakimTarihi: string;
+  raw: Record<string, string>;
+}
