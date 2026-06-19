@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   ActionRow,
   ParseError,
+  SATRow,
   SCERow,
   TechnicalRow,
   TechnicalStatus,
@@ -12,6 +13,7 @@ import {
   parseTechnicalExcel,
 } from '../lib/excelParser';
 import { parseSCEExcel } from '../lib/sceParser';
+import { parseSATExcel } from '../lib/satParser';
 
 interface FileMeta {
   name: string;
@@ -25,20 +27,24 @@ interface DataState {
   actionRows: ActionRow[];
   mocTakipMocNos: string[];
   sceRows: SCERow[];
+  satRows: SATRow[];
   technicalFile: FileMeta | null;
   actionsFile: FileMeta | null;
   mocTakipFile: FileMeta | null;
   sceFile: FileMeta | null;
+  satFile: FileMeta | null;
 
   // Yükleme/hata durumları
   technicalLoading: boolean;
   actionsLoading: boolean;
   mocTakipLoading: boolean;
   sceLoading: boolean;
+  satLoading: boolean;
   technicalError: ParseError | null;
   actionsError: ParseError | null;
   mocTakipError: ParseError | null;
   sceError: ParseError | null;
+  satError: ParseError | null;
 
   // Global filtreler
   selectedCompanies: string[];
@@ -49,10 +55,12 @@ interface DataState {
   uploadActions: (file: File) => Promise<void>;
   uploadMOCTakip: (file: File) => Promise<void>;
   uploadSCE: (file: File) => Promise<void>;
+  uploadSAT: (file: File) => Promise<void>;
   clearTechnical: () => void;
   clearActions: () => void;
   clearMOCTakip: () => void;
   clearSCE: () => void;
+  clearSAT: () => void;
   setSelectedCompanies: (v: string[]) => void;
   setSelectedTechnicalStatuses: (v: TechnicalStatus[]) => void;
 }
@@ -62,18 +70,22 @@ export const useDataStore = create<DataState>((set) => ({
   actionRows: [],
   mocTakipMocNos: [],
   sceRows: [],
+  satRows: [],
   technicalFile: null,
   actionsFile: null,
   mocTakipFile: null,
   sceFile: null,
+  satFile: null,
   technicalLoading: false,
   actionsLoading: false,
   mocTakipLoading: false,
   sceLoading: false,
+  satLoading: false,
   technicalError: null,
   actionsError: null,
   mocTakipError: null,
   sceError: null,
+  satError: null,
   selectedCompanies: [],
   selectedTechnicalStatuses: [],
 
@@ -159,6 +171,26 @@ export const useDataStore = create<DataState>((set) => ({
     });
   },
 
+  uploadSAT: async (file: File) => {
+    set({ satLoading: true, satError: null });
+    const { data, error } = await parseSATExcel(file);
+    if (error) {
+      set({
+        satLoading: false,
+        satError: error,
+        satRows: [],
+        satFile: null,
+      });
+      return;
+    }
+    set({
+      satLoading: false,
+      satRows: data,
+      satFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+      satError: null,
+    });
+  },
+
   clearTechnical: () =>
     set({
       technicalRows: [],
@@ -184,6 +216,12 @@ export const useDataStore = create<DataState>((set) => ({
       sceRows: [],
       sceFile: null,
       sceError: null,
+    }),
+  clearSAT: () =>
+    set({
+      satRows: [],
+      satFile: null,
+      satError: null,
     }),
 
   setSelectedCompanies: (v) => set({ selectedCompanies: v }),

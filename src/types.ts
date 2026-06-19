@@ -127,3 +127,39 @@ export interface SCERow {
   sonrakiBakimTarihi: string;
   raw: Record<string, string>;
 }
+
+export type SATStage =
+  | 'durum_girilmemis'
+  | 'mail_onayi'
+  | 'sap_onayi'
+  | 'satina_aktarilacak'
+  | 'teklif_bekleniyor'
+  | 'teklif_degerlendiriliyor'
+  | 'teklif_degerlendirildi'
+  | 'sas_verildi'
+  | 'tamamlandi'
+  | 'diger';
+
+export interface SATRow {
+  rowId: string;
+  sourceRow: number;
+  sıraNo: string;
+  butceSorumlusu: string;
+  talepSahibi: string;
+  unite: string;
+  satNo: string;
+  satTarihi: Date | null;
+  aciklama: string;
+  toplamTutar: number;
+  paraBirimi: string;
+  butceTuru: string;
+  pypKodu: string;
+  butceAciklama: string;
+  onayDurumu: string;
+  satDurumu: string;
+  satinAlmaSorumlusu: string;
+  malzemeGelisTarihi: string;
+  notlar: string;
+  stage: SATStage;
+  raw: Record<string, string>;
+}

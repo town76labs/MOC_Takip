@@ -1,6 +1,6 @@
-import { ListChecks, ShieldCheck } from 'lucide-react';
+import { Gauge, ListChecks, ShieldCheck } from 'lucide-react';
 
-export type TabKey = 'technical' | 'actions';
+export type TabKey = 'overview' | 'technical' | 'actions';
 
 interface Props {
   active: TabKey;
@@ -9,6 +9,7 @@ interface Props {
 
 export function DashboardTabs({ active, onChange }: Props) {
   const items: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    { key: 'overview', label: 'Genel Bakış', icon: <Gauge size={16} /> },
     { key: 'technical', label: 'Teknik Görüş', icon: <ShieldCheck size={16} /> },
     { key: 'actions', label: 'Aksiyonlar', icon: <ListChecks size={16} /> },
   ];

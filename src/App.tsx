@@ -3,9 +3,12 @@ import {
   ArrowLeft,
   ChevronDown,
   FileSpreadsheet,
+  Gauge,
   LayoutDashboard,
+  ShoppingCart,
   ShieldCheck,
   Sparkles,
+  TableProperties,
   Zap,
 } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
@@ -14,8 +17,11 @@ import { useDataStore } from './store/dataStore';
 import { TechnicalDashboard } from './components/technical/TechnicalDashboard';
 import { ActionsDashboard } from './components/actions/ActionsDashboard';
 import { SCEDashboard } from './components/sce/SCEDashboard';
+import { SATDashboard } from './components/sat/SATDashboard';
+import { MOCOverviewDashboard } from './components/overview/MOCOverviewDashboard';
+import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
 
-type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy';
+type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
 
 function App() {
   const technicalFile = useDataStore((s) => s.technicalFile);
@@ -38,10 +44,19 @@ function App() {
   const sceError = useDataStore((s) => s.sceError);
   const uploadSCE = useDataStore((s) => s.uploadSCE);
   const clearSCE = useDataStore((s) => s.clearSCE);
+  const satFile = useDataStore((s) => s.satFile);
+  const satLoading = useDataStore((s) => s.satLoading);
+  const satError = useDataStore((s) => s.satError);
+  const uploadSAT = useDataStore((s) => s.uploadSAT);
+  const clearSAT = useDataStore((s) => s.clearSAT);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('technical');
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [uploadsOpen, setUploadsOpen] = useState(false);
   const [sceUploadsOpen, setSceUploadsOpen] = useState(false);
+  const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
+    'overview',
+  );
+  const [satUploadsOpen, setSatUploadsOpen] = useState(false);
   const [appMode, setAppMode] = useState<AppMode>('select');
 
   const allLoaded = !!technicalFile && !!actionsFile && !!mocTakipFile;
@@ -52,21 +67,24 @@ function App() {
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
         <main className="mx-auto flex min-h-screen max-w-[1440px] items-center px-4 py-10 sm:px-6 lg:px-8">
           <section className="w-full">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#db2f32] text-white shadow-sm ring-1 ring-white/10">
-                <Sparkles size={20} />
+            <div className="mb-10 flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#db2f32] text-white shadow-sm ring-1 ring-white/10">
+                <Sparkles size={24} />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-white">
+                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">
                   Dashboard Seçimi
+                </div>
+                <h1 className="mt-1 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  Enstrüman Bakım Müdürlüğü
                 </h1>
-                <p className="text-sm text-white/50">
+                <p className="mt-2 text-sm text-white/50">
                   Başlamak istediğiniz dashboard'u seçin.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setAppMode('moc')}
@@ -98,12 +116,131 @@ function App() {
                   SCE ve Enerji Kritik Ekipmanlar
                 </div>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('sat')}
+                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-cyan-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-600 text-white shadow-sm">
+                  <ShoppingCart size={22} />
+                </div>
+                <div className="mt-8 text-3xl font-semibold text-white">
+                  SAT Takip Dashboard
+                </div>
+                <div className="mt-3 text-sm text-white/50">
+                  Satın Alma Talepleri ve Bütçe Takibi
+                </div>
+              </button>
             </div>
           </section>
         </main>
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-medium text-white/45 shadow-elevated backdrop-blur">
           Copyright Sarkhan HAJIZADA
         </div>
+      </div>
+    );
+  }
+
+  if (appMode === 'sat') {
+    const showSATUpload = !satFile || satUploadsOpen;
+
+    return (
+      <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
+          <div className="relative mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-600 text-white shadow-sm ring-1 ring-white/10">
+                <ShoppingCart size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
+                <h1 className="text-base font-semibold leading-tight text-white">
+                  SAT Takip Dashboard
+                </h1>
+                <p className="text-xs text-white/50">
+                  Satın Alma Talepleri ve Bütçe Takibi
+                </p>
+              </div>
+              {satFile && (
+                <button
+                  type="button"
+                  onClick={() => setSatUploadsOpen((open) => !open)}
+                  aria-expanded={satUploadsOpen}
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
+                >
+                  <FileSpreadsheet size={16} />
+                  SAT Excel Dosyası
+                  <ChevronDown
+                    size={16}
+                    className={`transition ${satUploadsOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {satFile && (
+                <button
+                  type="button"
+                  onClick={() => setSatUploadsOpen((open) => !open)}
+                  aria-expanded={satUploadsOpen}
+                  aria-label="SAT Excel dosyası panelini aç veya kapat"
+                  className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:hidden"
+                >
+                  <FileSpreadsheet size={18} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAppMode('select')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+              >
+                <ArrowLeft size={16} />
+                Dashboard Seçimi
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          {showSATUpload && (
+            <section className="mb-6 max-w-3xl">
+              <FileUpload
+                title="SAT Takip Excel'i"
+                subtitle="Satın alma talepleri, onay ve teklif süreçlerini içeren dosya"
+                hint="Beklenen sayfa: SAT LİSTESİ. Boş şablon satırları otomatik olarak elenir."
+                fileMeta={satFile}
+                loading={satLoading}
+                error={satError}
+                onFile={uploadSAT}
+                onClear={clearSAT}
+                accentColorClass="from-cyan-400 to-teal-600"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
+
+          {!satFile ? (
+            <div className="card mx-auto max-w-3xl p-10 text-center">
+              <ShoppingCart size={36} className="mx-auto mb-4 text-cyan-300" />
+              <h2 className="text-lg font-semibold text-white">
+                Başlamak için SAT Takip Excel dosyasını yükleyin
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                SAT listesi tarayıcınızda işlenir; onay ve satın alma durumları tek
+                süreç akışına dönüştürülür.
+              </p>
+            </div>
+          ) : (
+            <SATDashboard />
+          )}
+        </main>
+
+        <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
+          Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
+        </footer>
       </div>
     );
   }
@@ -118,6 +255,9 @@ function App() {
                 <LayoutDashboard size={18} />
               </div>
               <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
                 <h1 className="text-base font-semibold leading-tight text-white">
                   Yasal Bakımlar Dashboard
                 </h1>
@@ -199,6 +339,9 @@ function App() {
                 <ShieldCheck size={18} />
               </div>
               <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
                 <h1 className="text-base font-semibold leading-tight text-white">
                   SCE Dashboard
                 </h1>
@@ -266,6 +409,37 @@ function App() {
             </section>
           )}
 
+          {sceFile && (
+            <div className="mb-6 inline-flex rounded-lg border border-white/10 bg-black/35 p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSceActiveView('overview')}
+                aria-pressed={sceActiveView === 'overview'}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                  sceActiveView === 'overview'
+                    ? 'bg-sky-500 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Gauge size={16} />
+                Genel Bakış
+              </button>
+              <button
+                type="button"
+                onClick={() => setSceActiveView('details')}
+                aria-pressed={sceActiveView === 'details'}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                  sceActiveView === 'details'
+                    ? 'bg-sky-500 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <TableProperties size={16} />
+                Detaylı Takip
+              </button>
+            </div>
+          )}
+
           {!sceFile ? (
             <div className="card mx-auto max-w-3xl p-10 text-center">
               <ShieldCheck
@@ -280,6 +454,8 @@ function App() {
                 kategorilerine otomatik ayrılır.
               </p>
             </div>
+          ) : sceActiveView === 'overview' ? (
+            <SCEOverviewDashboard />
           ) : (
             <SCEDashboard />
           )}
@@ -302,6 +478,9 @@ function App() {
                 <Zap size={18} />
               </div>
               <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
                 <h1 className="text-base font-semibold leading-tight text-white">
                   Enerji Kritik Ekipmanlar Dashboard
                 </h1>
@@ -341,6 +520,9 @@ function App() {
               <Sparkles size={18} />
             </div>
             <div className="min-w-0">
+              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-200/65">
+                Enstrüman Bakım Müdürlüğü
+              </p>
               <h1 className="text-base font-semibold text-white leading-tight">
                 MOC Dashboard
               </h1>
@@ -443,11 +625,9 @@ function App() {
           </div>
         ) : (
           <section>
-            {activeTab === 'technical' ? (
-              <TechnicalDashboard />
-            ) : (
-              <ActionsDashboard />
-            )}
+            {activeTab === 'overview' && <MOCOverviewDashboard />}
+            {activeTab === 'technical' && <TechnicalDashboard />}
+            {activeTab === 'actions' && <ActionsDashboard />}
           </section>
         )}
       </main>
