@@ -20,6 +20,7 @@ import { SCEDashboard } from './components/sce/SCEDashboard';
 import { SATDashboard } from './components/sat/SATDashboard';
 import { MOCOverviewDashboard } from './components/overview/MOCOverviewDashboard';
 import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
+import { SATExportDashboard } from './components/sat/SATExportDashboard';
 
 type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
 
@@ -47,6 +48,7 @@ function App() {
   const satFile = useDataStore((s) => s.satFile);
   const satLoading = useDataStore((s) => s.satLoading);
   const satError = useDataStore((s) => s.satError);
+  const satFormat = useDataStore((s) => s.satFormat);
   const uploadSAT = useDataStore((s) => s.uploadSAT);
   const clearSAT = useDataStore((s) => s.clearSAT);
 
@@ -210,7 +212,7 @@ function App() {
               <FileUpload
                 title="SAT Takip Excel'i"
                 subtitle="Satın alma talepleri, onay ve teklif süreçlerini içeren dosya"
-                hint="Beklenen sayfa: SAT LİSTESİ. Boş şablon satırları otomatik olarak elenir."
+                hint="SAT LİSTESİ veya SAP EXPORT dosyası desteklenir. Sarı işaretli export kolonları otomatik algılanır."
                 fileMeta={satFile}
                 loading={satLoading}
                 error={satError}
@@ -233,6 +235,8 @@ function App() {
                 süreç akışına dönüştürülür.
               </p>
             </div>
+          ) : satFormat === 'sap_export' ? (
+            <SATExportDashboard />
           ) : (
             <SATDashboard />
           )}

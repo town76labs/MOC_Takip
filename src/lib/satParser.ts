@@ -1,5 +1,11 @@
 import * as XLSX from 'xlsx';
-import type { ParseError, SATRow, SATStage } from '../types';
+import type {
+  ParseError,
+  SATExportRow,
+  SATFileFormat,
+  SATRow,
+  SATStage,
+} from '../types';
 import { normalize, parseDate, toDisplayString } from './normalize';
 
 type SATField =
@@ -82,21 +88,37 @@ interface SheetCandidate {
 
 export async function parseSATExcel(
   file: File,
-): Promise<{ data: SATRow[]; error?: ParseError }> {
+): Promise<{
+  data: SATRow[];
+  exportData: SATExportRow[];
+  format: SATFileFormat | null;
+  error?: ParseError;
+}> {
   try {
     if (file.size === 0) {
-      return { data: [], error: { message: 'SAT Takip dosyası boş görünüyor.' } };
+      return {
+        data: [],
+        exportData: [],
+        format: null,
+        error: { message: 'SAT Takip dosyası boş görünüyor.' },
+      };
     }
 
     const workbook = XLSX.read(await file.arrayBuffer(), {
       type: 'array',
       cellDates: true,
     });
+    const exportData = parseSAPExport(workbook);
+    if (exportData.length > 0) {
+      return { data: [], exportData, format: 'sap_export' };
+    }
     const sheet = findBestSheet(workbook);
 
     if (!sheet || sheet.score === 0) {
       return {
         data: [],
+        exportData: [],
+        format: null,
         error: {
           message: 'SAT Takip tablosunun başlıkları bulunamadı.',
           details: ['Beklenen sayfa örneği: SAT LİSTESİ'],
@@ -110,6 +132,8 @@ export async function parseSATExcel(
     if (missing.length > 0) {
       return {
         data: [],
+        exportData: [],
+        format: null,
         error: {
           message: 'SAT Takip dosyasında gerekli sütunlar eksik.',
           missing: missing.map((field) => FIELD_ALIASES[field][0]),
@@ -133,6 +157,8 @@ export async function parseSATExcel(
     if (data.length === 0) {
       return {
         data: [],
+        exportData: [],
+        format: null,
         error: {
           message: 'SAT Takip sayfasında gerçek talep kaydı bulunamadı.',
           details: [`Seçilen sayfa: ${sheet.name}`],
@@ -140,16 +166,117 @@ export async function parseSATExcel(
       };
     }
 
-    return { data };
+    return { data, exportData: [], format: 'legacy' };
   } catch {
     return {
       data: [],
+      exportData: [],
+      format: null,
       error: {
         message:
           'SAT Takip Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.',
       },
     };
   }
+}
+
+const SAP_EXPORT_HEADERS = [
+  'SAT Yaratan',
+  'SAT Belge Numarası',
+  'Toplam SAT USD Tutarı',
+  'SAT Yaratılma Tarihi',
+  'Tamam',
+  'SAS Son Teslimat',
+  'SAS Son Fatura',
+  'SAS USD Tutar',
+  'Teslim Tarihi',
+  'SAS Birim Fiyat',
+  'SAT Onay Durum',
+  'İrsaliye',
+  'Satınalma Özet Durum Bilgisi',
+  'Malzeme Tanımı',
+  'Malzeme',
+  'SAS Yaratan',
+  'Satıcı Adı',
+  'SAT Onay Durum Tanımı',
+] as const;
+
+function parseSAPExport(workbook: XLSX.WorkBook): SATExportRow[] {
+  for (const sheetName of workbook.SheetNames) {
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) continue;
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
+      header: 1,
+      defval: '',
+      raw: true,
+      blankrows: false,
+    });
+    const headerIndex = matrix.slice(0, 20).findIndex((row) => {
+      const headers = new Set(row.map(normalizeHeader));
+      return SAP_EXPORT_HEADERS.filter((header) =>
+        headers.has(normalizeHeader(header)),
+      ).length >= 14;
+    });
+    if (headerIndex < 0) continue;
+
+    const headers = matrix[headerIndex].map(normalizeHeader);
+    const indexOf = (header: (typeof SAP_EXPORT_HEADERS)[number]) =>
+      headers.indexOf(normalizeHeader(header));
+    const indexes = Object.fromEntries(
+      SAP_EXPORT_HEADERS.map((header) => [header, indexOf(header)]),
+    ) as Record<(typeof SAP_EXPORT_HEADERS)[number], number>;
+    if (
+      indexes['SAT Belge Numarası'] < 0 ||
+      indexes['SAT Yaratan'] < 0 ||
+      indexes['Malzeme Tanımı'] < 0
+    ) {
+      continue;
+    }
+
+    const value = (
+      cells: unknown[],
+      header: (typeof SAP_EXPORT_HEADERS)[number],
+    ) => cells[indexes[header]];
+    return matrix
+      .slice(headerIndex + 1)
+      .map((cells, index): SATExportRow | null => {
+        const satNo = compact(value(cells, 'SAT Belge Numarası'));
+        if (!satNo) return null;
+        return {
+          rowId: `sat-export-${index + headerIndex + 2}`,
+          sourceRow: index + headerIndex + 2,
+          satCreator: compact(value(cells, 'SAT Yaratan')),
+          satNo,
+          totalSatUsd: parseAmount(value(cells, 'Toplam SAT USD Tutarı')),
+          createdAt: parseDate(value(cells, 'SAT Yaratılma Tarihi')),
+          completed: isMarked(value(cells, 'Tamam')),
+          lastDelivery: isMarked(value(cells, 'SAS Son Teslimat')),
+          lastInvoice: isMarked(value(cells, 'SAS Son Fatura')),
+          sasUsdAmount: parseAmount(value(cells, 'SAS USD Tutar')),
+          deliveryDate: parseDate(value(cells, 'Teslim Tarihi')),
+          sasUnitPrice: parseAmount(value(cells, 'SAS Birim Fiyat')),
+          approvalCode: compact(value(cells, 'SAT Onay Durum')),
+          waybill: compact(value(cells, 'İrsaliye')),
+          summaryStatus: compact(
+            value(cells, 'Satınalma Özet Durum Bilgisi'),
+          ),
+          materialDescription: compact(value(cells, 'Malzeme Tanımı')),
+          material: compact(value(cells, 'Malzeme')),
+          sasCreator: compact(value(cells, 'SAS Yaratan')),
+          vendorName: compact(value(cells, 'Satıcı Adı')),
+          approvalStatusDescription: compact(
+            value(cells, 'SAT Onay Durum Tanımı'),
+          ),
+        };
+      })
+      .filter((row): row is SATExportRow => row !== null);
+  }
+  return [];
+}
+
+function isMarked(value: unknown) {
+  const clean = normalize(value);
+  return clean === 'x' || clean === 'evet' || clean === '1';
 }
 
 function findBestSheet(workbook: XLSX.WorkBook): SheetCandidate | null {

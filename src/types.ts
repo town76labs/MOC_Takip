@@ -163,3 +163,28 @@ export interface SATRow {
   stage: SATStage;
   raw: Record<string, string>;
 }
+
+export type SATFileFormat = 'legacy' | 'sap_export';
+
+export interface SATExportRow {
+  rowId: string;
+  sourceRow: number;
+  satCreator: string;
+  satNo: string;
+  totalSatUsd: number;
+  createdAt: Date | null;
+  completed: boolean;
+  lastDelivery: boolean;
+  lastInvoice: boolean;
+  sasUsdAmount: number;
+  deliveryDate: Date | null;
+  sasUnitPrice: number;
+  approvalCode: string;
+  waybill: string;
+  summaryStatus: string;
+  materialDescription: string;
+  material: string;
+  sasCreator: string;
+  vendorName: string;
+  approvalStatusDescription: string;
+}

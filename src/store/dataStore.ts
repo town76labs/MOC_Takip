@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type {
   ActionRow,
   ParseError,
+  SATExportRow,
+  SATFileFormat,
   SATRow,
   SCERow,
   TechnicalRow,
@@ -28,6 +30,8 @@ interface DataState {
   mocTakipMocNos: string[];
   sceRows: SCERow[];
   satRows: SATRow[];
+  satExportRows: SATExportRow[];
+  satFormat: SATFileFormat | null;
   technicalFile: FileMeta | null;
   actionsFile: FileMeta | null;
   mocTakipFile: FileMeta | null;
@@ -71,6 +75,8 @@ export const useDataStore = create<DataState>((set) => ({
   mocTakipMocNos: [],
   sceRows: [],
   satRows: [],
+  satExportRows: [],
+  satFormat: null,
   technicalFile: null,
   actionsFile: null,
   mocTakipFile: null,
@@ -173,12 +179,14 @@ export const useDataStore = create<DataState>((set) => ({
 
   uploadSAT: async (file: File) => {
     set({ satLoading: true, satError: null });
-    const { data, error } = await parseSATExcel(file);
+    const { data, exportData, format, error } = await parseSATExcel(file);
     if (error) {
       set({
         satLoading: false,
         satError: error,
         satRows: [],
+        satExportRows: [],
+        satFormat: null,
         satFile: null,
       });
       return;
@@ -186,6 +194,8 @@ export const useDataStore = create<DataState>((set) => ({
     set({
       satLoading: false,
       satRows: data,
+      satExportRows: exportData,
+      satFormat: format,
       satFile: { name: file.name, size: file.size, uploadedAt: new Date() },
       satError: null,
     });
@@ -220,6 +230,8 @@ export const useDataStore = create<DataState>((set) => ({
   clearSAT: () =>
     set({
       satRows: [],
+      satExportRows: [],
+      satFormat: null,
       satFile: null,
       satError: null,
     }),
