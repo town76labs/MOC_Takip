@@ -170,6 +170,7 @@ export interface SATExportRow {
   rowId: string;
   sourceRow: number;
   satCreator: string;
+  companyCode: string;
   satNo: string;
   totalSatUsd: number;
   createdAt: Date | null;
@@ -186,5 +187,6 @@ export interface SATExportRow {
   material: string;
   sasCreator: string;
   vendorName: string;
+  materialGroup: string;
   approvalStatusDescription: string;
 }

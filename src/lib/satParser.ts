@@ -180,25 +180,40 @@ export async function parseSATExcel(
   }
 }
 
-const SAP_EXPORT_HEADERS = [
-  'SAT Yaratan',
-  'SAT Belge Numarası',
-  'Toplam SAT USD Tutarı',
-  'SAT Yaratılma Tarihi',
-  'Tamam',
-  'SAS Son Teslimat',
-  'SAS Son Fatura',
-  'SAS USD Tutar',
-  'Teslim Tarihi',
-  'SAS Birim Fiyat',
-  'SAT Onay Durum',
-  'İrsaliye',
-  'Satınalma Özet Durum Bilgisi',
-  'Malzeme Tanımı',
-  'Malzeme',
-  'SAS Yaratan',
-  'Satıcı Adı',
-  'SAT Onay Durum Tanımı',
+const SAP_EXPORT_COLUMNS = {
+  satCreator: 0, // A
+  companyCodeOrSatNo: 1, // B
+  satNoFallback: 2, // C - mevcut exportta zorunlu teknik belge kimliği
+  totalSatUsd: 4, // E
+  createdAt: 5, // F
+  completed: 16, // Q
+  lastDelivery: 17, // R
+  lastInvoice: 18, // S
+  sasUsdAmount: 21, // V
+  deliveryDate: 23, // X
+  sasUnitPrice: 40, // AO
+  approvalCode: 42, // AQ
+  materialGroup: 86, // CI
+  waybill: 88, // CK
+  summaryStatus: 105, // DB
+  materialDescription: 116, // DM
+  material: 121, // DR
+  sasCreator: 128, // DY
+  vendorName: 129, // DZ
+  approvalStatusDescription: 131, // EB
+} as const;
+
+const SAP_EXPORT_HEADER_SIGNATURES = [
+  [SAP_EXPORT_COLUMNS.satCreator, 'SAT Yaratan'],
+  [SAP_EXPORT_COLUMNS.totalSatUsd, 'Toplam SAT USD Tutarı'],
+  [SAP_EXPORT_COLUMNS.createdAt, 'SAT Yaratılma Tarihi'],
+  [SAP_EXPORT_COLUMNS.completed, 'Tamam'],
+  [SAP_EXPORT_COLUMNS.sasUsdAmount, 'SAS USD Tutar'],
+  [SAP_EXPORT_COLUMNS.materialGroup, 'SAT Mal Grubu Tanımı'],
+  [SAP_EXPORT_COLUMNS.summaryStatus, 'Satınalma Özet Durum Bilgisi'],
+  [SAP_EXPORT_COLUMNS.materialDescription, 'Malzeme Tanımı'],
+  [SAP_EXPORT_COLUMNS.material, 'Malzeme'],
+  [SAP_EXPORT_COLUMNS.approvalStatusDescription, 'SAT Onay Durum Tanımı'],
 ] as const;
 
 function parseSAPExport(workbook: XLSX.WorkBook): SATExportRow[] {
@@ -211,61 +226,60 @@ function parseSAPExport(workbook: XLSX.WorkBook): SATExportRow[] {
       raw: true,
       blankrows: false,
     });
-    const headerIndex = matrix.slice(0, 20).findIndex((row) => {
-      const headers = new Set(row.map(normalizeHeader));
-      return SAP_EXPORT_HEADERS.filter((header) =>
-        headers.has(normalizeHeader(header)),
-      ).length >= 14;
-    });
+    const headerIndex = matrix.slice(0, 20).findIndex(
+      (row) =>
+        SAP_EXPORT_HEADER_SIGNATURES.filter(
+          ([column, header]) =>
+            normalizeHeader(row[column]) === normalizeHeader(header),
+        ).length >= 7,
+    );
     if (headerIndex < 0) continue;
 
-    const headers = matrix[headerIndex].map(normalizeHeader);
-    const indexOf = (header: (typeof SAP_EXPORT_HEADERS)[number]) =>
-      headers.indexOf(normalizeHeader(header));
-    const indexes = Object.fromEntries(
-      SAP_EXPORT_HEADERS.map((header) => [header, indexOf(header)]),
-    ) as Record<(typeof SAP_EXPORT_HEADERS)[number], number>;
-    if (
-      indexes['SAT Belge Numarası'] < 0 ||
-      indexes['SAT Yaratan'] < 0 ||
-      indexes['Malzeme Tanımı'] < 0
-    ) {
-      continue;
-    }
-
-    const value = (
-      cells: unknown[],
-      header: (typeof SAP_EXPORT_HEADERS)[number],
-    ) => cells[indexes[header]];
+    const headerRow = matrix[headerIndex];
+    const bContainsSatNo =
+      normalizeHeader(headerRow[SAP_EXPORT_COLUMNS.companyCodeOrSatNo]) ===
+      normalizeHeader('SAT Belge Numarası');
+    const value = (cells: unknown[], column: number) => cells[column];
     return matrix
       .slice(headerIndex + 1)
       .map((cells, index): SATExportRow | null => {
-        const satNo = compact(value(cells, 'SAT Belge Numarası'));
+        const satNo = compact(
+          value(
+            cells,
+            bContainsSatNo
+              ? SAP_EXPORT_COLUMNS.companyCodeOrSatNo
+              : SAP_EXPORT_COLUMNS.satNoFallback,
+          ),
+        );
         if (!satNo) return null;
         return {
           rowId: `sat-export-${index + headerIndex + 2}`,
           sourceRow: index + headerIndex + 2,
-          satCreator: compact(value(cells, 'SAT Yaratan')),
+          satCreator: compact(value(cells, SAP_EXPORT_COLUMNS.satCreator)),
+          companyCode: bContainsSatNo
+            ? ''
+            : compact(value(cells, SAP_EXPORT_COLUMNS.companyCodeOrSatNo)),
           satNo,
-          totalSatUsd: parseAmount(value(cells, 'Toplam SAT USD Tutarı')),
-          createdAt: parseDate(value(cells, 'SAT Yaratılma Tarihi')),
-          completed: isMarked(value(cells, 'Tamam')),
-          lastDelivery: isMarked(value(cells, 'SAS Son Teslimat')),
-          lastInvoice: isMarked(value(cells, 'SAS Son Fatura')),
-          sasUsdAmount: parseAmount(value(cells, 'SAS USD Tutar')),
-          deliveryDate: parseDate(value(cells, 'Teslim Tarihi')),
-          sasUnitPrice: parseAmount(value(cells, 'SAS Birim Fiyat')),
-          approvalCode: compact(value(cells, 'SAT Onay Durum')),
-          waybill: compact(value(cells, 'İrsaliye')),
-          summaryStatus: compact(
-            value(cells, 'Satınalma Özet Durum Bilgisi'),
+          totalSatUsd: parseAmount(value(cells, SAP_EXPORT_COLUMNS.totalSatUsd)),
+          createdAt: parseDate(value(cells, SAP_EXPORT_COLUMNS.createdAt)),
+          completed: isMarked(value(cells, SAP_EXPORT_COLUMNS.completed)),
+          lastDelivery: isMarked(value(cells, SAP_EXPORT_COLUMNS.lastDelivery)),
+          lastInvoice: isMarked(value(cells, SAP_EXPORT_COLUMNS.lastInvoice)),
+          sasUsdAmount: parseAmount(value(cells, SAP_EXPORT_COLUMNS.sasUsdAmount)),
+          deliveryDate: parseDate(value(cells, SAP_EXPORT_COLUMNS.deliveryDate)),
+          sasUnitPrice: parseAmount(value(cells, SAP_EXPORT_COLUMNS.sasUnitPrice)),
+          approvalCode: compact(value(cells, SAP_EXPORT_COLUMNS.approvalCode)),
+          waybill: compact(value(cells, SAP_EXPORT_COLUMNS.waybill)),
+          summaryStatus: compact(value(cells, SAP_EXPORT_COLUMNS.summaryStatus)),
+          materialDescription: compact(
+            value(cells, SAP_EXPORT_COLUMNS.materialDescription),
           ),
-          materialDescription: compact(value(cells, 'Malzeme Tanımı')),
-          material: compact(value(cells, 'Malzeme')),
-          sasCreator: compact(value(cells, 'SAS Yaratan')),
-          vendorName: compact(value(cells, 'Satıcı Adı')),
+          material: compact(value(cells, SAP_EXPORT_COLUMNS.material)),
+          sasCreator: compact(value(cells, SAP_EXPORT_COLUMNS.sasCreator)),
+          vendorName: compact(value(cells, SAP_EXPORT_COLUMNS.vendorName)),
+          materialGroup: compact(value(cells, SAP_EXPORT_COLUMNS.materialGroup)),
           approvalStatusDescription: compact(
-            value(cells, 'SAT Onay Durum Tanımı'),
+            value(cells, SAP_EXPORT_COLUMNS.approvalStatusDescription),
           ),
         };
       })

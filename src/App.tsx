@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import {
   ArrowLeft,
+  BatteryCharging,
   ChevronDown,
+  FileChartColumn,
   FileSpreadsheet,
   Gauge,
-  LayoutDashboard,
+  GitCompareArrows,
   ShoppingCart,
+  ShieldAlert,
   ShieldCheck,
-  Sparkles,
   TableProperties,
-  Zap,
 } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { DashboardTabs, type TabKey } from './components/DashboardTabs';
@@ -71,7 +72,7 @@ function App() {
           <section className="w-full">
             <div className="mb-10 flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#db2f32] text-white shadow-sm ring-1 ring-white/10">
-                <Sparkles size={24} />
+                <ICEngineeringIcon />
               </div>
               <div>
                 <div className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">
@@ -92,8 +93,8 @@ function App() {
                 onClick={() => setAppMode('moc')}
                 className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-red-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-red-400/30"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#db2f32] text-white shadow-sm">
-                  <LayoutDashboard size={22} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-red-700 text-white shadow-sm ring-1 ring-white/10">
+                  <GitCompareArrows size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
                   MOC Dashboard
@@ -108,8 +109,8 @@ function App() {
                 onClick={() => setAppMode('legal')}
                 className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-sky-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sky-400/30"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm">
-                  <LayoutDashboard size={22} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
+                  <ShieldCheck size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
                   Yasal Bakımlar Dashboard
@@ -125,7 +126,7 @@ function App() {
                 className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-cyan-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-600 text-white shadow-sm">
-                  <ShoppingCart size={22} />
+                  <FileChartColumn size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
                   SAT Takip Dashboard
@@ -153,7 +154,7 @@ function App() {
           <div className="relative mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-600 text-white shadow-sm ring-1 ring-white/10">
-                <ShoppingCart size={18} />
+                <FileChartColumn size={20} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/65">
@@ -212,7 +213,7 @@ function App() {
               <FileUpload
                 title="SAT Takip Excel'i"
                 subtitle="Satın alma talepleri, onay ve teklif süreçlerini içeren dosya"
-                hint="SAT LİSTESİ veya SAP EXPORT dosyası desteklenir. Sarı işaretli export kolonları otomatik algılanır."
+                hint="SAT LİSTESİ veya SAP EXPORT dosyası desteklenir. SAP Export verileri sabit sütun konumlarından, hücre renginden bağımsız okunur."
                 fileMeta={satFile}
                 loading={satLoading}
                 error={satError}
@@ -255,8 +256,8 @@ function App() {
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm ring-1 ring-white/10">
-                <LayoutDashboard size={18} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
+                <ShieldCheck size={20} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-200/65">
@@ -298,8 +299,8 @@ function App() {
                 onClick={() => setAppMode('sce')}
                 className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-sky-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sky-400/30"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm">
-                  <LayoutDashboard size={22} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
+                  <ShieldAlert size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
                   SCE Dashboard
@@ -314,8 +315,8 @@ function App() {
                 onClick={() => setAppMode('energy')}
                 className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-amber-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500 text-white shadow-sm">
-                  <Zap size={22} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm ring-1 ring-white/10">
+                  <BatteryCharging size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
                   Enerji Kritik Ekipmanlar Dashboard
@@ -339,8 +340,8 @@ function App() {
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm ring-1 ring-white/10">
-                <ShieldCheck size={18} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
+                <ShieldAlert size={20} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-200/65">
@@ -446,9 +447,10 @@ function App() {
 
           {!sceFile ? (
             <div className="card mx-auto max-w-3xl p-10 text-center">
-              <ShieldCheck
+              <ShieldAlert
                 size={34}
                 className="mx-auto mb-4 text-sky-400"
+                strokeWidth={1.8}
               />
               <h2 className="text-lg font-semibold text-white">
                 Başlamak için SCE Excel dosyasını yükleyin
@@ -478,8 +480,8 @@ function App() {
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 text-white shadow-sm ring-1 ring-white/10">
-                <Zap size={18} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm ring-1 ring-white/10">
+                <BatteryCharging size={20} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/65">
@@ -520,8 +522,8 @@ function App() {
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#db2f32] text-white shadow-sm ring-1 ring-white/10">
-              <Sparkles size={18} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-red-700 text-white shadow-sm ring-1 ring-white/10">
+              <GitCompareArrows size={20} strokeWidth={1.8} />
             </div>
             <div className="min-w-0">
               <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-200/65">
@@ -640,6 +642,38 @@ function App() {
         Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
       </footer>
     </div>
+  );
+}
+
+function ICEngineeringIcon() {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="16" cy="16" r="7.25" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M10.2 16h3.1l1.65-3.3 2.25 6.6 1.65-3.3h2.95"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 3.5v5.25M16 23.25v5.25M3.5 16h5.25M23.25 16h5.25"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="16" cy="3.5" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="28.5" r="1.5" fill="currentColor" />
+      <circle cx="3.5" cy="16" r="1.5" fill="currentColor" />
+      <circle cx="28.5" cy="16" r="1.5" fill="currentColor" />
+    </svg>
   );
 }
 
