@@ -146,6 +146,13 @@ function buildExecutiveReport(
   const aged = openDocuments.filter((document) => ageDays(document.createdAt) > 60);
   const funnel = buildFunnel(documents);
   const materialGroups = buildMaterialGroups(rows).slice(0, 8);
+  const processStatus = topWithOther(
+    countDocuments(
+      documents,
+      (document) => document.status || 'Durum Girilmemiş',
+    ),
+    6,
+  );
   const critical = [...openDocuments]
     .sort(
       (a, b) =>
@@ -169,10 +176,23 @@ function buildExecutiveReport(
       `${risks.overdue.length} kalemin teslim tarihi geçmiş; gecikmiş SAS tutarı ${formatUsd(risks.overdueUsd)}.`,
       `${risks.missing.length} açık kalemde teslim tarihi bulunmuyor.`,
     ]),
+    sectionTitle('Süreç Durumu Görsel Özeti'),
+    vectorDonutChart(processStatus, {
+      total: documents.length,
+      centerLabel: 'SAT',
+      centerValue: formatNumber(documents.length),
+    }),
     sectionTitle('Satınalma Süreç Hunisi'),
     funnelTable(funnel),
     sectionTitle('Mal Grubu Pareto Özeti'),
-    distributionTable(materialGroups, rows.length, 'SAT Kalemi', true),
+    vectorBarChart(materialGroups, {
+      total: rows.length,
+      width: 450,
+      color: COLORS.cyan,
+      cumulative: true,
+      valueFormatter: (item, cumulative) =>
+        `${formatNumber(item.value)} kalem · ${percent(item.value, rows.length)} · Küm. ${percent(cumulative, rows.length)} · ${formatUsd(item.amount ?? 0)}`,
+    }),
     sectionTitle('Öncelikli Açık SAT Belgeleri'),
     standardTable(
       ['SAT No', 'SAT Yaratan', 'Özet Durum', 'Bekleme', 'SAT USD'],
@@ -210,11 +230,19 @@ function buildPerformanceReport(
       ['Fatura Tamam', formatNumber(rows.filter((row) => row.lastInvoice).length), percent(rows.filter((row) => row.lastInvoice).length, rows.length)],
     ]),
     sectionTitle('Süreç Durum Dağılımı'),
-    distributionTable(statuses, documents.length, 'SAT Belgesi'),
-    sectionTitle('SAT → SAS → Teslimat → Fatura Dönüşümü'),
+    vectorDonutChart(topWithOther(statuses, 6), {
+      total: documents.length,
+      centerLabel: 'Belge',
+      centerValue: formatNumber(documents.length),
+    }),
+    sectionTitle('SAT - SAS - Teslimat - Fatura Dönüşümü'),
     funnelTable(buildFunnel(documents)),
     sectionTitle('Açık SAT Yaşlandırma'),
-    distributionTable(aging, sum(aging.map((item) => item.value)), 'SAT Belgesi'),
+    vectorBarChart(aging, {
+      total: sum(aging.map((item) => item.value)),
+      width: 450,
+      color: COLORS.orange,
+    }),
     sectionTitle('Aylık SAT Oluşturma Trendi'),
     distributionTable(monthly, documents.length, 'SAT Belgesi'),
     {
@@ -253,6 +281,14 @@ function buildDeliveryRiskReport(
     { label: '8–30 Gün', value: risks.next30.length },
     { label: 'Teslim Tarihi Yok', value: risks.missing.length },
   ];
+  const highestOverdue = risks.overdue
+    .filter((item) => item.row.sasUsdAmount > 0)
+    .sort((a, b) => b.row.sasUsdAmount - a.row.sasUsdAmount)
+    .slice(0, 8)
+    .map((item) => ({
+      label: `${item.row.satNo} · ${shortText(item.row.materialDescription || item.row.material, 46)}`,
+      value: item.row.sasUsdAmount,
+    }));
   return [
     ...reportHeading(REPORT_NAMES.delivery_risk, scopeLabel),
     kpiGrid([
@@ -262,13 +298,26 @@ function buildDeliveryRiskReport(
       ['Tarihi Olmayan', formatNumber(risks.missing.length), 'Veri kalitesi riski'],
     ]),
     sectionTitle('Teslimat Risk Dağılımı'),
-    distributionTable(groups, riskRows.length, 'Açık Kalem'),
+    vectorDonutChart(groups, {
+      total: riskRows.length,
+      centerLabel: 'Riskli Kalem',
+      centerValue: formatNumber(riskRows.length),
+    }),
+    sectionTitle('En Yüksek Gecikmiş SAS Tutarları'),
+    highestOverdue.length
+      ? vectorBarChart(highestOverdue, {
+          width: 690,
+          color: COLORS.amber,
+          currency: true,
+        })
+      : callout(['SAS tutarı bulunan gecikmiş kalem yok.']),
     sectionTitle('Riskli Kalem Detayı'),
     standardTable(
-      ['Risk', 'SAT No', 'Malzeme / Tanım', 'Mal Grubu', 'Satıcı', 'SAS Yaratan', 'Teslim', 'Gecikme', 'SAS USD'],
+      ['Risk', 'SAT No', 'SAT Yaratan', 'Malzeme / Tanım', 'Mal Grubu', 'Satıcı', 'SAS Yaratan', 'Teslim', 'Gecikme', 'SAS USD'],
       riskRows.map((item) => [
         item.risk,
         item.row.satNo,
+        item.row.satCreator || '—',
         joinMaterial(item.row),
         item.row.materialGroup || '—',
         item.row.vendorName || '—',
@@ -277,7 +326,7 @@ function buildDeliveryRiskReport(
         item.daysLate === null ? '—' : `${item.daysLate} gün`,
         formatUsd(item.row.sasUsdAmount),
       ]),
-      [55, 48, '*', 75, 70, 60, 52, 42, 58],
+      [50, 46, 58, '*', 68, 65, 55, 48, 40, 55],
       6.4,
     ),
     {
@@ -293,6 +342,7 @@ function buildDetailReport(
   documents: ReportDocument[],
   scopeLabel: string,
 ): Content[] {
+  const materialGroups = buildMaterialGroups(rows);
   return [
     ...reportHeading(REPORT_NAMES.detail, scopeLabel),
     kpiGrid([
@@ -301,7 +351,13 @@ function buildDetailReport(
       ['Toplam SAT', formatCompactUsd(sum(documents.map((item) => item.totalSatUsd))), 'USD'],
       ['Toplam SAS', formatCompactUsd(sum(rows.map((item) => item.sasUsdAmount))), 'USD'],
     ]),
-    sectionTitle('SAT Kalemleri'),
+    sectionTitle('Mal Grubu Görsel Dağılımı'),
+    vectorDonutChart(topWithOther(materialGroups, 6), {
+      total: rows.length,
+      centerLabel: 'SAT Kalemi',
+      centerValue: formatNumber(rows.length),
+    }),
+    { text: 'SAT Kalemleri', style: 'section', pageBreak: 'before' },
     standardTable(
       ['SAT No', 'Şirket', 'Yaratılma', 'SAT Yaratan', 'Mal Grubu', 'Malzeme / Tanım', 'Özet Durum', 'SAS Yaratan', 'Satıcı', 'Teslim', 'SAT USD', 'SAS USD'],
       [...rows]
@@ -419,6 +475,159 @@ function funnelTable(
       ],
     },
     layout: 'lightHorizontalLines',
+  };
+}
+
+function vectorDonutChart(
+  rows: DistributionRow[],
+  options: { total?: number; centerLabel: string; centerValue: string },
+): Content {
+  const chartRows = rows.filter((item) => item.value > 0);
+  if (chartRows.length === 0) return callout(['Grafik için veri bulunamadı.']);
+  const total = options.total ?? sum(chartRows.map((item) => item.value));
+  const colors = [
+    COLORS.cyan,
+    COLORS.purple,
+    COLORS.orange,
+    COLORS.green,
+    COLORS.red,
+    '#2563eb',
+    '#64748b',
+  ];
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const segments = chartRows
+    .map((item, index) => {
+      const length = total ? (item.value / total) * circumference : 0;
+      const gap = Math.min(1.5, length * 0.2);
+      const segment = `<circle cx="80" cy="80" r="${radius}" fill="none" stroke="${colors[index % colors.length]}" stroke-width="28" stroke-dasharray="${Math.max(length - gap, 0.2)} ${circumference}" stroke-dashoffset="${-offset}" transform="rotate(-90 80 80)"/>`;
+      offset += length;
+      return segment;
+    })
+    .join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="${radius}" fill="none" stroke="#e2e8f0" stroke-width="28"/>${segments}<circle cx="80" cy="80" r="34" fill="#ffffff"/></svg>`;
+  const legendBody: TableCell[][] = chartRows.map((item, index) => [
+    {
+      canvas: [
+        {
+          type: 'rect',
+          x: 0,
+          y: 1,
+          w: 8,
+          h: 8,
+          color: colors[index % colors.length],
+        },
+      ],
+    },
+    { text: item.label, fontSize: 8, color: COLORS.navy },
+    {
+      text: `${formatNumber(item.value)} · ${percent(item.value, total)}`,
+      alignment: 'right',
+      fontSize: 8,
+      color: COLORS.slate,
+    },
+  ]);
+  return {
+    columns: [
+      { width: 165, svg, fit: [150, 150], margin: [8, 0, 0, 0] },
+      {
+        width: '*',
+        stack: [
+          {
+            columns: [
+              { text: options.centerLabel, bold: true, color: COLORS.slate },
+              {
+                text: options.centerValue,
+                alignment: 'right',
+                bold: true,
+                fontSize: 15,
+                color: COLORS.navy,
+              },
+            ],
+            margin: [0, 3, 0, 7],
+          },
+          {
+            table: { widths: [12, '*', 70], body: legendBody },
+            layout: 'noBorders',
+          },
+        ],
+      },
+    ],
+    columnGap: 14,
+  };
+}
+
+function vectorBarChart(
+  rows: DistributionRow[],
+  options: {
+    width: number;
+    color: string;
+    total?: number;
+    currency?: boolean;
+    cumulative?: boolean;
+    valueFormatter?: (item: DistributionRow, cumulative: number) => string;
+  },
+): Content {
+  if (rows.length === 0) return callout(['Grafik için veri bulunamadı.']);
+  const max = Math.max(...rows.map((item) => item.value), 1);
+  const total = options.total ?? sum(rows.map((item) => item.value));
+  let cumulative = 0;
+  const body: TableCell[][] = rows.map((item): TableCell[] => {
+    cumulative += item.value;
+    const valueText = options.valueFormatter
+      ? options.valueFormatter(item, cumulative)
+      : options.currency
+        ? formatUsd(item.value)
+        : `${formatNumber(item.value)} · ${percent(item.value, total)}`;
+    return [
+      {
+        stack: [
+          {
+            columns: [
+              {
+                text: item.label,
+                bold: true,
+                fontSize: 8,
+                color: COLORS.navy,
+              },
+              {
+                text: valueText,
+                alignment: 'right',
+                fontSize: 7.5,
+                color: COLORS.slate,
+              },
+            ],
+          },
+          {
+            canvas: [
+              {
+                type: 'rect',
+                x: 0,
+                y: 0,
+                w: options.width,
+                h: 8,
+                color: '#e2e8f0',
+              },
+              {
+                type: 'rect',
+                x: 0,
+                y: 0,
+                w: Math.max(2, (item.value / max) * options.width),
+                h: 8,
+                color: options.color,
+              },
+            ],
+            margin: [0, 4, 0, 0],
+          },
+        ],
+        margin: [0, 3, 0, 3],
+      },
+    ];
+  });
+  return {
+    table: { widths: ['*'], body },
+    layout: 'noBorders',
   };
 }
 
@@ -548,6 +757,22 @@ function buildMaterialGroups(rows: SATExportRow[]): DistributionRow[] {
   return [...groups.values()].sort(
     (a, b) => b.value - a.value || a.label.localeCompare(b.label, 'tr'),
   );
+}
+
+function topWithOther(rows: DistributionRow[], limit: number) {
+  const sorted = [...rows].sort(
+    (a, b) => b.value - a.value || a.label.localeCompare(b.label, 'tr'),
+  );
+  const top = sorted.slice(0, limit).map((item) => ({ ...item }));
+  const remaining = sorted.slice(limit);
+  if (remaining.length > 0) {
+    top.push({
+      label: `Diğer (${remaining.length} kategori)`,
+      value: sum(remaining.map((item) => item.value)),
+      amount: sum(remaining.map((item) => item.amount ?? 0)),
+    });
+  }
+  return top;
 }
 
 function countDocuments(
@@ -726,6 +951,10 @@ function addDays(date: Date, days: number) {
 
 function joinMaterial(row: SATExportRow) {
   return [row.material, row.materialDescription].filter(Boolean).join(' · ') || '—';
+}
+
+function shortText(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
 function formatDate(date: Date | null) {

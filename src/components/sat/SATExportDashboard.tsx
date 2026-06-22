@@ -359,9 +359,6 @@ export function SATExportDashboard() {
               <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" />
               <h2 className="panel-title">SAP Export Dashboard Filtreleri</h2>
             </div>
-            <p className="panel-subtitle mt-1">
-              Veriler tanımlı 19 SAP Export sütunundan, hücre renginden bağımsız okunur.
-            </p>
           </div>
           <button
             type="button"
