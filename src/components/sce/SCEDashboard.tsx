@@ -15,6 +15,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useDataStore } from '../../store/dataStore';
+import { normalize } from '../../lib/normalize';
 import type {
   SCECategory,
   SCECompany,
@@ -26,12 +27,16 @@ import {
   SCE_FACTORIES,
   SCE_FACTORY_CODES,
 } from '../../lib/sceParser';
-import { normalize } from '../../lib/normalize';
+import {
+  classifySCEMaintenance,
+  hasSCEValue,
+} from '../../lib/sceMaintenance';
 import {
   DataTable,
   type DataTableColumn,
 } from '../common/DataTable';
 import { Modal } from '../common/Modal';
+import { SCEReportControl } from './SCEReportControl';
 
 const CATEGORY_CONFIG: {
   key: SCECategory;
@@ -67,7 +72,36 @@ const PERIODIC_MAINTENANCE_COLORS = {
   'Periyodik Bakımı Yapılan': '#10b981',
   'Deferral Süreci Başlatılan': '#38bdf8',
   'Deferral Süreci Başlatılmayan': '#f59e0b',
+  'Deferral Gerektirmeyen': '#8b5cf6',
 } as const;
+
+type ShutdownRequirement = 'required' | 'not_required' | 'force';
+
+const SHUTDOWN_REQUIREMENT_CONFIG: {
+  key: ShutdownRequirement;
+  name: string;
+  normalizedValue: string;
+  color: string;
+}[] = [
+  {
+    key: 'required',
+    name: 'Duruş Gereklidir',
+    normalizedValue: 'durus gereklidir',
+    color: '#f97316',
+  },
+  {
+    key: 'not_required',
+    name: 'Duruş Gerekli Değildir',
+    normalizedValue: 'durus gerekli degildir',
+    color: '#10b981',
+  },
+  {
+    key: 'force',
+    name: 'Force ile Yapılabilir',
+    normalizedValue: 'force ile yapilabilir',
+    color: '#8b5cf6',
+  },
+];
 
 export function SCEDashboard() {
   const rows = useDataStore((state) => state.sceRows);
@@ -76,6 +110,8 @@ export function SCEDashboard() {
     useState<SCECategory>('all');
   const [selectedFactory, setSelectedFactory] =
     useState<SCEFactory | null>(null);
+  const [selectedShutdownRequirement, setSelectedShutdownRequirement] =
+    useState<ShutdownRequirement | null>(null);
   const [detail, setDetail] = useState<SCERow | null>(null);
 
   const companyRows = useMemo(
@@ -115,12 +151,22 @@ export function SCEDashboard() {
     return counts;
   }, [categoryRows]);
 
-  const visibleRows = useMemo(
+  const baseVisibleRows = useMemo(
     () =>
       selectedFactory
         ? categoryRows.filter((row) => row.fabrika === selectedFactory)
         : categoryRows,
     [categoryRows, selectedFactory],
+  );
+
+  const visibleRows = useMemo(
+    () =>
+      selectedShutdownRequirement
+        ? baseVisibleRows.filter((row) =>
+            matchesShutdownRequirement(row, selectedShutdownRequirement),
+          )
+        : baseVisibleRows,
+    [baseVisibleRows, selectedShutdownRequirement],
   );
 
   const companyCounts = useMemo(() => {
@@ -140,6 +186,7 @@ export function SCEDashboard() {
   function selectCategory(category: SCECategory) {
     setSelectedCategory(category);
     setSelectedFactory(null);
+    setSelectedShutdownRequirement(null);
   }
 
   const columns = useMemo(
@@ -151,9 +198,33 @@ export function SCEDashboard() {
     () => buildPeriodicMaintenanceSummary(visibleRows),
     [visibleRows],
   );
+  const shutdownRequirementSummary = useMemo(
+    () => buildShutdownRequirementSummary(baseVisibleRows),
+    [baseVisibleRows],
+  );
+  const reportFilterLabel = [
+    selectedCompany ? `Şirket: ${selectedCompany}` : '',
+    selectedCategory !== 'all'
+      ? `Kategori: ${CATEGORY_CONFIG.find((item) => item.key === selectedCategory)?.title}`
+      : '',
+    selectedFactory ? `Fabrika: ${selectedFactory}` : '',
+    selectedShutdownRequirement
+      ? `Duruş: ${SHUTDOWN_REQUIREMENT_CONFIG.find((item) => item.key === selectedShutdownRequirement)?.name}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' · ') || 'Mevcut SCE Takip Görünümü';
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <SCEReportControl
+          allRows={rows}
+          filteredRows={visibleRows}
+          filterLabel={reportFilterLabel}
+          view="tracking"
+        />
+      </div>
       <section className="card p-4">
         <div className="mb-3 flex items-center gap-2">
           <Layers3 size={17} className="text-sky-400" />
@@ -260,7 +331,18 @@ export function SCEDashboard() {
       </section>
 
       {selectedCategory === 'periodic' && (
-        <PeriodicMaintenanceDonut summary={periodicMaintenanceSummary} />
+        <div className="space-y-4">
+          <PeriodicMaintenanceDonut summary={periodicMaintenanceSummary} />
+          <ShutdownRequirementDonut
+            summary={shutdownRequirementSummary}
+            selected={selectedShutdownRequirement}
+            onSelect={(requirement) =>
+              setSelectedShutdownRequirement((current) =>
+                current === requirement ? null : requirement,
+              )
+            }
+          />
+        </div>
       )}
 
       <section className="card p-5">
@@ -338,8 +420,7 @@ function PeriodicMaintenanceDonut({
         <div>
           <h2 className="panel-title">Periyodik Bakım Dağılımı</h2>
           <p className="panel-subtitle mt-1">
-            Son bakım tarihi dolu olanlar yapılan, boş olanlar O sütunundaki deferral
-            durumuna göre ayrılır.
+            H ve J sütunları tamamlanmayı; N ve O sütunları deferral gerekliliğini belirler.
           </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-right">
@@ -445,6 +526,141 @@ function PeriodicMaintenanceDonut({
   );
 }
 
+type ShutdownRequirementSummary = ReturnType<
+  typeof buildShutdownRequirementSummary
+>;
+
+function ShutdownRequirementDonut({
+  summary,
+  selected,
+  onSelect,
+}: {
+  summary: ShutdownRequirementSummary;
+  selected: ShutdownRequirement | null;
+  onSelect: (requirement: ShutdownRequirement) => void;
+}) {
+  return (
+    <section className="card p-5">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="panel-title">Duruş Gerekliliği ve Yapılabilirlik</h2>
+          <p className="panel-subtitle mt-1">
+            N sütunundaki üç değerlendirme; dilime veya karta tıklayarak tabloyu filtreleyin.
+          </p>
+        </div>
+        {selected && (
+          <button
+            type="button"
+            onClick={() => onSelect(selected)}
+            className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white"
+          >
+            Filtreyi Temizle
+          </button>
+        )}
+      </div>
+
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(260px,380px)_1fr]">
+        <div className="relative h-72 min-h-72 min-w-0">
+          {summary.total > 0 ? (
+            <>
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={1}
+                minHeight={1}
+              >
+                <PieChart>
+                  <Pie
+                    data={summary.chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={105}
+                    paddingAngle={3}
+                    stroke="#0d0d0d"
+                    strokeWidth={3}
+                  >
+                    {summary.chartData.map((item) => (
+                      <Cell
+                        key={item.key}
+                        fill={item.color}
+                        fillOpacity={selected && selected !== item.key ? 0.28 : 1}
+                        onClick={() => onSelect(item.key)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#111111',
+                      border: '1px solid rgb(255 255 255 / 0.12)',
+                      borderRadius: 8,
+                      color: '#f8fafc',
+                    }}
+                    itemStyle={{ color: '#f8fafc' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-3xl font-semibold text-white tabular-nums">
+                    {summary.total}
+                  </div>
+                  <div className="mt-1 text-xs font-medium text-white/40">
+                    Değerlendirilen
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-sm text-white/45">
+              Seçili filtrelerde N sütunu değerlendirmesi bulunamadı.
+            </div>
+          )}
+        </div>
+
+        <div className="grid content-center gap-3 sm:grid-cols-3">
+          {summary.items.map((item) => {
+            const active = selected === item.key;
+            const itemPercent = summary.total
+              ? Math.round((item.value / summary.total) * 100)
+              : 0;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => onSelect(item.key)}
+                aria-pressed={active}
+                className={`rounded-lg border p-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.08] ${
+                  active
+                    ? 'border-sky-400/65 bg-sky-400/10 ring-2 ring-sky-400/25'
+                    : 'border-white/10 bg-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-white/60">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.name}</span>
+                  </div>
+                  <span className="rounded-md border border-white/10 bg-white/[0.06] px-2 py-1 text-xs font-semibold text-white/60 tabular-nums">
+                    %{itemPercent}
+                  </span>
+                </div>
+                <div className="mt-5 text-3xl font-semibold text-white tabular-nums">
+                  {item.value}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function sceDetailTitle(row: SCERow) {
   if (row.ekipmanNo && row.tagNo) return `${row.ekipmanNo} / ${row.tagNo}`;
   return row.ekipmanNo || row.tagNo || row.ekipmanAdi || 'SCE Ekipman Detayı';
@@ -463,6 +679,10 @@ function sceDetailFields(row: SCERow) {
     { label: row.sutunGLabel, value: row.sutunG },
     { label: 'Bakım Planı Numarası', value: row.bakimPlaniNo },
     { label: 'Bakım Kalemi Numarası', value: row.bakimKalemiNo },
+    {
+      label: 'Duruş Gereklilik / Yapılabilirlik',
+      value: row.durusGereklilikYorumu,
+    },
     { label: 'Deferral Süreci', value: row.deferralSureci },
     { label: 'Son Bakım Tarihi', value: row.sonBakimTarihi },
     {
@@ -511,25 +731,29 @@ function FilterTile({
 
 function filterByCategory(rows: SCERow[], category: SCECategory) {
   if (category === 'plans') {
-    return rows.filter((row) => hasCellValue(row.bakimPlaniNo));
+    return rows.filter((row) => hasSCEValue(row.bakimPlaniNo));
   }
   if (category === 'periodic') {
-    return rows.filter((row) => hasCellValue(row.bakimPlaniNo));
+    return rows.filter((row) => hasSCEValue(row.bakimPlaniNo));
   }
   return rows;
 }
 
 function buildPeriodicMaintenanceSummary(rows: SCERow[]) {
-  const completed = rows.filter((row) =>
-    hasCellValue(row.sonBakimTarihi),
+  const statuses = rows.map((row) => classifySCEMaintenance(row));
+  const completed = statuses.filter((status) => status === 'completed').length;
+  const deferralStarted = statuses.filter(
+    (status) => status === 'deferral_started',
   ).length;
-  const notCompleted = rows.filter(
-    (row) => !hasCellValue(row.sonBakimTarihi),
-  );
-  const deferralStarted = notCompleted.filter((row) =>
-    isDeferralStarted(row.deferralSureci),
+  const deferralNotStarted = statuses.filter(
+    (status) => status === 'deferral_not_started',
   ).length;
-  const deferralNotStarted = notCompleted.length - deferralStarted;
+  const deferralNotRequired = statuses.filter(
+    (status) => status === 'deferral_not_required',
+  ).length;
+  const assessmentMissing = statuses.filter(
+    (status) => status === 'assessment_missing',
+  ).length;
   const items = [
     {
       name: 'Periyodik Bakımı Yapılan',
@@ -546,25 +770,53 @@ function buildPeriodicMaintenanceSummary(rows: SCERow[]) {
       value: deferralNotStarted,
       color: PERIODIC_MAINTENANCE_COLORS['Deferral Süreci Başlatılmayan'],
     },
+    {
+      name: 'Deferral Gerektirmeyen',
+      value: deferralNotRequired,
+      color: PERIODIC_MAINTENANCE_COLORS['Deferral Gerektirmeyen'],
+    },
   ];
+  const total = rows.length - assessmentMissing;
 
   return {
-    total: rows.length,
+    total,
     completed,
-    notCompleted: notCompleted.length,
+    notCompleted: total - completed,
     deferralStarted,
     deferralNotStarted,
+    deferralNotRequired,
     items,
     chartData: items.filter((item) => item.value > 0),
   };
 }
 
-function isDeferralStarted(value: string) {
-  return normalize(value) === 'evet';
+function buildShutdownRequirementSummary(rows: SCERow[]) {
+  const items = SHUTDOWN_REQUIREMENT_CONFIG.map((config) => ({
+    key: config.key,
+    name: config.name,
+    color: config.color,
+    value: rows.filter((row) =>
+      matchesShutdownRequirement(row, config.key),
+    ).length,
+  }));
+  return {
+    total: items.reduce((total, item) => total + item.value, 0),
+    items,
+    chartData: items.filter((item) => item.value > 0),
+  };
 }
 
-function hasCellValue(value: string) {
-  return value.trim().length > 0;
+function matchesShutdownRequirement(
+  row: SCERow,
+  requirement: ShutdownRequirement,
+) {
+  const config = SHUTDOWN_REQUIREMENT_CONFIG.find(
+    (item) => item.key === requirement,
+  );
+  return (
+    !!config &&
+    normalize(row.durusGereklilikYorumu) === config.normalizedValue
+  );
 }
 
 function columnsForCategory(
@@ -681,6 +933,21 @@ function columnsForCategory(
       sortValue: (row) => row.sonBakimBildirimSiparis,
       searchValue: (row) => row.sonBakimBildirimSiparis,
       render: (row) => row.sonBakimBildirimSiparis || '—',
+    },
+    {
+      key: 'shutdownRequirement',
+      header: 'Duruş Gerekliliği',
+      sortValue: (row) => row.durusGereklilikYorumu,
+      searchValue: (row) => row.durusGereklilikYorumu,
+      className: 'min-w-44',
+      render: (row) => row.durusGereklilikYorumu || '—',
+    },
+    {
+      key: 'deferralStatus',
+      header: 'Deferral Süreci',
+      sortValue: (row) => row.deferralSureci,
+      searchValue: (row) => row.deferralSureci,
+      render: (row) => row.deferralSureci || '—',
     },
   ];
 

@@ -34,6 +34,10 @@ import type { SATExportRow } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import { formatDate } from '../../lib/normalize';
 import {
+  getUniqueSATItemRows,
+  sumSATItemUsd,
+} from '../../lib/satExportMetrics';
+import {
   DataTable,
   type DataTableColumn,
 } from '../common/DataTable';
@@ -119,6 +123,7 @@ const REPORT_OPTIONS: {
 
 export function SATExportDashboard() {
   const allRows = useDataStore((state) => state.satExportRows);
+  const allItemRows = useMemo(() => getUniqueSATItemRows(allRows), [allRows]);
   const [selectedCreator, setSelectedCreator] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSasCreator, setSelectedSasCreator] = useState('');
@@ -210,6 +215,10 @@ export function SATExportDashboard() {
       ),
     [materialChartRows, selectedMaterialGroup, materialGroupSummary.topGroupNames],
   );
+  const visibleItemRows = useMemo(
+    () => getUniqueSATItemRows(visibleRows),
+    [visibleRows],
+  );
   const documents = useMemo(() => buildDocuments(visibleRows), [visibleRows]);
   const baseDocuments = useMemo(() => buildDocuments(statusBaseRows), [statusBaseRows]);
 
@@ -234,14 +243,22 @@ export function SATExportDashboard() {
     () => ({
       satUsd: sum(documents.map((doc) => doc.totalSatUsd)),
       sasUsd: sum(visibleRows.map((row) => row.sasUsdAmount)),
-      completed: visibleRows.filter((row) => row.completed).length,
-      lastDelivery: visibleRows.filter((row) => row.lastDelivery).length,
-      lastInvoice: visibleRows.filter((row) => row.lastInvoice).length,
+      completed: visibleItemRows.filter((row) => row.completed).length,
+      lastDelivery: visibleItemRows.filter((row) => row.lastDelivery).length,
+      lastInvoice: visibleItemRows.filter((row) => row.lastInvoice).length,
       approvedDocs: documents.filter((doc) =>
         doc.approvalStatusDescription.toLocaleLowerCase('tr-TR').includes('tamam'),
       ).length,
     }),
-    [documents, visibleRows],
+    [documents, visibleItemRows, visibleRows],
+  );
+
+  const detailDocumentTotal = useMemo(
+    () =>
+      detail
+        ? sumSATItemUsd(allRows.filter((row) => row.satNo === detail.satNo))
+        : 0,
+    [allRows, detail],
   );
 
   const creatorData = useMemo(
@@ -427,8 +444,8 @@ export function SATExportDashboard() {
         />
         <MetricCard
           title="SAT Kalemi"
-          value={formatNumber(visibleRows.length)}
-          helper="Malzeme kalem satırı"
+          value={formatNumber(visibleItemRows.length)}
+          helper={`${formatNumber(visibleRows.length)} SAP/SAS satırı`}
           color="#8b5cf6"
           icon={<Boxes size={21} />}
         />
@@ -449,7 +466,7 @@ export function SATExportDashboard() {
         <MetricCard
           title="Tamamlanan Kalem"
           value={formatNumber(totals.completed)}
-          helper={percent(totals.completed, visibleRows.length)}
+          helper={percent(totals.completed, visibleItemRows.length)}
           color="#22c55e"
           icon={<CheckCircle2 size={21} />}
         />
@@ -551,11 +568,7 @@ export function SATExportDashboard() {
         </ChartCard>
         <ChartCard
           title="Mal Grubu Pareto Analizi"
-          subtitle={`CI sütunu · Çubuğa tıklayarak filtreleyin${
-            materialMetric === 'satUsd'
-              ? ' · SAT tutarı kalemlere eşit dağıtılır'
-              : ''
-          }`}
+          subtitle="CI sütunu · Çubuğa tıklayarak filtreleyin"
           icon={<Layers3 size={17} />}
           action={
             <MaterialMetricToggle
@@ -612,7 +625,8 @@ export function SATExportDashboard() {
           <div>
             <h2 className="text-base font-semibold text-white">SAT Malzeme Kalemleri</h2>
             <p className="mt-1 text-xs text-white/45">
-              {documents.length} SAT belgesi · {visibleRows.length} kalem
+              {documents.length} SAT belgesi · {visibleItemRows.length} tekil kalem ·{' '}
+              {visibleRows.length} SAT/SAS satırı
               {selectedMaterialLabel ? ` · ${selectedMaterialLabel}` : ''}
             </p>
           </div>
@@ -638,7 +652,9 @@ export function SATExportDashboard() {
         title={detail ? `SAT ${detail.satNo} · ${detail.material || 'Malzeme'}` : 'SAT Kalem Detayı'}
         widthClass="max-w-4xl"
       >
-        {detail && <ExportDetail row={detail} />}
+        {detail && (
+          <ExportDetail row={detail} documentTotal={detailDocumentTotal} />
+        )}
       </Modal>
 
       <Modal
@@ -669,7 +685,7 @@ export function SATExportDashboard() {
                   Mevcut Filtreler
                 </span>
                 <span className="mt-1 block text-xs text-slate-500">
-                  {visibleRows.length} kalem · dashboard görünümü
+                  {visibleItemRows.length} tekil kalem · dashboard görünümü
                 </span>
               </button>
               <button
@@ -687,7 +703,7 @@ export function SATExportDashboard() {
                   Tüm Veriler
                 </span>
                 <span className="mt-1 block text-xs text-slate-500">
-                  {allRows.length} kalem · filtrelerden bağımsız
+                  {allItemRows.length} tekil kalem · filtrelerden bağımsız
                 </span>
               </button>
             </div>
@@ -745,6 +761,14 @@ const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
     render: (row) => <span className="font-semibold text-white">{row.satNo}</span>,
   },
   {
+    key: 'satItemNo',
+    header: 'SAT Kalem No',
+    sortValue: (row) => Number(row.satItemNo) || row.satItemNo,
+    searchValue: (row) => row.satItemNo,
+    className: 'whitespace-nowrap',
+    render: (row) => formatSATItemNo(row.satItemNo),
+  },
+  {
     key: 'createdAt',
     header: 'Yaratılma Tarihi',
     sortValue: (row) => row.createdAt ?? new Date(0),
@@ -774,12 +798,20 @@ const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
     ),
   },
   {
-    key: 'satUsd',
-    header: 'SAT USD',
-    sortValue: (row) => row.totalSatUsd,
-    searchValue: (row) => String(row.totalSatUsd),
+    key: 'satQuantity',
+    header: 'SAT Miktarı',
+    sortValue: (row) => row.satQuantity,
+    searchValue: (row) => String(row.satQuantity),
     className: 'whitespace-nowrap',
-    render: (row) => <span className="font-semibold text-cyan-300">{formatUsd(row.totalSatUsd)}</span>,
+    render: (row) => formatNumber(row.satQuantity),
+  },
+  {
+    key: 'satUsd',
+    header: 'Kalem SAT USD',
+    sortValue: (row) => row.satItemUsd,
+    searchValue: (row) => String(row.satItemUsd),
+    className: 'whitespace-nowrap',
+    render: (row) => <span className="font-semibold text-cyan-300">{formatUsd(row.satItemUsd)}</span>,
   },
   {
     key: 'sasUsd',
@@ -821,7 +853,7 @@ function buildDocuments(rows: SATExportRow[]): SATDocument[] {
     const current = map.get(row.satNo) ?? {
       satNo: row.satNo,
       satCreator: row.satCreator,
-      totalSatUsd: row.totalSatUsd,
+      totalSatUsd: 0,
       createdAt: row.createdAt,
       summaryStatus: row.summaryStatus,
       approvalStatusDescription: row.approvalStatusDescription,
@@ -837,7 +869,10 @@ function buildDocuments(rows: SATExportRow[]): SATDocument[] {
     }
     map.set(row.satNo, current);
   });
-  return [...map.values()];
+  return [...map.values()].map((document) => ({
+    ...document,
+    totalSatUsd: sumSATItemUsd(document.rows),
+  }));
 }
 
 function buildDocumentPartyData(
@@ -860,24 +895,20 @@ function buildMaterialGroupData(
   metric: MaterialMetric,
   limit: number,
 ) {
-  const documentStats = new Map<string, { rows: number; totalSatUsd: number }>();
-  rows.forEach((row) => {
-    const current = documentStats.get(row.satNo) ?? { rows: 0, totalSatUsd: 0 };
-    current.rows += 1;
-    current.totalSatUsd = Math.max(current.totalSatUsd, row.totalSatUsd);
-    documentStats.set(row.satNo, current);
-  });
-
   const groups = new Map<
     string,
     { count: number; satUsd: number; sasUsd: number }
   >();
+  getUniqueSATItemRows(rows).forEach((row) => {
+    const category = row.materialGroup || 'Mal Grubu Yok';
+    const current = groups.get(category) ?? { count: 0, satUsd: 0, sasUsd: 0 };
+    current.count += 1;
+    current.satUsd += row.satItemUsd;
+    groups.set(category, current);
+  });
   rows.forEach((row) => {
     const category = row.materialGroup || 'Mal Grubu Yok';
     const current = groups.get(category) ?? { count: 0, satUsd: 0, sasUsd: 0 };
-    const document = documentStats.get(row.satNo);
-    current.count += 1;
-    current.satUsd += document ? document.totalSatUsd / document.rows : 0;
     current.sasUsd += row.sasUsdAmount;
     groups.set(category, current);
   });
@@ -1500,12 +1531,21 @@ function Flag({
   );
 }
 
-function ExportDetail({ row }: { row: SATExportRow }) {
+function ExportDetail({
+  row,
+  documentTotal,
+}: {
+  row: SATExportRow;
+  documentTotal: number;
+}) {
   const fields: [string, string][] = [
     ['SAT Yaratan', row.satCreator],
     ['Şirket Kodu', row.companyCode],
     ['SAT Belge Numarası', row.satNo],
-    ['Toplam SAT USD Tutarı', formatUsd(row.totalSatUsd)],
+    ['SAT Kalem Numarası', formatSATItemNo(row.satItemNo)],
+    ['SAT Miktarı', formatNumber(row.satQuantity)],
+    ['SAT Kalem USD Tutarı', formatUsd(row.satItemUsd)],
+    ['SAT Belgesi Toplamı', formatUsd(documentTotal)],
     ['SAT Yaratılma Tarihi', formatDate(row.createdAt)],
     ['Tamam', yesNo(row.completed)],
     ['SAS Son Teslimat', yesNo(row.lastDelivery)],
@@ -1570,6 +1610,13 @@ function sum(values: number[]) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('tr-TR').format(value);
+}
+
+function formatSATItemNo(value: string) {
+  const numericValue = Number(value);
+  return value && Number.isFinite(numericValue) && numericValue % 10 === 0
+    ? `${value} (${numericValue / 10}. kalem)`
+    : value || '—';
 }
 
 function formatUsd(value: number) {

@@ -28,8 +28,13 @@ import {
 } from 'lucide-react';
 import type { SCERow } from '../../types';
 import { useDataStore } from '../../store/dataStore';
-import { formatDate, normalize, parseDate } from '../../lib/normalize';
+import { formatDate, parseDate } from '../../lib/normalize';
+import {
+  classifySCEMaintenance,
+  hasSCEValue,
+} from '../../lib/sceMaintenance';
 import { Modal } from '../common/Modal';
+import { SCEReportControl } from './SCEReportControl';
 
 const TOOLTIP_STYLE = {
   backgroundColor: '#111111',
@@ -42,6 +47,7 @@ const MAINTENANCE_COLORS = {
   completed: '#10b981',
   deferral: '#38bdf8',
   pending: '#f59e0b',
+  notRequired: '#8b5cf6',
 };
 
 export function SCEOverviewDashboard() {
@@ -113,8 +119,24 @@ export function SCEOverviewDashboard() {
     setSelectedGroup('');
   }
 
+  const reportFilterLabel = [
+    selectedCompany ? `Şirket: ${selectedCompany}` : '',
+    selectedFactory ? `Fabrika: ${selectedFactory}` : '',
+    selectedGroup ? `SCE Grubu: ${selectedGroup}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ') || 'Mevcut SCE Genel Bakış Görünümü';
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <SCEReportControl
+          allRows={rows}
+          filteredRows={filteredRows}
+          filterLabel={reportFilterLabel}
+          view="overview"
+        />
+      </div>
       <section className="card p-4">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -194,7 +216,7 @@ export function SCEOverviewDashboard() {
         <MetricCard
           title="Deferral Başlatılmadı"
           value={summary.deferralNotStarted}
-          helper="Bakım kaydı ve deferral yok"
+          helper="J boş · duruş gerekli · O: HAYIR"
           color="#f59e0b"
           icon={<PauseCircle size={21} />}
         />
@@ -257,7 +279,7 @@ export function SCEOverviewDashboard() {
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ChartCard
           title="Fabrika Bakım Görünümü"
-          subtitle="Bakımı yapılan, deferral başlatılan ve bekleyen planlı ekipmanlar"
+          subtitle="Tamamlanan, deferral durumu ve N sütunu değerlendirmesi"
           icon={<Wrench size={17} />}
         >
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
@@ -277,9 +299,15 @@ export function SCEOverviewDashboard() {
               <Bar dataKey="deferral" name="Deferral" stackId="maintenance" fill="#38bdf8" />
               <Bar
                 dataKey="pending"
-                name="Bekleyen"
+                name="Deferral Başlatılmadı"
                 stackId="maintenance"
                 fill="#f59e0b"
+              />
+              <Bar
+                dataKey="notRequired"
+                name="Deferral Gerektirmeyen"
+                stackId="maintenance"
+                fill="#8b5cf6"
                 radius={[0, 5, 5, 0]}
               />
             </BarChart>
@@ -329,7 +357,7 @@ export function SCEOverviewDashboard() {
             <div>
               <h2 className="panel-title">Kritik SCE Takip Listesi</h2>
               <p className="panel-subtitle mt-1">
-                Gecikmiş bakım, deferral eksikliği veya bakım planı bulunmayan ekipmanlar
+                Gecikmiş bakım, deferral eksikliği veya bakım planı sorunu bulunan ekipmanlar
               </p>
             </div>
           </div>
@@ -407,13 +435,19 @@ function MaintenanceDonut({ summary }: { summary: MaintenanceSummary }) {
       value: summary.deferralNotStarted,
       color: MAINTENANCE_COLORS.pending,
     },
+    {
+      name: 'Deferral Gerektirmeyen',
+      value: summary.deferralNotRequired,
+      color: MAINTENANCE_COLORS.notRequired,
+    },
   ];
+  const evaluatedTotal = summary.planned - summary.assessmentMissing;
   return (
     <DonutCard
       title="Periyodik Bakım Durumu"
-      subtitle={`${summary.planned} bakım planlı ekipman`}
+      subtitle={`${evaluatedTotal} duruş değerlendirmesi bulunan planlı ekipman`}
       data={data}
-      total={summary.planned}
+      total={evaluatedTotal}
       centerLabel="Planlı"
       icon={<Wrench size={17} />}
     />
@@ -630,6 +664,7 @@ function SCEOverviewDetail({ row }: { row: SCERow }) {
     ['Bakım Planı Numarası', row.bakimPlaniNo],
     ['Bakım Kalemi Numarası', row.bakimKalemiNo],
     ['Bakım Periyodu', row.bakimPeriyodu],
+    ['Duruş Gereklilik / Yapılabilirlik', row.durusGereklilikYorumu],
     ['Deferral Süreci', row.deferralSureci],
     ['Son Bakım Tarihi', row.sonBakimTarihi],
     ['Sonraki Bakım Tarihi', row.sonrakiBakimTarihi],
@@ -647,19 +682,31 @@ function SCEOverviewDetail({ row }: { row: SCERow }) {
 }
 
 function buildMaintenanceSummary(rows: SCERow[]) {
-  const plannedRows = rows.filter((row) => hasValue(row.bakimPlaniNo));
-  const completed = plannedRows.filter((row) => hasValue(row.sonBakimTarihi)).length;
-  const incomplete = plannedRows.filter((row) => !hasValue(row.sonBakimTarihi));
-  const deferralStarted = incomplete.filter((row) => isDeferralStarted(row)).length;
-  const deferralNotStarted = incomplete.length - deferralStarted;
+  const statuses = rows.map((row) => classifySCEMaintenance(row));
+  const completed = statuses.filter((status) => status === 'completed').length;
+  const deferralStarted = statuses.filter(
+    (status) => status === 'deferral_started',
+  ).length;
+  const deferralNotStarted = statuses.filter(
+    (status) => status === 'deferral_not_started',
+  ).length;
+  const deferralNotRequired = statuses.filter(
+    (status) => status === 'deferral_not_required',
+  ).length;
+  const assessmentMissing = statuses.filter(
+    (status) => status === 'assessment_missing',
+  ).length;
+  const unplanned = statuses.filter((status) => status === 'unplanned').length;
   const overdue = rows.filter(isMaintenanceOverdue).length;
   return {
     total: rows.length,
-    planned: plannedRows.length,
-    unplanned: rows.length - plannedRows.length,
+    planned: rows.length - unplanned,
+    unplanned,
     completed,
     deferralStarted,
     deferralNotStarted,
+    deferralNotRequired,
+    assessmentMissing,
     overdue,
   };
 }
@@ -667,26 +714,35 @@ function buildMaintenanceSummary(rows: SCERow[]) {
 function buildFactoryPerformance(rows: SCERow[]) {
   const map = new Map<
     string,
-    { name: string; completed: number; deferral: number; pending: number }
+    {
+      name: string;
+      completed: number;
+      deferral: number;
+      pending: number;
+      notRequired: number;
+    }
   >();
   rows
-    .filter((row) => hasValue(row.bakimPlaniNo))
+    .filter((row) => hasSCEValue(row.bakimPlaniNo))
     .forEach((row) => {
       const current = map.get(row.fabrika) ?? {
         name: row.fabrika,
         completed: 0,
         deferral: 0,
         pending: 0,
+        notRequired: 0,
       };
-      if (hasValue(row.sonBakimTarihi)) current.completed++;
-      else if (isDeferralStarted(row)) current.deferral++;
-      else current.pending++;
+      const status = classifySCEMaintenance(row);
+      if (status === 'completed') current.completed++;
+      else if (status === 'deferral_started') current.deferral++;
+      else if (status === 'deferral_not_started') current.pending++;
+      else if (status === 'deferral_not_required') current.notRequired++;
       map.set(row.fabrika, current);
     });
   return [...map.values()].sort(
     (a, b) =>
-      b.completed + b.deferral + b.pending -
-      (a.completed + a.deferral + a.pending),
+      b.completed + b.deferral + b.pending + b.notRequired -
+      (a.completed + a.deferral + a.pending + a.notRequired),
   );
 }
 
@@ -736,11 +792,8 @@ function buildCriticalItems(rows: SCERow[]): CriticalItem[] {
           priority: 0,
         };
       }
-      if (
-        hasValue(row.bakimPlaniNo) &&
-        !hasValue(row.sonBakimTarihi) &&
-        !isDeferralStarted(row)
-      ) {
+      const maintenanceStatus = classifySCEMaintenance(row);
+      if (maintenanceStatus === 'deferral_not_started') {
         return {
           key: `${row.rowId}-deferral`,
           row,
@@ -750,7 +803,7 @@ function buildCriticalItems(rows: SCERow[]): CriticalItem[] {
           priority: 1,
         };
       }
-      if (!hasValue(row.bakimPlaniNo)) {
+      if (maintenanceStatus === 'unplanned') {
         return {
           key: `${row.rowId}-plan`,
           row,
@@ -783,14 +836,6 @@ function parseMaintenanceDate(value: string) {
   const date = parseDate(value);
   if (!date || date.getFullYear() < 2000 || date.getFullYear() > 2100) return null;
   return date;
-}
-
-function isDeferralStarted(row: SCERow) {
-  return normalize(row.deferralSureci) === 'evet';
-}
-
-function hasValue(value: string) {
-  return value.trim().length > 0;
 }
 
 function equipmentTitle(row: SCERow) {

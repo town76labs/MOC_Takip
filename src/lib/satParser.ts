@@ -184,8 +184,11 @@ const SAP_EXPORT_COLUMNS = {
   satCreator: 0, // A
   companyCodeOrSatNo: 1, // B
   satNoFallback: 2, // C - mevcut exportta zorunlu teknik belge kimliği
+  satItemNo: 3, // D
   totalSatUsd: 4, // E
   createdAt: 5, // F
+  satQuantity: 8, // I
+  satItemUsd: 11, // L
   completed: 16, // Q
   lastDelivery: 17, // R
   lastInvoice: 18, // S
@@ -205,8 +208,11 @@ const SAP_EXPORT_COLUMNS = {
 
 const SAP_EXPORT_HEADER_SIGNATURES = [
   [SAP_EXPORT_COLUMNS.satCreator, 'SAT Yaratan'],
+  [SAP_EXPORT_COLUMNS.satItemNo, 'SAT Kalem Numarası'],
   [SAP_EXPORT_COLUMNS.totalSatUsd, 'Toplam SAT USD Tutarı'],
   [SAP_EXPORT_COLUMNS.createdAt, 'SAT Yaratılma Tarihi'],
+  [SAP_EXPORT_COLUMNS.satQuantity, 'SAT Miktarı'],
+  [SAP_EXPORT_COLUMNS.satItemUsd, 'SAT USD tutar'],
   [SAP_EXPORT_COLUMNS.completed, 'Tamam'],
   [SAP_EXPORT_COLUMNS.sasUsdAmount, 'SAS USD Tutar'],
   [SAP_EXPORT_COLUMNS.materialGroup, 'SAT Mal Grubu Tanımı'],
@@ -260,7 +266,12 @@ function parseSAPExport(workbook: XLSX.WorkBook): SATExportRow[] {
             ? ''
             : compact(value(cells, SAP_EXPORT_COLUMNS.companyCodeOrSatNo)),
           satNo,
-          totalSatUsd: parseAmount(value(cells, SAP_EXPORT_COLUMNS.totalSatUsd)),
+          satItemNo: compact(value(cells, SAP_EXPORT_COLUMNS.satItemNo)),
+          satQuantity: parseAmount(value(cells, SAP_EXPORT_COLUMNS.satQuantity)),
+          satItemUsd: parseAmount(value(cells, SAP_EXPORT_COLUMNS.satItemUsd)),
+          sourceTotalSatUsd: parseAmount(
+            value(cells, SAP_EXPORT_COLUMNS.totalSatUsd),
+          ),
           createdAt: parseDate(value(cells, SAP_EXPORT_COLUMNS.createdAt)),
           completed: isMarked(value(cells, SAP_EXPORT_COLUMNS.completed)),
           lastDelivery: isMarked(value(cells, SAP_EXPORT_COLUMNS.lastDelivery)),

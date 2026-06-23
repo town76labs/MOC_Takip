@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   TableProperties,
+  WalletCards,
 } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { DashboardTabs, type TabKey } from './components/DashboardTabs';
@@ -22,6 +23,7 @@ import { SATDashboard } from './components/sat/SATDashboard';
 import { MOCOverviewDashboard } from './components/overview/MOCOverviewDashboard';
 import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
 import { SATExportDashboard } from './components/sat/SATExportDashboard';
+import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDashboard';
 
 type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
 
@@ -52,6 +54,11 @@ function App() {
   const satFormat = useDataStore((s) => s.satFormat);
   const uploadSAT = useDataStore((s) => s.uploadSAT);
   const clearSAT = useDataStore((s) => s.clearSAT);
+  const satBudgetFile = useDataStore((s) => s.satBudgetFile);
+  const satBudgetLoading = useDataStore((s) => s.satBudgetLoading);
+  const satBudgetError = useDataStore((s) => s.satBudgetError);
+  const uploadSATBudget = useDataStore((s) => s.uploadSATBudget);
+  const clearSATBudget = useDataStore((s) => s.clearSATBudget);
 
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [uploadsOpen, setUploadsOpen] = useState(false);
@@ -60,6 +67,9 @@ function App() {
     'overview',
   );
   const [satUploadsOpen, setSatUploadsOpen] = useState(false);
+  const [satActiveView, setSatActiveView] = useState<'overview' | 'tracking'>(
+    'overview',
+  );
   const [appMode, setAppMode] = useState<AppMode>('select');
 
   const allLoaded = !!technicalFile && !!actionsFile && !!mocTakipFile;
@@ -146,7 +156,8 @@ function App() {
   }
 
   if (appMode === 'sat') {
-    const showSATUpload = !satFile || satUploadsOpen;
+    const showSATUpload = !satFile || !satBudgetFile || satUploadsOpen;
+    const hasAnySATFile = !!satFile || !!satBudgetFile;
 
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
@@ -167,7 +178,7 @@ function App() {
                   Satın Alma Talepleri ve Bütçe Takibi
                 </p>
               </div>
-              {satFile && (
+              {hasAnySATFile && (
                 <button
                   type="button"
                   onClick={() => setSatUploadsOpen((open) => !open)}
@@ -175,7 +186,7 @@ function App() {
                   className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
                 >
                   <FileSpreadsheet size={16} />
-                  SAT Excel Dosyası
+                  SAT Excel Dosyaları
                   <ChevronDown
                     size={16}
                     className={`transition ${satUploadsOpen ? 'rotate-180' : ''}`}
@@ -184,7 +195,7 @@ function App() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {satFile && (
+              {hasAnySATFile && (
                 <button
                   type="button"
                   onClick={() => setSatUploadsOpen((open) => !open)}
@@ -209,7 +220,19 @@ function App() {
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
           {showSATUpload && (
-            <section className="mb-6 max-w-3xl">
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <FileUpload
+                title="SAT Bütçe Girişleri Excel'i"
+                subtitle="Genel Bakış için şirket ve bütçe türü hareketleri"
+                hint="H sütununda tanımlı mali merkez kodları, L sütununda işaretli USD işlem toplamları bulunmalıdır."
+                fileMeta={satBudgetFile}
+                loading={satBudgetLoading}
+                error={satBudgetError}
+                onFile={uploadSATBudget}
+                onClear={clearSATBudget}
+                accentColorClass="from-violet-500 to-cyan-500"
+                surfaceClassName="upload-panel-dark"
+              />
               <FileUpload
                 title="SAT Takip Excel'i"
                 subtitle="Satın alma talepleri, onay ve teklif süreçlerini içeren dosya"
@@ -225,7 +248,52 @@ function App() {
             </section>
           )}
 
-          {!satFile ? (
+          {hasAnySATFile && (
+            <div className="mb-6 inline-flex rounded-lg border border-white/10 bg-black/35 p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSatActiveView('overview')}
+                aria-pressed={satActiveView === 'overview'}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                  satActiveView === 'overview'
+                    ? 'bg-cyan-500 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Gauge size={16} />
+                Genel Bakış
+              </button>
+              <button
+                type="button"
+                onClick={() => setSatActiveView('tracking')}
+                aria-pressed={satActiveView === 'tracking'}
+                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                  satActiveView === 'tracking'
+                    ? 'bg-cyan-500 text-white shadow-sm'
+                    : 'text-white/55 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <TableProperties size={16} />
+                SAT Takip
+              </button>
+            </div>
+          )}
+
+          {satActiveView === 'overview' ? (
+            satBudgetFile ? (
+              <SATBudgetOverviewDashboard />
+            ) : (
+              <div className="card mx-auto max-w-3xl p-10 text-center">
+                <WalletCards size={36} className="mx-auto mb-4 text-violet-300" />
+                <h2 className="text-lg font-semibold text-white">
+                  Genel Bakış için SAT Bütçe Girişleri Excel dosyasını yükleyin
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                  Şirket, CAPEX, OPEX ve Operational CAPEX dağılımları bu dosyadan hesaplanır.
+                </p>
+              </div>
+            )
+          ) : !satFile ? (
             <div className="card mx-auto max-w-3xl p-10 text-center">
               <ShoppingCart size={36} className="mx-auto mb-4 text-cyan-300" />
               <h2 className="text-lg font-semibold text-white">

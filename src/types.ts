@@ -120,6 +120,7 @@ export interface SCERow {
   bakimKalemiNo: string;
   bakimPlani: string;
   bakimPeriyodu: string;
+  durusGereklilikYorumu: string;
   deferralSureci: string;
   periyodikBakimDurumu: string;
   sonBakimTarihi: string;
@@ -172,7 +173,10 @@ export interface SATExportRow {
   satCreator: string;
   companyCode: string;
   satNo: string;
-  totalSatUsd: number;
+  satItemNo: string;
+  satQuantity: number;
+  satItemUsd: number;
+  sourceTotalSatUsd: number;
   createdAt: Date | null;
   completed: boolean;
   lastDelivery: boolean;
@@ -189,4 +193,24 @@ export interface SATExportRow {
   vendorName: string;
   materialGroup: string;
   approvalStatusDescription: string;
+}
+
+export type SATBudgetCompany = 'PETKIM' | 'STAR' | 'STAD';
+
+export type SATBudgetType = 'CAPEX' | 'OPEX' | 'OPERATIONAL_CAPEX';
+
+export interface SATBudgetRow {
+  rowId: string;
+  sourceRow: number;
+  company: SATBudgetCompany;
+  budgetType: SATBudgetType;
+  sourceCode: string;
+  sourceLabel: string;
+  amount: number;
+  currency: string;
+  documentNo: string;
+  transactionType: string;
+  documentDate: Date | null;
+  user: string;
+  description: string;
 }

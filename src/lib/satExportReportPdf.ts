@@ -6,6 +6,10 @@ import type {
   TVirtualFileSystem,
 } from 'pdfmake/interfaces';
 import type { SATExportRow } from '../types';
+import {
+  getUniqueSATItemRows,
+  sumSATItemUsd,
+} from './satExportMetrics';
 
 export type SATExportReportType =
   | 'executive'
@@ -141,6 +145,7 @@ function buildExecutiveReport(
   documents: ReportDocument[],
   scopeLabel: string,
 ): Content[] {
+  const itemRows = getUniqueSATItemRows(rows);
   const risks = deliveryRiskRows(rows);
   const openDocuments = documents.filter((document) => !isDocumentComplete(document));
   const aged = openDocuments.filter((document) => ageDays(document.createdAt) > 60);
@@ -164,7 +169,7 @@ function buildExecutiveReport(
     ...reportHeading(REPORT_NAMES.executive, scopeLabel),
     kpiGrid([
       ['Tekil SAT', formatNumber(documents.length), 'Belge'],
-      ['SAT Kalemi', formatNumber(rows.length), 'Malzeme kalemi'],
+      ['SAT Kalemi', formatNumber(itemRows.length), 'Tekil C + D kalemi'],
       ['Toplam SAT', formatCompactUsd(sum(documents.map((item) => item.totalSatUsd))), 'USD'],
       ['SAS Tutarı', formatCompactUsd(sum(rows.map((item) => item.sasUsdAmount))), 'USD'],
       ['60+ Gün Açık', formatNumber(aged.length), 'SAT belgesi'],
@@ -186,12 +191,12 @@ function buildExecutiveReport(
     funnelTable(funnel),
     sectionTitle('Mal Grubu Pareto Özeti'),
     vectorBarChart(materialGroups, {
-      total: rows.length,
+      total: itemRows.length,
       width: 450,
       color: COLORS.cyan,
       cumulative: true,
       valueFormatter: (item, cumulative) =>
-        `${formatNumber(item.value)} kalem · ${percent(item.value, rows.length)} · Küm. ${percent(cumulative, rows.length)} · ${formatUsd(item.amount ?? 0)}`,
+        `${formatNumber(item.value)} kalem · ${percent(item.value, itemRows.length)} · Küm. ${percent(cumulative, itemRows.length)} · ${formatUsd(item.amount ?? 0)}`,
     }),
     sectionTitle('Öncelikli Açık SAT Belgeleri'),
     standardTable(
@@ -213,6 +218,7 @@ function buildPerformanceReport(
   documents: ReportDocument[],
   scopeLabel: string,
 ): Content[] {
+  const itemRows = getUniqueSATItemRows(rows);
   const statuses = countDocuments(documents, (document) => document.status || 'Durum Girilmemiş');
   const creators = countDocuments(documents, (document) => document.creator || 'Atanmamış').slice(0, 10);
   const sasCreators = countRowsAsDocuments(
@@ -225,9 +231,9 @@ function buildPerformanceReport(
     ...reportHeading(REPORT_NAMES.performance, scopeLabel),
     kpiGrid([
       ['SAT Belgesi', formatNumber(documents.length), 'Tekil belge'],
-      ['Tamamlanan Kalem', formatNumber(rows.filter((row) => row.completed).length), percent(rows.filter((row) => row.completed).length, rows.length)],
-      ['Teslimat Tamam', formatNumber(rows.filter((row) => row.lastDelivery).length), percent(rows.filter((row) => row.lastDelivery).length, rows.length)],
-      ['Fatura Tamam', formatNumber(rows.filter((row) => row.lastInvoice).length), percent(rows.filter((row) => row.lastInvoice).length, rows.length)],
+      ['Tamamlanan Kalem', formatNumber(itemRows.filter((row) => row.completed).length), percent(itemRows.filter((row) => row.completed).length, itemRows.length)],
+      ['Teslimat Tamam', formatNumber(itemRows.filter((row) => row.lastDelivery).length), percent(itemRows.filter((row) => row.lastDelivery).length, itemRows.length)],
+      ['Fatura Tamam', formatNumber(itemRows.filter((row) => row.lastInvoice).length), percent(itemRows.filter((row) => row.lastInvoice).length, itemRows.length)],
     ]),
     sectionTitle('Süreç Durum Dağılımı'),
     vectorDonutChart(topWithOther(statuses, 6), {
@@ -342,28 +348,31 @@ function buildDetailReport(
   documents: ReportDocument[],
   scopeLabel: string,
 ): Content[] {
+  const itemRows = getUniqueSATItemRows(rows);
   const materialGroups = buildMaterialGroups(rows);
   return [
     ...reportHeading(REPORT_NAMES.detail, scopeLabel),
     kpiGrid([
       ['SAT Belgesi', formatNumber(documents.length), 'Tekil belge'],
-      ['SAT Kalemi', formatNumber(rows.length), 'Detay satırı'],
+      ['SAT Kalemi', formatNumber(itemRows.length), `${formatNumber(rows.length)} SAT/SAS satırı`],
       ['Toplam SAT', formatCompactUsd(sum(documents.map((item) => item.totalSatUsd))), 'USD'],
       ['Toplam SAS', formatCompactUsd(sum(rows.map((item) => item.sasUsdAmount))), 'USD'],
     ]),
     sectionTitle('Mal Grubu Görsel Dağılımı'),
     vectorDonutChart(topWithOther(materialGroups, 6), {
-      total: rows.length,
+      total: itemRows.length,
       centerLabel: 'SAT Kalemi',
-      centerValue: formatNumber(rows.length),
+      centerValue: formatNumber(itemRows.length),
     }),
     { text: 'SAT Kalemleri', style: 'section', pageBreak: 'before' },
     standardTable(
-      ['SAT No', 'Şirket', 'Yaratılma', 'SAT Yaratan', 'Mal Grubu', 'Malzeme / Tanım', 'Özet Durum', 'SAS Yaratan', 'Satıcı', 'Teslim', 'SAT USD', 'SAS USD'],
+      ['SAT No', 'Kalem', 'Miktar', 'Şirket', 'Yaratılma', 'SAT Yaratan', 'Mal Grubu', 'Malzeme / Tanım', 'Özet Durum', 'SAS Yaratan', 'Satıcı', 'Teslim', 'Kalem SAT USD', 'SAS USD'],
       [...rows]
         .sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt))
         .map((row) => [
           row.satNo,
+          row.satItemNo || '—',
+          formatNumber(row.satQuantity),
           row.companyCode || '—',
           formatDate(row.createdAt),
           row.satCreator || '—',
@@ -373,11 +382,11 @@ function buildDetailReport(
           row.sasCreator || '—',
           row.vendorName || '—',
           formatDate(row.deliveryDate),
-          formatUsd(row.totalSatUsd),
+          formatUsd(row.satItemUsd),
           formatUsd(row.sasUsdAmount),
         ]),
-      [42, 36, 46, 52, 62, '*', 60, 52, 58, 46, 52, 52],
-      6,
+      [42, 29, 32, 34, 44, 48, 58, '*', 54, 48, 54, 44, 53, 50],
+      5.7,
     ),
   ];
 }
@@ -731,26 +740,33 @@ function buildDocuments(rows: SATExportRow[]): ReportDocument[] {
     const current = documents.get(row.satNo) ?? {
       satNo: row.satNo,
       creator: row.satCreator,
-      totalSatUsd: row.totalSatUsd,
+      totalSatUsd: 0,
       createdAt: row.createdAt,
       status: row.summaryStatus,
       approval: row.approvalStatusDescription,
       rows: [],
     };
     current.rows.push(row);
-    current.totalSatUsd = Math.max(current.totalSatUsd, row.totalSatUsd);
     if (!current.status && row.summaryStatus) current.status = row.summaryStatus;
     documents.set(row.satNo, current);
   });
-  return [...documents.values()];
+  return [...documents.values()].map((document) => ({
+    ...document,
+    totalSatUsd: sumSATItemUsd(document.rows),
+  }));
 }
 
 function buildMaterialGroups(rows: SATExportRow[]): DistributionRow[] {
   const groups = new Map<string, DistributionRow>();
-  rows.forEach((row) => {
+  getUniqueSATItemRows(rows).forEach((row) => {
     const label = row.materialGroup || 'Mal Grubu Yok';
     const current = groups.get(label) ?? { label, value: 0, amount: 0 };
     current.value += 1;
+    groups.set(label, current);
+  });
+  rows.forEach((row) => {
+    const label = row.materialGroup || 'Mal Grubu Yok';
+    const current = groups.get(label) ?? { label, value: 0, amount: 0 };
     current.amount = (current.amount ?? 0) + row.sasUsdAmount;
     groups.set(label, current);
   });

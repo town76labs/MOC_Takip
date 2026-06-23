@@ -290,6 +290,7 @@ function parseSCERow(
     bakimKalemiNo: valueAt(cells, 8),
     bakimPlani: value('bakimPlani'),
     bakimPeriyodu: valueAt(cells, 11),
+    durusGereklilikYorumu: valueAt(cells, 13),
     deferralSureci: valueAt(cells, 14),
     periyodikBakimDurumu: value('periyodikBakimDurumu'),
     sonBakimTarihi: valueAt(cells, 9),
