@@ -61,7 +61,8 @@ export function SATBudgetOverviewDashboard() {
   const [selectedUsageStage, setSelectedUsageStage] =
     useState<SATBudgetUsageStage | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const [reportScope, setReportScope] = useState<'filtered' | 'all'>('filtered');
+  const [reportCompany, setReportCompany] =
+    useState<SATBudgetCompany | 'ALL'>('ALL');
   const [reportGenerating, setReportGenerating] = useState(false);
 
   const visibleRows = useMemo(
@@ -126,18 +127,29 @@ export function SATBudgetOverviewDashboard() {
     );
   }
 
+  function openReportModal() {
+    setReportCompany(selectedCompany ?? 'ALL');
+    setReportModalOpen(true);
+  }
+
   async function createReport() {
-    const rows = reportScope === 'filtered' ? visibleRows : allRows;
-    const scopeLabel =
-      reportScope === 'all'
-        ? 'Tüm Şirketler'
-        : selectedCompany
-          ? companyLabel(selectedCompany)
-          : 'Mevcut Genel Bakış';
+    const company = reportCompany === 'ALL' ? null : reportCompany;
+    const budgetRows = company
+      ? allRows.filter((row) => row.company === company)
+      : allRows;
+    const reportUsageRows = company
+      ? usageRows.filter((row) => row.company === company)
+      : usageRows;
+    const scopeLabel = company ? companyLabel(company) : 'Genel';
     setReportGenerating(true);
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     try {
-      await downloadSATBudgetReportPdf({ rows, scopeLabel });
+      await downloadSATBudgetReportPdf({
+        budgetRows,
+        usageRows: reportUsageRows,
+        company,
+        scopeLabel,
+      });
       setReportModalOpen(false);
     } catch (error) {
       console.error(error);
@@ -160,7 +172,7 @@ export function SATBudgetOverviewDashboard() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setReportModalOpen(true)}
+              onClick={openReportModal}
               className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-600 px-3 py-2 text-xs font-semibold text-white transition hover:from-cyan-400 hover:to-teal-500"
             >
               <FileText size={15} />
@@ -362,25 +374,35 @@ export function SATBudgetOverviewDashboard() {
           <p className="text-sm text-white/60">
             PDF metinleri seçilebilir ve aranabilir olarak oluşturulur.
           </p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <ReportScopeButton
-              title="Mevcut Filtre"
-              helper={`${visibleRows.length} hareket · ${
-                totalsMasked ? 'XXX USD' : formatUsd(totals.net)
-              }`}
-              active={reportScope === 'filtered'}
-              onClick={() => setReportScope('filtered')}
-            />
-            <ReportScopeButton
-              title="Tüm Veriler"
-              helper={`${allRows.length} hareket · ${
-                allRows.some(isMaskedBudgetRow)
-                  ? 'XXX USD'
-                  : formatUsd(budgetTotals(allRows).net)
-              }`}
-              active={reportScope === 'all'}
-              onClick={() => setReportScope('all')}
-            />
+          <div>
+            <div className="mb-2 text-sm font-semibold text-white/80">
+              Rapor kapsamı
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <ReportScopeButton
+                title="Genel"
+                helper={`${allRows.length} bütçe · ${usageRows.length} kullanım hareketi`}
+                active={reportCompany === 'ALL'}
+                onClick={() => setReportCompany('ALL')}
+              />
+              {SAT_BUDGET_COMPANIES.map((company) => {
+                const companyBudgetRows = allRows.filter(
+                  (row) => row.company === company,
+                );
+                const companyUsageRows = usageRows.filter(
+                  (row) => row.company === company,
+                );
+                return (
+                  <ReportScopeButton
+                    key={company}
+                    title={companyLabel(company)}
+                    helper={`${companyBudgetRows.length} bütçe · ${companyUsageRows.length} kullanım hareketi`}
+                    active={reportCompany === company}
+                    onClick={() => setReportCompany(company)}
+                  />
+                );
+              })}
+            </div>
           </div>
           <button
             type="button"
