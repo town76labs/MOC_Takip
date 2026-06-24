@@ -14,21 +14,28 @@ import {
   FilterX,
   Loader2,
   ReceiptText,
+  Workflow,
   WalletCards,
 } from 'lucide-react';
 import type {
   SATBudgetCompany,
   SATBudgetRow,
+  SATBudgetType,
+  SATBudgetUsageRow,
+  SATBudgetUsageStage,
 } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import {
   budgetCompanySummary,
   budgetTotals,
   budgetTypeLabel,
+  budgetUsageSummary,
   companyLabel,
+  isMaskedBudgetRow,
   SAT_BUDGET_COMPANIES,
 } from '../../lib/satBudgetLogic';
 import { downloadSATBudgetReportPdf } from '../../lib/satBudgetReportPdf';
+import { isSTADOpexBudgetSource } from '../../lib/satBudgetParser';
 import { formatDate } from '../../lib/normalize';
 import {
   DataTable,
@@ -45,8 +52,14 @@ const TOOLTIP_STYLE = {
 
 export function SATBudgetOverviewDashboard() {
   const allRows = useDataStore((state) => state.satBudgetRows);
+  const usageRows = useDataStore((state) => state.satBudgetUsageRows);
+  const usageFile = useDataStore((state) => state.satBudgetUsageFile);
   const [selectedCompany, setSelectedCompany] =
     useState<SATBudgetCompany | null>(null);
+  const [selectedBudgetType, setSelectedBudgetType] =
+    useState<SATBudgetType | null>(null);
+  const [selectedUsageStage, setSelectedUsageStage] =
+    useState<SATBudgetUsageStage | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportScope, setReportScope] = useState<'filtered' | 'all'>('filtered');
   const [reportGenerating, setReportGenerating] = useState(false);
@@ -59,11 +72,59 @@ export function SATBudgetOverviewDashboard() {
     [allRows, selectedCompany],
   );
   const totals = useMemo(() => budgetTotals(visibleRows), [visibleRows]);
+  const totalsMasked = visibleRows.some(isMaskedBudgetRow);
+  const budgetMovementRows = useMemo(
+    () =>
+      selectedBudgetType
+        ? visibleRows.filter((row) => row.budgetType === selectedBudgetType)
+        : visibleRows,
+    [selectedBudgetType, visibleRows],
+  );
   const companySummaries = useMemo(
     () => budgetCompanySummary(allRows),
     [allRows],
   );
   const sourceSummary = useMemo(() => buildSourceSummary(visibleRows), [visibleRows]);
+  const selectedUsageRows = useMemo(
+    () =>
+      selectedCompany
+        ? usageRows.filter(
+            (row) =>
+              row.company === selectedCompany &&
+              (!selectedBudgetType || row.budgetType === selectedBudgetType) &&
+              (!selectedUsageStage || row.stage === selectedUsageStage),
+          )
+        : [],
+    [selectedBudgetType, selectedCompany, selectedUsageStage, usageRows],
+  );
+  const usageSummaries = useMemo(
+    () =>
+      selectedCompany
+        ? budgetUsageSummary(allRows, usageRows, selectedCompany)
+        : [],
+    [allRows, selectedCompany, usageRows],
+  );
+
+  function selectCompany(company: SATBudgetCompany | null) {
+    setSelectedCompany(company);
+    setSelectedBudgetType(null);
+    setSelectedUsageStage(null);
+  }
+
+  function selectBudgetType(type: SATBudgetType) {
+    setSelectedBudgetType((current) => (current === type ? null : type));
+    setSelectedUsageStage(null);
+  }
+
+  function selectUsageStage(
+    type: SATBudgetType,
+    stage: SATBudgetUsageStage,
+  ) {
+    setSelectedBudgetType(type);
+    setSelectedUsageStage((current) =>
+      selectedBudgetType === type && current === stage ? null : stage,
+    );
+  }
 
   async function createReport() {
     const rows = reportScope === 'filtered' ? visibleRows : allRows;
@@ -107,7 +168,7 @@ export function SATBudgetOverviewDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setSelectedCompany(null)}
+              onClick={() => selectCompany(null)}
               disabled={!selectedCompany}
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
             >
@@ -121,7 +182,7 @@ export function SATBudgetOverviewDashboard() {
             label="Tüm Şirketler"
             value={allRows.length}
             active={selectedCompany === null}
-            onClick={() => setSelectedCompany(null)}
+            onClick={() => selectCompany(null)}
           />
           {SAT_BUDGET_COMPANIES.map((company) => (
             <CompanyFilter
@@ -130,9 +191,7 @@ export function SATBudgetOverviewDashboard() {
               value={allRows.filter((row) => row.company === company).length}
               active={selectedCompany === company}
               onClick={() =>
-                setSelectedCompany((current) =>
-                  current === company ? null : company,
-                )
+                selectCompany(selectedCompany === company ? null : company)
               }
             />
           ))}
@@ -142,22 +201,22 @@ export function SATBudgetOverviewDashboard() {
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
           title="Net Toplam Bütçe"
-          value={formatCompactUsd(totals.net)}
-          helper={formatUsd(totals.net)}
+          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.net)}
+          helper={totalsMasked ? 'Gizli bütçe dahil' : formatUsd(totals.net)}
           color="#38bdf8"
           icon={<WalletCards size={21} />}
         />
         <MetricCard
           title="Toplam Bütçe Girişi"
-          value={formatCompactUsd(totals.inflow)}
-          helper="Pozitif L sütunu hareketleri"
+          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.inflow)}
+          helper={totalsMasked ? 'Gizli bütçe dahil' : 'Pozitif L sütunu hareketleri'}
           color="#10b981"
           icon={<ArrowUpCircle size={21} />}
         />
         <MetricCard
           title="Toplam Bütçe Çıkışı"
-          value={formatCompactUsd(totals.outflow)}
-          helper="Negatif L sütunu hareketleri"
+          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.outflow)}
+          helper={totalsMasked ? 'Gizli bütçe dahil' : 'Negatif L sütunu hareketleri'}
           color="#f97316"
           icon={<ArrowDownCircle size={21} />}
         />
@@ -178,13 +237,86 @@ export function SATBudgetOverviewDashboard() {
             active={selectedCompany === summary.company}
             dimmed={!!selectedCompany && selectedCompany !== summary.company}
             onClick={() =>
-              setSelectedCompany((current) =>
-                current === summary.company ? null : summary.company,
+              selectCompany(
+                selectedCompany === summary.company ? null : summary.company,
               )
             }
           />
         ))}
       </section>
+
+      {selectedCompany && (
+        <section className="card p-5">
+          <div className="mb-5 flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
+              <Workflow size={18} />
+            </span>
+            <div>
+              <h2 className="panel-title">
+                {companyLabel(selectedCompany)} Bütçe Kullanım Aşamaları
+              </h2>
+              <p className="panel-subtitle mt-1">
+                CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı
+              </p>
+            </div>
+          </div>
+          {usageFile ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              {usageSummaries.map((summary) => (
+                <BudgetUsageDonut
+                  key={summary.key}
+                  summary={summary}
+                  active={selectedBudgetType === summary.key}
+                  selectedStage={
+                    selectedBudgetType === summary.key
+                      ? selectedUsageStage
+                      : null
+                  }
+                  onSelectType={() => selectBudgetType(summary.key)}
+                  onSelectStage={(stage) =>
+                    selectUsageStage(summary.key, stage)
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-amber-300/25 bg-amber-400/[0.05] px-6 text-center">
+              <ReceiptText size={28} className="mb-3 text-amber-300" />
+              <div className="text-sm font-semibold text-white/80">
+                SAT Bütçe Kullanım Detayı Excel dosyasını yükleyin
+              </div>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-white/45">
+                SAT, SAS ve fatura tutarları yeni dosyadan okunarak bütçe türlerine dağıtılacaktır.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {selectedCompany && usageFile && (
+        <section className="card p-5">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-white">
+              {selectedBudgetType
+                ? `${budgetTypeLabel(selectedBudgetType)} Bütçe Hareketleri`
+                : 'SAT · SAS · FAT Belge Bağlantıları'}
+            </h2>
+            <p className="mt-1 text-xs text-white/45">
+              {companyLabel(selectedCompany)}
+              {selectedUsageStage ? ` · ${selectedUsageStage}` : ''} ·{' '}
+              {selectedUsageRows.length} bütçe kullanım hareketi
+            </p>
+          </div>
+          <DataTable
+            data={selectedUsageRows}
+            columns={USAGE_COLUMNS}
+            rowKey={(row) => row.rowId}
+            initialSortKey="date"
+            initialSortDir="desc"
+            emptyMessage="Seçili şirket için SAT/SAS/FAT bütçe hareketi bulunamadı."
+          />
+        </section>
+      )}
 
       <section className="card p-5">
         <div className="mb-4 flex items-center gap-2">
@@ -203,11 +335,15 @@ export function SATBudgetOverviewDashboard() {
         <div className="mb-4">
           <h2 className="text-base font-semibold text-white">Bütçe Hareket Detayı</h2>
           <p className="mt-1 text-xs text-white/45">
-            {selectedCompany ? companyLabel(selectedCompany) : 'Tüm Şirketler'} · {visibleRows.length} hareket
+            {selectedCompany ? companyLabel(selectedCompany) : 'Tüm Şirketler'}
+            {selectedBudgetType
+              ? ` · ${budgetTypeLabel(selectedBudgetType)}`
+              : ''}{' '}
+            · {budgetMovementRows.length} hareket
           </p>
         </div>
         <DataTable
-          data={visibleRows}
+          data={budgetMovementRows}
           columns={BUDGET_COLUMNS}
           rowKey={(row) => row.rowId}
           initialSortKey="date"
@@ -229,13 +365,19 @@ export function SATBudgetOverviewDashboard() {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <ReportScopeButton
               title="Mevcut Filtre"
-              helper={`${visibleRows.length} hareket · ${formatUsd(totals.net)}`}
+              helper={`${visibleRows.length} hareket · ${
+                totalsMasked ? 'XXX USD' : formatUsd(totals.net)
+              }`}
               active={reportScope === 'filtered'}
               onClick={() => setReportScope('filtered')}
             />
             <ReportScopeButton
               title="Tüm Veriler"
-              helper={`${allRows.length} hareket · ${formatUsd(budgetTotals(allRows).net)}`}
+              helper={`${allRows.length} hareket · ${
+                allRows.some(isMaskedBudgetRow)
+                  ? 'XXX USD'
+                  : formatUsd(budgetTotals(allRows).net)
+              }`}
               active={reportScope === 'all'}
               onClick={() => setReportScope('all')}
             />
@@ -272,6 +414,7 @@ function CompanyBudgetDonut({
   dimmed: boolean;
   onClick: () => void;
 }) {
+  const hasMaskedBudget = summary.types.some((type) => type.masked);
   const chartData = summary.types
     .filter((type) => type.net !== 0)
     .map((type) => ({ ...type, value: Math.abs(type.net) }));
@@ -290,7 +433,7 @@ function CompanyBudgetDonut({
           <p className="panel-subtitle mt-1">CAPEX · OPEX · Operational CAPEX</p>
         </div>
         <span className="text-lg font-semibold text-cyan-300 tabular-nums">
-          {formatCompactUsd(summary.totals.net)}
+          {hasMaskedBudget ? 'XXX USD' : formatCompactUsd(summary.totals.net)}
         </span>
       </div>
       <div className="relative mt-3 h-52 min-w-0">
@@ -314,7 +457,11 @@ function CompanyBudgetDonut({
                 </Pie>
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(value) => formatUsd(Number(value))}
+                  formatter={(value, name) =>
+                    name === 'OPEX' && hasMaskedBudget
+                      ? 'XXX USD'
+                      : formatUsd(Number(value))
+                  }
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -332,15 +479,178 @@ function CompanyBudgetDonut({
           <div key={type.key} className="flex items-center justify-between gap-3 text-xs">
             <span className="flex items-center gap-2 text-white/55">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: type.color }} />
-              {type.label}
+              {type.label} - {type.sourceCode}
             </span>
             <span className="font-semibold text-white/80 tabular-nums">
-              {formatUsd(type.net)}
+              {type.masked ? 'XXX USD' : formatUsd(type.net)}
             </span>
           </div>
         ))}
       </div>
     </button>
+  );
+}
+
+type UsageSummary = ReturnType<typeof budgetUsageSummary>[number];
+
+function BudgetUsageDonut({
+  summary,
+  active,
+  selectedStage,
+  onSelectType,
+  onSelectStage,
+}: {
+  summary: UsageSummary;
+  active: boolean;
+  selectedStage: SATBudgetUsageStage | null;
+  onSelectType: () => void;
+  onSelectStage: (stage: SATBudgetUsageStage) => void;
+}) {
+  const chartData = summary.segments.filter((segment) => segment.value > 0);
+  const utilization = summary.totalBudget
+    ? Math.round((summary.used / summary.totalBudget) * 100)
+    : 0;
+  return (
+    <div
+      className={`rounded-lg border bg-black/20 p-4 transition ${
+        active
+          ? 'border-cyan-400/65 ring-2 ring-cyan-400/20'
+          : 'border-white/10'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onSelectType}
+        aria-pressed={active}
+        className="flex w-full items-start justify-between gap-3 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+      >
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            {summary.label} - {summary.sourceCode}
+          </h3>
+          <p className="mt-1 text-[11px] text-white/40">
+            {summary.rowCount} kullanım hareketi
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-semibold text-cyan-300">
+            {summary.masked
+              ? 'XXX USD'
+              : isSTADOpexBudgetSource(summary.sourceCode)
+                ? formatUsd(summary.totalBudget)
+                : formatCompactUsd(summary.totalBudget)}
+          </div>
+          <div className="mt-1 text-[10px] text-white/35">Toplam bütçe</div>
+        </div>
+      </button>
+      <div className="relative mt-2 h-52 min-w-0">
+        {chartData.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="label"
+                  innerRadius={53}
+                  outerRadius={79}
+                  paddingAngle={3}
+                  stroke="#0d0d0d"
+                  strokeWidth={3}
+                  onClick={(_, index) => {
+                    const segment = chartData[index];
+                    if (segment && segment.key !== 'UNUSED') {
+                      onSelectStage(segment.key);
+                    }
+                  }}
+                >
+                  {chartData.map((segment) => (
+                    <Cell
+                      key={segment.key}
+                      fill={segment.color}
+                      cursor={segment.key === 'UNUSED' ? 'default' : 'pointer'}
+                      fillOpacity={
+                        selectedStage && segment.key !== selectedStage ? 0.3 : 1
+                      }
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  formatter={(value, name) =>
+                    summary.masked && name === 'Kullanılmayan'
+                      ? 'XXX USD'
+                      : formatUsd(Number(value))
+                  }
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-xl font-semibold text-white">
+                  {summary.masked ? 'XXX' : `%${utilization}`}
+                </div>
+                <div className="mt-1 text-[10px] text-white/40">Kullanım</div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-white/35">
+            Bütçe veya kullanım kaydı yok
+          </div>
+        )}
+      </div>
+      <div className="space-y-2">
+        {summary.segments.map((segment) => {
+          const selectable = segment.key !== 'UNUSED';
+          const content = (
+            <>
+            <span className="flex items-center gap-2 text-white/55">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: segment.color }}
+              />
+              {segment.label}
+            </span>
+            <span className="font-semibold text-white/80 tabular-nums">
+              {summary.masked && segment.key === 'UNUSED'
+                ? 'XXX USD'
+                : formatUsd(segment.value)}
+            </span>
+            </>
+          );
+          return selectable ? (
+            <button
+              key={segment.key}
+              type="button"
+              onClick={() =>
+                onSelectStage(segment.key as SATBudgetUsageStage)
+              }
+              aria-pressed={selectedStage === segment.key}
+              className={`flex w-full items-center justify-between gap-3 rounded px-1 py-0.5 text-xs transition ${
+                selectedStage === segment.key
+                  ? 'bg-cyan-400/10 ring-1 ring-cyan-300/35'
+                  : 'hover:bg-white/[0.05]'
+              }`}
+            >
+              {content}
+            </button>
+          ) : (
+            <div
+              key={segment.key}
+              className="flex items-center justify-between gap-3 px-1 py-0.5 text-xs"
+            >
+              {content}
+            </div>
+          );
+        })}
+      </div>
+      {summary.overrun > 0 && (
+        <div className="mt-3 rounded-md border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-[11px] font-medium text-rose-200">
+          Bütçe aşımı: {formatUsd(summary.overrun)}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -404,9 +714,18 @@ function CompanyFilter({
 function SourceBars({
   data,
 }: {
-  data: { label: string; value: number; company: SATBudgetCompany }[];
+  data: {
+    label: string;
+    value: number;
+    company: SATBudgetCompany;
+    sourceCode: string;
+    masked: boolean;
+  }[];
 }) {
-  const max = Math.max(...data.map((item) => Math.abs(item.value)), 1);
+  const max = Math.max(
+    ...data.filter((item) => !item.masked).map((item) => Math.abs(item.value)),
+    1,
+  );
   return (
     <div className="grid gap-3 lg:grid-cols-2">
       {data.map((item) => (
@@ -417,13 +736,23 @@ function SourceBars({
               <div className="mt-1 text-[11px] text-white/35">{companyLabel(item.company)}</div>
             </div>
             <span className={`text-sm font-semibold tabular-nums ${item.value < 0 ? 'text-rose-300' : 'text-cyan-300'}`}>
-              {formatUsd(item.value)}
+              {item.masked ? 'XXX USD' : formatUsd(item.value)}
             </span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
             <div
-              className={`h-full rounded-full ${item.value < 0 ? 'bg-rose-400' : 'bg-cyan-400'}`}
-              style={{ width: `${Math.max(1, (Math.abs(item.value) / max) * 100)}%` }}
+              className={`h-full rounded-full ${
+                item.masked
+                  ? 'bg-slate-500/60'
+                  : item.value < 0
+                    ? 'bg-rose-400'
+                    : 'bg-cyan-400'
+              }`}
+              style={{
+                width: item.masked
+                  ? '100%'
+                  : `${Math.max(1, (Math.abs(item.value) / max) * 100)}%`,
+              }}
             />
           </div>
         </div>
@@ -463,13 +792,21 @@ function ReportScopeButton({
 function buildSourceSummary(rows: SATBudgetRow[]) {
   const map = new Map<
     string,
-    { label: string; value: number; company: SATBudgetCompany }
+    {
+      label: string;
+      value: number;
+      company: SATBudgetCompany;
+      sourceCode: string;
+      masked: boolean;
+    }
   >();
   rows.forEach((row) => {
     const current = map.get(row.sourceLabel) ?? {
       label: row.sourceLabel,
       value: 0,
       company: row.company,
+      sourceCode: row.sourceCode,
+      masked: isMaskedBudgetRow(row),
     };
     current.value += row.amount;
     map.set(row.sourceLabel, current);
@@ -526,7 +863,7 @@ const BUDGET_COLUMNS: DataTableColumn<SATBudgetRow>[] = [
     className: 'whitespace-nowrap',
     render: (row) => (
       <span className={`font-semibold ${row.amount < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
-        {formatSignedUsd(row.amount)}
+        {isMaskedBudgetRow(row) ? 'XXX USD' : formatSignedUsd(row.amount)}
       </span>
     ),
   },
@@ -538,6 +875,102 @@ const BUDGET_COLUMNS: DataTableColumn<SATBudgetRow>[] = [
     render: (row) => row.user || '—',
   },
 ];
+
+const USAGE_COLUMNS: DataTableColumn<SATBudgetUsageRow>[] = [
+  {
+    key: 'date',
+    header: 'Kayıt Tarihi',
+    sortValue: (row) => row.documentDate ?? new Date(0),
+    searchValue: (row) => formatDate(row.documentDate),
+    className: 'whitespace-nowrap',
+    render: (row) => formatDate(row.documentDate),
+  },
+  {
+    key: 'type',
+    header: 'Bütçe Türü',
+    sortValue: (row) => row.budgetType,
+    searchValue: (row) => budgetTypeLabel(row.budgetType),
+    className: 'whitespace-nowrap',
+    render: (row) => budgetTypeLabel(row.budgetType),
+  },
+  {
+    key: 'stage',
+    header: 'Aşama',
+    sortValue: (row) => row.stage,
+    searchValue: (row) => row.stage,
+    render: (row) => <UsageStageBadge stage={row.stage} />,
+  },
+  {
+    key: 'satNo',
+    header: 'SAT No',
+    sortValue: (row) => row.satNo,
+    searchValue: (row) => row.satNo,
+    className: 'whitespace-nowrap',
+    render: (row) => row.satNo || <span className="text-amber-300">Eşleşmedi</span>,
+  },
+  {
+    key: 'sasNo',
+    header: 'SAS No',
+    sortValue: (row) => row.sasNo,
+    searchValue: (row) => row.sasNo,
+    className: 'whitespace-nowrap',
+    render: (row) => row.sasNo || '—',
+  },
+  {
+    key: 'invoiceNo',
+    header: 'Fatura No',
+    sortValue: (row) => row.invoiceNo,
+    searchValue: (row) => row.invoiceNo,
+    className: 'whitespace-nowrap',
+    render: (row) => row.invoiceNo || '—',
+  },
+  {
+    key: 'description',
+    header: 'Açıklama',
+    sortValue: (row) => row.description,
+    searchValue: (row) => `${row.description} ${row.vendor}`,
+    className: 'min-w-72',
+    render: (row) => (
+      <div>
+        <div className="text-white/75">{row.description || '—'}</div>
+        <div className="mt-1 text-xs text-white/35">{row.vendor || 'Satıcı yok'}</div>
+      </div>
+    ),
+  },
+  {
+    key: 'amount',
+    header: 'Bütçe Tutarı',
+    sortValue: (row) => row.amountUsd,
+    searchValue: (row) => String(row.amountUsd),
+    className: 'whitespace-nowrap',
+    render: (row) => (
+      <span className={`font-semibold ${row.amountUsd < 0 ? 'text-rose-300' : 'text-cyan-300'}`}>
+        {formatSignedUsd(row.amountUsd)}
+      </span>
+    ),
+  },
+];
+
+function UsageStageBadge({ stage }: { stage: SATBudgetUsageRow['stage'] }) {
+  const config =
+    stage === 'SAT'
+      ? { color: '#38bdf8', label: 'SAT' }
+      : stage === 'SAS'
+        ? { color: '#8b5cf6', label: 'SAS' }
+        : { color: '#10b981', label: 'FAT' };
+  return (
+    <span
+      className="inline-flex rounded-md border px-2 py-1 text-xs font-semibold"
+      style={{
+        color: config.color,
+        borderColor: `${config.color}45`,
+        backgroundColor: `${config.color}14`,
+      }}
+    >
+      {config.label}
+    </span>
+  );
+}
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('tr-TR').format(value);

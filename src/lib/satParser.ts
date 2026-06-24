@@ -187,6 +187,8 @@ const SAP_EXPORT_COLUMNS = {
   satItemNo: 3, // D
   totalSatUsd: 4, // E
   createdAt: 5, // F
+  sasNo: 6, // G
+  sasItemNo: 7, // H
   satQuantity: 8, // I
   satItemUsd: 11, // L
   completed: 16, // Q
@@ -211,6 +213,8 @@ const SAP_EXPORT_HEADER_SIGNATURES = [
   [SAP_EXPORT_COLUMNS.satItemNo, 'SAT Kalem Numarası'],
   [SAP_EXPORT_COLUMNS.totalSatUsd, 'Toplam SAT USD Tutarı'],
   [SAP_EXPORT_COLUMNS.createdAt, 'SAT Yaratılma Tarihi'],
+  [SAP_EXPORT_COLUMNS.sasNo, 'SAS Belge No'],
+  [SAP_EXPORT_COLUMNS.sasItemNo, 'SAS Kalem Numarası'],
   [SAP_EXPORT_COLUMNS.satQuantity, 'SAT Miktarı'],
   [SAP_EXPORT_COLUMNS.satItemUsd, 'SAT USD tutar'],
   [SAP_EXPORT_COLUMNS.completed, 'Tamam'],
@@ -267,6 +271,8 @@ function parseSAPExport(workbook: XLSX.WorkBook): SATExportRow[] {
             : compact(value(cells, SAP_EXPORT_COLUMNS.companyCodeOrSatNo)),
           satNo,
           satItemNo: compact(value(cells, SAP_EXPORT_COLUMNS.satItemNo)),
+          sasNo: compact(value(cells, SAP_EXPORT_COLUMNS.sasNo)),
+          sasItemNo: compact(value(cells, SAP_EXPORT_COLUMNS.sasItemNo)),
           satQuantity: parseAmount(value(cells, SAP_EXPORT_COLUMNS.satQuantity)),
           satItemUsd: parseAmount(value(cells, SAP_EXPORT_COLUMNS.satItemUsd)),
           sourceTotalSatUsd: parseAmount(

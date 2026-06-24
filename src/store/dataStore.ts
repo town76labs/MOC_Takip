@@ -3,6 +3,7 @@ import type {
   ActionRow,
   ParseError,
   SATBudgetRow,
+  SATBudgetUsageRow,
   SATExportRow,
   SATFileFormat,
   SATRow,
@@ -18,6 +19,10 @@ import {
 import { parseSCEExcel } from '../lib/sceParser';
 import { parseSATExcel } from '../lib/satParser';
 import { parseSATBudgetExcel } from '../lib/satBudgetParser';
+import {
+  linkSATBudgetUsageToExport,
+  parseSATBudgetUsageExcel,
+} from '../lib/satBudgetUsageParser';
 
 interface FileMeta {
   name: string;
@@ -34,6 +39,7 @@ interface DataState {
   satRows: SATRow[];
   satExportRows: SATExportRow[];
   satBudgetRows: SATBudgetRow[];
+  satBudgetUsageRows: SATBudgetUsageRow[];
   satFormat: SATFileFormat | null;
   technicalFile: FileMeta | null;
   actionsFile: FileMeta | null;
@@ -41,6 +47,7 @@ interface DataState {
   sceFile: FileMeta | null;
   satFile: FileMeta | null;
   satBudgetFile: FileMeta | null;
+  satBudgetUsageFile: FileMeta | null;
 
   // Yükleme/hata durumları
   technicalLoading: boolean;
@@ -49,12 +56,14 @@ interface DataState {
   sceLoading: boolean;
   satLoading: boolean;
   satBudgetLoading: boolean;
+  satBudgetUsageLoading: boolean;
   technicalError: ParseError | null;
   actionsError: ParseError | null;
   mocTakipError: ParseError | null;
   sceError: ParseError | null;
   satError: ParseError | null;
   satBudgetError: ParseError | null;
+  satBudgetUsageError: ParseError | null;
 
   // Global filtreler
   selectedCompanies: string[];
@@ -67,17 +76,19 @@ interface DataState {
   uploadSCE: (file: File) => Promise<void>;
   uploadSAT: (file: File) => Promise<void>;
   uploadSATBudget: (file: File) => Promise<void>;
+  uploadSATBudgetUsage: (file: File) => Promise<void>;
   clearTechnical: () => void;
   clearActions: () => void;
   clearMOCTakip: () => void;
   clearSCE: () => void;
   clearSAT: () => void;
   clearSATBudget: () => void;
+  clearSATBudgetUsage: () => void;
   setSelectedCompanies: (v: string[]) => void;
   setSelectedTechnicalStatuses: (v: TechnicalStatus[]) => void;
 }
 
-export const useDataStore = create<DataState>((set) => ({
+export const useDataStore = create<DataState>((set, get) => ({
   technicalRows: [],
   actionRows: [],
   mocTakipMocNos: [],
@@ -85,6 +96,7 @@ export const useDataStore = create<DataState>((set) => ({
   satRows: [],
   satExportRows: [],
   satBudgetRows: [],
+  satBudgetUsageRows: [],
   satFormat: null,
   technicalFile: null,
   actionsFile: null,
@@ -92,18 +104,21 @@ export const useDataStore = create<DataState>((set) => ({
   sceFile: null,
   satFile: null,
   satBudgetFile: null,
+  satBudgetUsageFile: null,
   technicalLoading: false,
   actionsLoading: false,
   mocTakipLoading: false,
   sceLoading: false,
   satLoading: false,
   satBudgetLoading: false,
+  satBudgetUsageLoading: false,
   technicalError: null,
   actionsError: null,
   mocTakipError: null,
   sceError: null,
   satError: null,
   satBudgetError: null,
+  satBudgetUsageError: null,
   selectedCompanies: [],
   selectedTechnicalStatuses: [],
 
@@ -198,6 +213,10 @@ export const useDataStore = create<DataState>((set) => ({
         satError: error,
         satRows: [],
         satExportRows: [],
+        satBudgetUsageRows: linkSATBudgetUsageToExport(
+          get().satBudgetUsageRows,
+          [],
+        ),
         satFormat: null,
         satFile: null,
       });
@@ -207,6 +226,10 @@ export const useDataStore = create<DataState>((set) => ({
       satLoading: false,
       satRows: data,
       satExportRows: exportData,
+      satBudgetUsageRows: linkSATBudgetUsageToExport(
+        get().satBudgetUsageRows,
+        exportData,
+      ),
       satFormat: format,
       satFile: { name: file.name, size: file.size, uploadedAt: new Date() },
       satError: null,
@@ -237,6 +260,33 @@ export const useDataStore = create<DataState>((set) => ({
     });
   },
 
+  uploadSATBudgetUsage: async (file: File) => {
+    set({ satBudgetUsageLoading: true, satBudgetUsageError: null });
+    const { data, error } = await parseSATBudgetUsageExcel(
+      file,
+      get().satExportRows,
+    );
+    if (error) {
+      set({
+        satBudgetUsageLoading: false,
+        satBudgetUsageError: error,
+        satBudgetUsageRows: [],
+        satBudgetUsageFile: null,
+      });
+      return;
+    }
+    set({
+      satBudgetUsageLoading: false,
+      satBudgetUsageRows: data,
+      satBudgetUsageFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      satBudgetUsageError: null,
+    });
+  },
+
   clearTechnical: () =>
     set({
       technicalRows: [],
@@ -264,18 +314,28 @@ export const useDataStore = create<DataState>((set) => ({
       sceError: null,
     }),
   clearSAT: () =>
-    set({
+    set((state) => ({
       satRows: [],
       satExportRows: [],
+      satBudgetUsageRows: linkSATBudgetUsageToExport(
+        state.satBudgetUsageRows,
+        [],
+      ),
       satFormat: null,
       satFile: null,
       satError: null,
-    }),
+    })),
   clearSATBudget: () =>
     set({
       satBudgetRows: [],
       satBudgetFile: null,
       satBudgetError: null,
+    }),
+  clearSATBudgetUsage: () =>
+    set({
+      satBudgetUsageRows: [],
+      satBudgetUsageFile: null,
+      satBudgetUsageError: null,
     }),
 
   setSelectedCompanies: (v) => set({ selectedCompanies: v }),

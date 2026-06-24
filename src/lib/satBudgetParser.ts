@@ -57,11 +57,28 @@ export const SAT_BUDGET_SOURCES: SATBudgetSourceDefinition[] = [
     company: 'STAD',
     budgetType: 'OPERATIONAL_CAPEX',
   },
+  {
+    code: '55044108',
+    label: 'OPEX / STAD Hizmet',
+    company: 'STAD',
+    budgetType: 'OPEX',
+  },
 ];
+
+export const STAD_OPEX_BUDGET_SOURCE_CODE = '55044108';
+export const STAD_OPEX_BUDGET_AMOUNT_USD = 331_908;
 
 const SOURCE_BY_CODE = new Map(
   SAT_BUDGET_SOURCES.map((source) => [normalizeCode(source.code), source]),
 );
+
+export function getSATBudgetSource(value: unknown) {
+  return SOURCE_BY_CODE.get(normalizeCode(value));
+}
+
+export function isSTADOpexBudgetSource(value: unknown) {
+  return normalizeCode(value) === STAD_OPEX_BUDGET_SOURCE_CODE;
+}
 
 export async function parseSATBudgetExcel(
   file: File,
@@ -94,7 +111,7 @@ export async function parseSATBudgetExcel(
         .slice(headerIndex + 1)
         .map((cells, index): SATBudgetRow | null => {
           const sourceCode = toDisplayString(cells[7]);
-          const source = SOURCE_BY_CODE.get(normalizeCode(sourceCode));
+          const source = getSATBudgetSource(sourceCode);
           if (!source) return null;
           return {
             rowId: `sat-budget-${index + headerIndex + 2}`,
@@ -113,7 +130,7 @@ export async function parseSATBudgetExcel(
           };
         })
         .filter((row): row is SATBudgetRow => row !== null);
-      if (data.length > 0) return { data };
+      if (data.length > 0) return { data: normalizeSTADOpexBudget(data) };
     }
     return {
       data: [],
@@ -130,6 +147,24 @@ export async function parseSATBudgetExcel(
       },
     };
   }
+}
+
+function normalizeSTADOpexBudget(rows: SATBudgetRow[]) {
+  const stadRows = rows.filter((row) => isSTADOpexBudgetSource(row.sourceCode));
+  if (stadRows.length === 0) return rows;
+  const first = stadRows[0];
+  return [
+    ...rows.filter((row) => !isSTADOpexBudgetSource(row.sourceCode)),
+    {
+      ...first,
+      rowId: 'sat-budget-stad-opex-fixed',
+      amount: STAD_OPEX_BUDGET_AMOUNT_USD,
+      documentNo: STAD_OPEX_BUDGET_SOURCE_CODE,
+      transactionType: 'Tanımlı Bütçe',
+      user: '',
+      description: 'STAD OPEX Hizmet bütçesi',
+    },
+  ];
 }
 
 function normalizeCode(value: unknown) {

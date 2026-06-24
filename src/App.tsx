@@ -59,6 +59,11 @@ function App() {
   const satBudgetError = useDataStore((s) => s.satBudgetError);
   const uploadSATBudget = useDataStore((s) => s.uploadSATBudget);
   const clearSATBudget = useDataStore((s) => s.clearSATBudget);
+  const satBudgetUsageFile = useDataStore((s) => s.satBudgetUsageFile);
+  const satBudgetUsageLoading = useDataStore((s) => s.satBudgetUsageLoading);
+  const satBudgetUsageError = useDataStore((s) => s.satBudgetUsageError);
+  const uploadSATBudgetUsage = useDataStore((s) => s.uploadSATBudgetUsage);
+  const clearSATBudgetUsage = useDataStore((s) => s.clearSATBudgetUsage);
 
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [uploadsOpen, setUploadsOpen] = useState(false);
@@ -156,8 +161,9 @@ function App() {
   }
 
   if (appMode === 'sat') {
-    const showSATUpload = !satFile || !satBudgetFile || satUploadsOpen;
-    const hasAnySATFile = !!satFile || !!satBudgetFile;
+    const showSATUpload =
+      !satFile || !satBudgetFile || !satBudgetUsageFile || satUploadsOpen;
+    const hasAnySATFile = !!satFile || !!satBudgetFile || !!satBudgetUsageFile;
 
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
@@ -220,7 +226,7 @@ function App() {
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
           {showSATUpload && (
-            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
               <FileUpload
                 title="SAT Bütçe Girişleri Excel'i"
                 subtitle="Genel Bakış için şirket ve bütçe türü hareketleri"
@@ -231,6 +237,18 @@ function App() {
                 onFile={uploadSATBudget}
                 onClear={clearSATBudget}
                 accentColorClass="from-violet-500 to-cyan-500"
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="SAT Bütçe Kullanım Detayı Excel'i"
+                subtitle="SAT, SAS ve fatura aşamalarındaki bütçe kullanımları"
+                hint="A-B sütunlarında belge bağlantıları, D sütununda belge türü, I sütununda USD tutarı ve K sütununda mali merkez bulunmalıdır. 55044108 için yalnız R=TPINAR kullanımları alınır."
+                fileMeta={satBudgetUsageFile}
+                loading={satBudgetUsageLoading}
+                error={satBudgetUsageError}
+                onFile={uploadSATBudgetUsage}
+                onClear={clearSATBudgetUsage}
+                accentColorClass="from-amber-500 to-orange-600"
                 surfaceClassName="upload-panel-dark"
               />
               <FileUpload

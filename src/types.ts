@@ -174,6 +174,8 @@ export interface SATExportRow {
   companyCode: string;
   satNo: string;
   satItemNo: string;
+  sasNo: string;
+  sasItemNo: string;
   satQuantity: number;
   satItemUsd: number;
   sourceTotalSatUsd: number;
@@ -213,4 +215,29 @@ export interface SATBudgetRow {
   documentDate: Date | null;
   user: string;
   description: string;
+}
+
+export type SATBudgetUsageStage = 'SAT' | 'SAS' | 'FAT';
+
+export interface SATBudgetUsageRow {
+  rowId: string;
+  sourceRow: number;
+  company: SATBudgetCompany;
+  budgetType: SATBudgetType;
+  sourceCode: string;
+  sourceLabel: string;
+  stage: SATBudgetUsageStage;
+  amountUsd: number;
+  referenceNo: string;
+  previousDocumentNo: string;
+  referenceItemNo: string;
+  satNo: string;
+  sasNo: string;
+  invoiceNo: string;
+  documentDate: Date | null;
+  description: string;
+  vendor: string;
+  transactionAmount: number;
+  transactionCurrency: string;
+  user: string;
 }

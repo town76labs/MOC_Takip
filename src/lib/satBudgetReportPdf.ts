@@ -11,6 +11,7 @@ import {
   budgetTotals,
   budgetTypeLabel,
   companyLabel,
+  isMaskedBudgetRow,
 } from './satBudgetLogic';
 
 interface SATBudgetReportOptions {
@@ -68,6 +69,7 @@ export function buildSATBudgetReportDefinition(
 ): TDocumentDefinitions {
   const totals = budgetTotals(rows);
   const companies = budgetCompanySummary(rows);
+  const reportMasked = rows.some(isMaskedBudgetRow);
   const content: Content[] = [
     {
       columns: [
@@ -113,9 +115,9 @@ export function buildSATBudgetReportDefinition(
       margin: [0, 12, 0, 12],
     },
     kpiGrid([
-      ['Net Toplam Bütçe', formatUsd(totals.net), 'Giriş - çıkış'],
-      ['Toplam Giriş', formatUsd(totals.inflow), 'Pozitif hareketler'],
-      ['Toplam Çıkış', formatUsd(totals.outflow), 'Negatif hareketler'],
+      ['Net Toplam Bütçe', reportMasked ? 'XXX USD' : formatUsd(totals.net), reportMasked ? 'Gizli bütçe dahil' : 'Giriş - çıkış'],
+      ['Toplam Giriş', reportMasked ? 'XXX USD' : formatUsd(totals.inflow), reportMasked ? 'Gizli bütçe dahil' : 'Pozitif hareketler'],
+      ['Toplam Çıkış', reportMasked ? 'XXX USD' : formatUsd(totals.outflow), reportMasked ? 'Gizli bütçe dahil' : 'Negatif hareketler'],
       ['Bütçe Hareketi', formatNumber(totals.count), 'Excel satırı'],
     ]),
     sectionTitle('Şirket ve Bütçe Türü Dağılımı'),
@@ -130,7 +132,9 @@ export function buildSATBudgetReportDefinition(
             fontSize: 11,
           },
           {
-            text: formatUsd(company.totals.net),
+            text: company.types.some((type) => type.masked)
+              ? 'XXX USD'
+              : formatUsd(company.totals.net),
             bold: true,
             color: COLORS.cyan,
             fontSize: 15,
@@ -138,10 +142,16 @@ export function buildSATBudgetReportDefinition(
           },
           ...company.types.map((type) =>
             budgetBar(
-              type.label,
+              `${type.label} - ${type.sourceCode}`,
               type.net,
-              Math.max(...company.types.map((item) => Math.abs(item.net)), 1),
+              Math.max(
+                ...company.types
+                  .filter((item) => !item.masked)
+                  .map((item) => Math.abs(item.net)),
+                1,
+              ),
               type.color,
+              type.masked,
             ),
           ),
         ],
@@ -154,11 +164,15 @@ export function buildSATBudgetReportDefinition(
       companies.map((company) => [
         company.label,
         formatUsd(company.types.find((item) => item.key === 'CAPEX')?.net ?? 0),
-        formatUsd(company.types.find((item) => item.key === 'OPEX')?.net ?? 0),
+        company.types.find((item) => item.key === 'OPEX')?.masked
+          ? 'XXX USD'
+          : formatUsd(company.types.find((item) => item.key === 'OPEX')?.net ?? 0),
         formatUsd(
           company.types.find((item) => item.key === 'OPERATIONAL_CAPEX')?.net ?? 0,
         ),
-        formatUsd(company.totals.net),
+        company.types.some((type) => type.masked)
+          ? 'XXX USD'
+          : formatUsd(company.totals.net),
       ]),
       [80, 115, 115, 145, 125],
     ),
@@ -173,7 +187,7 @@ export function buildSATBudgetReportDefinition(
           budgetTypeLabel(row.budgetType),
           row.sourceLabel,
           row.transactionType || '—',
-          formatSignedUsd(row.amount),
+          isMaskedBudgetRow(row) ? 'XXX USD' : formatSignedUsd(row.amount),
           row.user || '—',
           row.description || '—',
         ]),
@@ -241,14 +255,20 @@ function kpiGrid(items: [string, string, string][]): Content {
   };
 }
 
-function budgetBar(label: string, value: number, max: number, color: string): Content {
+function budgetBar(
+  label: string,
+  value: number,
+  max: number,
+  color: string,
+  masked = false,
+): Content {
   return {
     stack: [
       {
         columns: [
           { text: label, fontSize: 7.5, color: COLORS.slate },
           {
-            text: formatUsd(value),
+            text: masked ? 'XXX USD' : formatUsd(value),
             alignment: 'right',
             fontSize: 7.5,
             color: value < 0 ? COLORS.red : COLORS.navy,
@@ -262,9 +282,9 @@ function budgetBar(label: string, value: number, max: number, color: string): Co
             type: 'rect',
             x: 0,
             y: 0,
-            w: Math.max(1, (Math.abs(value) / max) * 210),
+            w: masked ? 210 : Math.max(1, (Math.abs(value) / max) * 210),
             h: 7,
-            color,
+            color: masked ? '#94a3b8' : color,
           },
         ],
         margin: [0, 3, 0, 7],
