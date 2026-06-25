@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
   BatteryCharging,
@@ -7,10 +7,15 @@ import {
   FileSpreadsheet,
   Gauge,
   GitCompareArrows,
+  KeyRound,
+  LockKeyhole,
+  LogIn,
+  LogOut,
   ShoppingCart,
   ShieldAlert,
   ShieldCheck,
   TableProperties,
+  UserRound,
   WalletCards,
 } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
@@ -27,7 +32,51 @@ import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDa
 
 type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
 
+const AUTH_SESSION_KEY = 'moc-dashboard-authenticated';
+const AUTH_USERNAME = 'sarkhan.hajizada';
+const AUTH_PASSWORD = 'Sarxan*155';
+
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return window.localStorage.getItem(AUTH_SESSION_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  function handleLogin(username: string, password: string) {
+    const valid =
+      username.trim() === AUTH_USERNAME && password === AUTH_PASSWORD;
+
+    if (!valid) return false;
+
+    try {
+      window.localStorage.setItem(AUTH_SESSION_KEY, 'true');
+    } catch {
+      // localStorage kapalıysa sadece mevcut sekme oturumu açık kalır.
+    }
+    setIsAuthenticated(true);
+    return true;
+  }
+
+  function handleLogout() {
+    try {
+      window.localStorage.removeItem(AUTH_SESSION_KEY);
+    } catch {
+      // localStorage kapalıysa sessiz geç.
+    }
+    setIsAuthenticated(false);
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  return <DashboardApp onLogout={handleLogout} />;
+}
+
+function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const technicalFile = useDataStore((s) => s.technicalFile);
   const actionsFile = useDataStore((s) => s.actionsFile);
   const mocTakipFile = useDataStore((s) => s.mocTakipFile);
@@ -83,6 +132,14 @@ function App() {
   if (appMode === 'select') {
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="fixed right-5 top-5 z-50 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs font-medium text-white/65 shadow-elevated backdrop-blur transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-400/30"
+        >
+          <LogOut size={15} />
+          Oturumu Kapat
+        </button>
         <main className="mx-auto flex min-h-screen max-w-[1440px] items-center px-4 py-10 sm:px-6 lg:px-8">
           <section className="w-full">
             <div className="mb-10 flex items-center gap-4">
@@ -727,6 +784,148 @@ function App() {
       <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
         Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
       </footer>
+    </div>
+  );
+}
+
+function LoginScreen({
+  onLogin,
+}: {
+  onLogin: (username: string, password: string) => boolean;
+}) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const valid = onLogin(username, password);
+    if (!valid) {
+      setError('Kullanıcı adı veya şifre hatalı.');
+      setPassword('');
+      return;
+    }
+    setError('');
+  }
+
+  return (
+    <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+      <main className="mx-auto flex min-h-screen max-w-[1440px] items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <section className="grid w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d0d] shadow-elevated lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="relative min-h-[520px] overflow-hidden bg-gradient-to-br from-[#161616] via-[#101010] to-black p-8 sm:p-10">
+            <div className="absolute -left-20 top-10 h-64 w-64 rounded-full bg-red-500/20 blur-3xl" />
+            <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="relative z-10 flex h-full flex-col justify-between">
+              <div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#db2f32] text-white shadow-sm ring-1 ring-white/10">
+                  <ICEngineeringIcon />
+                </div>
+                <div className="mt-10 text-sm font-semibold uppercase tracking-[0.18em] text-red-300">
+                  Yetkili Kullanıcı Girişi
+                </div>
+                <h1 className="mt-3 max-w-md text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  Enstrüman Bakım Müdürlüğü
+                </h1>
+                <p className="mt-4 max-w-md text-sm leading-6 text-white/55">
+                  MOC, SCE ve SAT dashboardlarına devam etmek için kullanıcı adı
+                  ve şifre ile giriş yapın.
+                </p>
+              </div>
+
+              <div className="mt-10 grid gap-3 text-sm text-white/50 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <ShieldCheck size={20} className="mb-3 text-emerald-300" />
+                  MOC Takip
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <ShieldAlert size={20} className="mb-3 text-sky-300" />
+                  SCE Takip
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <FileChartColumn size={20} className="mb-3 text-cyan-300" />
+                  SAT Takip
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#111111] p-8 sm:p-10">
+            <div className="mb-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-cyan-300">
+                <LockKeyhole size={22} />
+              </div>
+              <h2 className="mt-5 text-2xl font-semibold text-white">
+                Giriş Yap
+              </h2>
+              <p className="mt-2 text-sm text-white/45">
+                Oturum tarayıcıda tutulur; çıkış yapana kadar tekrar sorulmaz.
+              </p>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-white/50">
+                  Kullanıcı Adı
+                </span>
+                <div className="relative">
+                  <UserRound
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+                  />
+                  <input
+                    value={username}
+                    onChange={(event) => {
+                      setUsername(event.target.value);
+                      setError('');
+                    }}
+                    autoComplete="username"
+                    className="input bg-[#171717] pl-9"
+                    placeholder="Kullanıcı adınızı girin"
+                  />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-white/50">
+                  Şifre
+                </span>
+                <div className="relative">
+                  <KeyRound
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+                  />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setError('');
+                    }}
+                    autoComplete="current-password"
+                    className="input bg-[#171717] pl-9"
+                    placeholder="Şifrenizi girin"
+                  />
+                </div>
+              </label>
+
+              {error && (
+                <div className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-cyan-300/35"
+              >
+                <LogIn size={17} />
+                Dashboard'a Gir
+              </button>
+            </form>
+
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
