@@ -121,6 +121,7 @@ export interface SCERow {
   bakimPlani: string;
   bakimPeriyodu: string;
   durusGereklilikYorumu: string;
+  durusAciklamasi: string;
   deferralSureci: string;
   periyodikBakimDurumu: string;
   sonBakimTarihi: string;

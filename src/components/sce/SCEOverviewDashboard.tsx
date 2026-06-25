@@ -50,11 +50,19 @@ const MAINTENANCE_COLORS = {
   notRequired: '#8b5cf6',
 };
 
+type MaintenanceFilter =
+  | 'completed'
+  | 'deferral_started'
+  | 'deferral_not_started'
+  | 'deferral_not_required';
+
 export function SCEOverviewDashboard() {
   const rows = useDataStore((state) => state.sceRows);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedFactory, setSelectedFactory] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedMaintenanceFilter, setSelectedMaintenanceFilter] =
+    useState<MaintenanceFilter | null>(null);
   const [detail, setDetail] = useState<SCERow | null>(null);
 
   const options = useMemo(
@@ -117,6 +125,7 @@ export function SCEOverviewDashboard() {
     setSelectedCompany('');
     setSelectedFactory('');
     setSelectedGroup('');
+    setSelectedMaintenanceFilter(null);
   }
 
   const reportFilterLabel = [
@@ -216,14 +225,24 @@ export function SCEOverviewDashboard() {
         <MetricCard
           title="Deferral Başlatılmadı"
           value={summary.deferralNotStarted}
-          helper="J boş · duruş gerekli · O: HAYIR"
+          helper="J boş · duruş gerekli · P: HAYIR"
           color="#f59e0b"
           icon={<PauseCircle size={21} />}
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <MaintenanceDonut summary={summary} />
+      <section className="grid grid-cols-1 gap-4">
+        <MaintenanceDonut
+          summary={summary}
+          rows={filteredRows}
+          selectedFilter={selectedMaintenanceFilter}
+          onSelectFilter={(filter) =>
+            setSelectedMaintenanceFilter((current) =>
+              current === filter ? null : filter,
+            )
+          }
+          onOpenDetail={setDetail}
+        />
         <CompanyDonut data={companyData} total={filteredRows.length} />
       </section>
 
@@ -393,6 +412,11 @@ export function SCEOverviewDashboard() {
                   <span className="truncate">{item.row.sceGrubu || 'SCE grubu yok'}</span>
                   <span className="shrink-0">{item.date ? formatDate(item.date) : 'Tarih yok'}</span>
                 </div>
+                {item.row.durusAciklamasi && (
+                  <div className="mt-2 line-clamp-2 text-[11px] leading-4 text-white/45">
+                    {item.row.durusAciklamasi}
+                  </div>
+                )}
               </button>
             ))
           ) : (
@@ -418,39 +442,251 @@ export function SCEOverviewDashboard() {
 
 type MaintenanceSummary = ReturnType<typeof buildMaintenanceSummary>;
 
-function MaintenanceDonut({ summary }: { summary: MaintenanceSummary }) {
+function MaintenanceDonut({
+  summary,
+  rows,
+  selectedFilter,
+  onSelectFilter,
+  onOpenDetail,
+}: {
+  summary: MaintenanceSummary;
+  rows: SCERow[];
+  selectedFilter: MaintenanceFilter | null;
+  onSelectFilter: (filter: MaintenanceFilter) => void;
+  onOpenDetail: (row: SCERow) => void;
+}) {
   const data = [
     {
+      key: 'completed' as const,
       name: 'Bakımı Yapılan',
       value: summary.completed,
       color: MAINTENANCE_COLORS.completed,
     },
     {
+      key: 'deferral_started' as const,
       name: 'Deferral Başlatılan',
       value: summary.deferralStarted,
       color: MAINTENANCE_COLORS.deferral,
     },
     {
+      key: 'deferral_not_started' as const,
       name: 'Deferral Başlatılmayan',
       value: summary.deferralNotStarted,
       color: MAINTENANCE_COLORS.pending,
     },
     {
+      key: 'deferral_not_required' as const,
       name: 'Deferral Gerektirmeyen',
       value: summary.deferralNotRequired,
       color: MAINTENANCE_COLORS.notRequired,
     },
   ];
   const evaluatedTotal = summary.planned - summary.assessmentMissing;
+  const selectedItem = data.find((item) => item.key === selectedFilter);
+  const detailRows = selectedFilter
+    ? rows
+        .filter((row) => classifySCEMaintenance(row) === selectedFilter)
+        .sort((a, b) => equipmentTitle(a).localeCompare(equipmentTitle(b), 'tr'))
+    : [];
+  const chartData = data.filter((item) => item.value > 0);
+
   return (
-    <DonutCard
-      title="Periyodik Bakım Durumu"
-      subtitle={`${evaluatedTotal} duruş değerlendirmesi bulunan planlı ekipman`}
-      data={data}
-      total={evaluatedTotal}
-      centerLabel="Planlı"
-      icon={<Wrench size={17} />}
-    />
+    <section className="card p-5">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-2">
+          <span className="mt-0.5 text-sky-300">
+            <Wrench size={17} />
+          </span>
+          <div>
+            <h2 className="panel-title">Periyodik Bakım Durumu</h2>
+            <p className="panel-subtitle mt-1">
+              {evaluatedTotal} duruş değerlendirmesi bulunan planlı ekipman
+            </p>
+          </div>
+        </div>
+        {selectedItem && (
+          <button
+            type="button"
+            onClick={() => onSelectFilter(selectedItem.key)}
+            className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white"
+          >
+            Filtreyi Temizle
+          </button>
+        )}
+      </div>
+
+      <div className="grid items-center gap-3 lg:grid-cols-[300px_1fr]">
+        <div className="relative h-72 min-w-0">
+          {chartData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={76}
+                    outerRadius={108}
+                    paddingAngle={3}
+                    stroke="#0d0d0d"
+                    strokeWidth={3}
+                  >
+                    {chartData.map((item) => (
+                      <Cell
+                        key={item.key}
+                        fill={item.color}
+                        fillOpacity={selectedFilter && selectedFilter !== item.key ? 0.28 : 1}
+                        onClick={() => onSelectFilter(item.key)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-semibold text-white tabular-nums">
+                    {evaluatedTotal}
+                  </div>
+                  <div className="mt-1 text-sm font-medium text-white/40">Planlı</div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyChart message="Bu görünüm için veri yok." />
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {data.map((item) => {
+            const active = selectedFilter === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => onSelectFilter(item.key)}
+                aria-pressed={active}
+                className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.08] ${
+                  active
+                    ? 'border-sky-400/65 bg-sky-400/10 ring-2 ring-sky-400/25'
+                    : 'border-white/10 bg-white/[0.045]'
+                }`}
+              >
+                <div className="flex items-center gap-3 text-sm text-white/55">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="line-clamp-2">{item.name}</span>
+                </div>
+                <div className="mt-5 text-4xl font-semibold text-white tabular-nums">
+                  {item.value}
+                </div>
+                <div className="mt-2 text-xs text-white/35">
+                  Detayları görmek için tıklayın
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {selectedItem && (
+        <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                {selectedItem.name} Detayları
+              </h3>
+              <p className="mt-1 text-xs text-white/45">
+                {detailRows.length} ekipman listeleniyor. Satıra tıklayarak tüm alanları açabilirsiniz.
+              </p>
+            </div>
+            <span
+              className="self-start rounded-md px-2 py-1 text-xs font-semibold tabular-nums sm:self-auto"
+              style={{
+                color: selectedItem.color,
+                backgroundColor: `${selectedItem.color}18`,
+              }}
+            >
+              {selectedItem.value} kayıt
+            </span>
+          </div>
+
+          {detailRows.length > 0 ? (
+            <div className="max-h-[420px] overflow-auto rounded-lg border border-white/10">
+              <table className="min-w-full divide-y divide-white/10 text-left">
+                <thead className="sticky top-0 z-10 bg-[#151515]">
+                  <tr>
+                    {[
+                      'Ekipman / Tag',
+                      'Fabrika',
+                      'SCE Grubu',
+                      'Bakım Planı',
+                      'Duruş Durumu',
+                      'Açıklama',
+                    ].map((header) => (
+                      <th
+                        key={header}
+                        className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-white/45"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {detailRows.map((row) => (
+                    <tr
+                      key={row.rowId}
+                      onClick={() => onOpenDetail(row)}
+                      className="cursor-pointer transition hover:bg-white/[0.065]"
+                    >
+                      <td className="px-3 py-3 text-sm font-semibold text-white">
+                        <div>{equipmentTitle(row)}</div>
+                        {row.ekipmanAdi && (
+                          <div className="mt-0.5 max-w-xs truncate text-xs font-normal text-white/40">
+                            {row.ekipmanAdi}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-white/65">
+                        {row.fabrika}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-white/65">
+                        {row.sceGrubu || '—'}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-white/65">
+                        <div>{row.bakimPlaniNo || '—'}</div>
+                        <div className="mt-0.5 text-xs text-white/35">
+                          {row.bakimPeriyodu || 'Periyot yok'}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-white/65">
+                        <div>{row.durusGereklilikYorumu || '—'}</div>
+                        <div className="mt-0.5 text-xs text-white/35">
+                          Deferral: {row.deferralSureci || '—'}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-white/65">
+                        <span className="line-clamp-2 min-w-[12rem]">
+                          {row.durusAciklamasi || '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed border-white/10 bg-white/[0.03] px-4 text-center text-sm text-white/40">
+              Bu filtre için listelenecek ekipman bulunamadı.
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -665,6 +901,7 @@ function SCEOverviewDetail({ row }: { row: SCERow }) {
     ['Bakım Kalemi Numarası', row.bakimKalemiNo],
     ['Bakım Periyodu', row.bakimPeriyodu],
     ['Duruş Gereklilik / Yapılabilirlik', row.durusGereklilikYorumu],
+    ['Duruş Açıklaması', row.durusAciklamasi],
     ['Deferral Süreci', row.deferralSureci],
     ['Son Bakım Tarihi', row.sonBakimTarihi],
     ['Sonraki Bakım Tarihi', row.sonrakiBakimTarihi],

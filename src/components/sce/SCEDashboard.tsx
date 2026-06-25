@@ -420,7 +420,7 @@ function PeriodicMaintenanceDonut({
         <div>
           <h2 className="panel-title">Periyodik Bakım Dağılımı</h2>
           <p className="panel-subtitle mt-1">
-            H ve J sütunları tamamlanmayı; N ve O sütunları deferral gerekliliğini belirler.
+            H ve J sütunları tamamlanmayı; N ve P sütunları deferral gerekliliğini belirler.
           </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-right">
@@ -683,6 +683,7 @@ function sceDetailFields(row: SCERow) {
       label: 'Duruş Gereklilik / Yapılabilirlik',
       value: row.durusGereklilikYorumu,
     },
+    { label: 'Duruş Açıklaması', value: row.durusAciklamasi },
     { label: 'Deferral Süreci', value: row.deferralSureci },
     { label: 'Son Bakım Tarihi', value: row.sonBakimTarihi },
     {
@@ -941,6 +942,18 @@ function columnsForCategory(
       searchValue: (row) => row.durusGereklilikYorumu,
       className: 'min-w-44',
       render: (row) => row.durusGereklilikYorumu || '—',
+    },
+    {
+      key: 'shutdownExplanation',
+      header: 'Duruş Açıklaması',
+      sortValue: (row) => row.durusAciklamasi,
+      searchValue: (row) => row.durusAciklamasi,
+      className: 'min-w-56',
+      render: (row) => (
+        <span className="line-clamp-2 leading-5">
+          {row.durusAciklamasi || '—'}
+        </span>
+      ),
     },
     {
       key: 'deferralStatus',
