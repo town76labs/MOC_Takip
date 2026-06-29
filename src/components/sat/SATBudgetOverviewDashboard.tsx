@@ -1,12 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts';
-import {
   ArrowDownCircle,
   ArrowUpCircle,
   Building2,
@@ -26,7 +19,6 @@ import type {
 } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import {
-  budgetCompanySummary,
   budgetTotals,
   budgetTypeLabel,
   budgetUsageSummary,
@@ -35,7 +27,10 @@ import {
   SAT_BUDGET_COMPANIES,
 } from '../../lib/satBudgetLogic';
 import { downloadSATBudgetReportPdf } from '../../lib/satBudgetReportPdf';
-import { isSTADOpexBudgetSource } from '../../lib/satBudgetParser';
+import {
+  isSTADOpexBudgetSource,
+  SAT_BUDGET_SOURCES,
+} from '../../lib/satBudgetParser';
 import { formatDate } from '../../lib/normalize';
 import {
   DataTable,
@@ -43,12 +38,26 @@ import {
 } from '../common/DataTable';
 import { Modal } from '../common/Modal';
 
-const TOOLTIP_STYLE = {
-  backgroundColor: '#111111',
-  border: '1px solid rgb(255 255 255 / 0.12)',
-  borderRadius: 8,
-  color: '#f8fafc',
-};
+const SOURCE_TYPE_ORDER: SATBudgetType[] = [
+  'OPERATIONAL_CAPEX',
+  'OPEX',
+  'CAPEX',
+];
+
+interface SATBudgetUsageTableRow {
+  rowId: string;
+  documentDate: Date | null;
+  budgetType: SATBudgetType;
+  stage: SATBudgetUsageStage;
+  satNo: string;
+  sasNo: string;
+  invoiceNo: string;
+  description: string;
+  vendor: string;
+  amountUsd: number;
+  rowCount: number;
+  searchText: string;
+}
 
 export function SATBudgetOverviewDashboard() {
   const allRows = useDataStore((state) => state.satBudgetRows);
@@ -81,11 +90,10 @@ export function SATBudgetOverviewDashboard() {
         : visibleRows,
     [selectedBudgetType, visibleRows],
   );
-  const companySummaries = useMemo(
-    () => budgetCompanySummary(allRows),
-    [allRows],
+  const companySourceSummary = useMemo(
+    () => buildCompanySourceSummary(allRows, usageRows),
+    [allRows, usageRows],
   );
-  const sourceSummary = useMemo(() => buildSourceSummary(visibleRows), [visibleRows]);
   const selectedUsageRows = useMemo(
     () =>
       selectedCompany
@@ -97,6 +105,10 @@ export function SATBudgetOverviewDashboard() {
           )
         : [],
     [selectedBudgetType, selectedCompany, selectedUsageStage, usageRows],
+  );
+  const selectedUsageTableRows = useMemo(
+    () => buildUsageTableRows(selectedUsageRows, selectedUsageStage),
+    [selectedUsageRows, selectedUsageStage],
   );
   const usageSummaries = useMemo(
     () =>
@@ -189,26 +201,62 @@ export function SATBudgetOverviewDashboard() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <CompanyFilter
-            label="Tüm Şirketler"
-            value={allRows.length}
-            active={selectedCompany === null}
-            onClick={() => selectCompany(null)}
-          />
-          {SAT_BUDGET_COMPANIES.map((company) => (
-            <CompanyFilter
-              key={company}
-              label={companyLabel(company)}
-              value={allRows.filter((row) => row.company === company).length}
-              active={selectedCompany === company}
-              onClick={() =>
-                selectCompany(selectedCompany === company ? null : company)
-              }
-            />
-          ))}
-        </div>
+        <BudgetSourcesOverview
+          data={companySourceSummary}
+          selectedCompany={selectedCompany}
+          onSelectCompany={(company) =>
+            selectCompany(selectedCompany === company ? null : company)
+          }
+        />
       </section>
+
+      {selectedCompany && (
+        <section className="card p-5">
+          <div className="mb-5 flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
+              <Workflow size={18} />
+            </span>
+            <div>
+              <h2 className="panel-title">
+                {companyLabel(selectedCompany)} Bütçe Kullanım Aşamaları
+              </h2>
+              <p className="panel-subtitle mt-1">
+                CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı
+              </p>
+            </div>
+          </div>
+          {usageFile ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              {usageSummaries.map((summary) => (
+                <BudgetUsageBar
+                  key={summary.key}
+                  summary={summary}
+                  active={selectedBudgetType === summary.key}
+                  selectedStage={
+                    selectedBudgetType === summary.key
+                      ? selectedUsageStage
+                      : null
+                  }
+                  onSelectType={() => selectBudgetType(summary.key)}
+                  onSelectStage={(stage) =>
+                    selectUsageStage(summary.key, stage)
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-amber-300/25 bg-amber-400/[0.05] px-6 text-center">
+              <ReceiptText size={28} className="mb-3 text-amber-300" />
+              <div className="text-sm font-semibold text-white/80">
+                SAT Bütçe Kullanım Detayı Excel dosyasını yükleyin
+              </div>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-white/45">
+                SAT, SAS ve fatura tutarları yeni dosyadan okunarak bütçe türlerine dağıtılacaktır.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
@@ -241,70 +289,6 @@ export function SATBudgetOverviewDashboard() {
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {companySummaries.map((summary) => (
-          <CompanyBudgetDonut
-            key={summary.company}
-            summary={summary}
-            active={selectedCompany === summary.company}
-            dimmed={!!selectedCompany && selectedCompany !== summary.company}
-            onClick={() =>
-              selectCompany(
-                selectedCompany === summary.company ? null : summary.company,
-              )
-            }
-          />
-        ))}
-      </section>
-
-      {selectedCompany && (
-        <section className="card p-5">
-          <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
-              <Workflow size={18} />
-            </span>
-            <div>
-              <h2 className="panel-title">
-                {companyLabel(selectedCompany)} Bütçe Kullanım Aşamaları
-              </h2>
-              <p className="panel-subtitle mt-1">
-                CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı
-              </p>
-            </div>
-          </div>
-          {usageFile ? (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              {usageSummaries.map((summary) => (
-                <BudgetUsageDonut
-                  key={summary.key}
-                  summary={summary}
-                  active={selectedBudgetType === summary.key}
-                  selectedStage={
-                    selectedBudgetType === summary.key
-                      ? selectedUsageStage
-                      : null
-                  }
-                  onSelectType={() => selectBudgetType(summary.key)}
-                  onSelectStage={(stage) =>
-                    selectUsageStage(summary.key, stage)
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-amber-300/25 bg-amber-400/[0.05] px-6 text-center">
-              <ReceiptText size={28} className="mb-3 text-amber-300" />
-              <div className="text-sm font-semibold text-white/80">
-                SAT Bütçe Kullanım Detayı Excel dosyasını yükleyin
-              </div>
-              <p className="mt-2 max-w-xl text-xs leading-5 text-white/45">
-                SAT, SAS ve fatura tutarları yeni dosyadan okunarak bütçe türlerine dağıtılacaktır.
-              </p>
-            </div>
-          )}
-        </section>
-      )}
-
       {selectedCompany && usageFile && (
         <section className="card p-5">
           <div className="mb-4">
@@ -316,11 +300,13 @@ export function SATBudgetOverviewDashboard() {
             <p className="mt-1 text-xs text-white/45">
               {companyLabel(selectedCompany)}
               {selectedUsageStage ? ` · ${selectedUsageStage}` : ''} ·{' '}
-              {selectedUsageRows.length} bütçe kullanım hareketi
+              {selectedUsageStage
+                ? `${selectedUsageTableRows.length} belge grubu · ${selectedUsageRows.length} kalem hareketi`
+                : `${selectedUsageRows.length} bütçe kullanım hareketi`}
             </p>
           </div>
           <DataTable
-            data={selectedUsageRows}
+            data={selectedUsageTableRows}
             columns={USAGE_COLUMNS}
             rowKey={(row) => row.rowId}
             initialSortKey="date"
@@ -329,19 +315,6 @@ export function SATBudgetOverviewDashboard() {
           />
         </section>
       )}
-
-      <section className="card p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <Building2 size={17} className="text-cyan-300" />
-          <div>
-            <h2 className="panel-title">Bütçe Kaynakları</h2>
-            <p className="panel-subtitle mt-1">
-              Kodlar yerine tanımlı bütçe açıklamaları gösterilir; değerler net giriş ve çıkış toplamıdır.
-            </p>
-          </div>
-        </div>
-        <SourceBars data={sourceSummary} />
-      </section>
 
       <section className="card p-5">
         <div className="mb-4">
@@ -423,99 +396,9 @@ export function SATBudgetOverviewDashboard() {
   );
 }
 
-type CompanySummary = ReturnType<typeof budgetCompanySummary>[number];
-
-function CompanyBudgetDonut({
-  summary,
-  active,
-  dimmed,
-  onClick,
-}: {
-  summary: CompanySummary;
-  active: boolean;
-  dimmed: boolean;
-  onClick: () => void;
-}) {
-  const hasMaskedBudget = summary.types.some((type) => type.masked);
-  const chartData = summary.types
-    .filter((type) => type.net !== 0)
-    .map((type) => ({ ...type, value: Math.abs(type.net) }));
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`card min-w-0 p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/45 ${
-        active ? 'border-cyan-400/70 ring-2 ring-cyan-400/25' : ''
-      } ${dimmed ? 'opacity-45' : ''}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="panel-title">{summary.label}</h2>
-          <p className="panel-subtitle mt-1">CAPEX · OPEX · Operational CAPEX</p>
-        </div>
-        <span className="text-lg font-semibold text-cyan-300 tabular-nums">
-          {hasMaskedBudget ? 'XXX USD' : formatCompactUsd(summary.totals.net)}
-        </span>
-      </div>
-      <div className="relative mt-3 h-52 min-w-0">
-        {chartData.length > 0 && (
-          <>
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="label"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  stroke="#0d0d0d"
-                  strokeWidth={3}
-                >
-                  {chartData.map((item) => (
-                    <Cell key={item.key} fill={item.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={TOOLTIP_STYLE}
-                  formatter={(value, name) =>
-                    name === 'OPEX' && hasMaskedBudget
-                      ? 'XXX USD'
-                      : formatUsd(Number(value))
-                  }
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl font-semibold text-white">Net</div>
-                <div className="mt-1 text-xs text-white/40">USD</div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-      <div className="space-y-2">
-        {summary.types.map((type) => (
-          <div key={type.key} className="flex items-center justify-between gap-3 text-xs">
-            <span className="flex items-center gap-2 text-white/55">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: type.color }} />
-              {type.label} - {type.sourceCode}
-            </span>
-            <span className="font-semibold text-white/80 tabular-nums">
-              {type.masked ? 'XXX USD' : formatUsd(type.net)}
-            </span>
-          </div>
-        ))}
-      </div>
-    </button>
-  );
-}
-
 type UsageSummary = ReturnType<typeof budgetUsageSummary>[number];
 
-function BudgetUsageDonut({
+function BudgetUsageBar({
   summary,
   active,
   selectedStage,
@@ -528,10 +411,11 @@ function BudgetUsageDonut({
   onSelectType: () => void;
   onSelectStage: (stage: SATBudgetUsageStage) => void;
 }) {
-  const chartData = summary.segments.filter((segment) => segment.value > 0);
   const utilization = summary.totalBudget
     ? Math.round((summary.used / summary.totalBudget) * 100)
     : 0;
+  const barBase = Math.max(summary.totalBudget, 1);
+  const barSegments = summary.segments.filter((segment) => segment.value > 0);
   return (
     <div
       className={`rounded-lg border bg-black/20 p-4 transition ${
@@ -548,10 +432,10 @@ function BudgetUsageDonut({
       >
         <div>
           <h3 className="text-sm font-semibold text-white">
-            {summary.label} - {summary.sourceCode}
+            {summary.label} - {budgetUsageDisplayLabel(summary.sourceCode)}
           </h3>
           <p className="mt-1 text-[11px] text-white/40">
-            {summary.rowCount} kullanım hareketi
+            {summary.sourceCode} · {summary.rowCount} kullanım hareketi
           </p>
         </div>
         <div className="text-right">
@@ -565,80 +449,93 @@ function BudgetUsageDonut({
           <div className="mt-1 text-[10px] text-white/35">Toplam bütçe</div>
         </div>
       </button>
-      <div className="relative mt-2 h-52 min-w-0">
-        {chartData.length > 0 ? (
-          <>
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="label"
-                  innerRadius={53}
-                  outerRadius={79}
-                  paddingAngle={3}
-                  stroke="#0d0d0d"
-                  strokeWidth={3}
-                  onClick={(_, index) => {
-                    const segment = chartData[index];
-                    if (segment && segment.key !== 'UNUSED') {
-                      onSelectStage(segment.key);
-                    }
-                  }}
-                >
-                  {chartData.map((segment) => (
-                    <Cell
-                      key={segment.key}
-                      fill={segment.color}
-                      cursor={segment.key === 'UNUSED' ? 'default' : 'pointer'}
-                      fillOpacity={
-                        selectedStage && segment.key !== selectedStage ? 0.3 : 1
-                      }
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={TOOLTIP_STYLE}
-                  formatter={(value, name) =>
-                    summary.masked && name === 'Kullanılmayan'
-                      ? 'XXX USD'
-                      : formatUsd(Number(value))
-                  }
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xl font-semibold text-white">
-                  {summary.masked ? 'XXX' : `%${utilization}`}
-                </div>
-                <div className="mt-1 text-[10px] text-white/40">Kullanım</div>
-              </div>
+
+      <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-medium text-white/45">
+              Kullanım oranı
             </div>
-          </>
-        ) : (
-          <div className="flex h-full items-center justify-center text-xs text-white/35">
-            Bütçe veya kullanım kaydı yok
+            <div className="mt-0.5 text-xl font-semibold text-white tabular-nums">
+              {summary.masked ? 'XXX' : `%${utilization}`}
+            </div>
           </div>
-        )}
+          <div className="text-right text-[11px] text-white/40">
+            <div>Kullanılan</div>
+            <div className="mt-0.5 font-semibold text-white/75 tabular-nums">
+              {formatCompactUsd(summary.used)}
+            </div>
+          </div>
+        </div>
+
+        <div className="h-5 overflow-hidden rounded-full bg-slate-500/25 ring-1 ring-white/10">
+          {barSegments.length > 0 ? (
+            <div className="flex h-full min-w-0">
+              {barSegments.map((segment) => {
+                const width = Math.min(100, (segment.value / barBase) * 100);
+                const selectable = segment.key !== 'UNUSED';
+                const segmentStyle = {
+                  width: `${Math.max(width, width > 0 ? 1 : 0)}%`,
+                  backgroundColor: segment.color,
+                  opacity: selectedStage && segment.key !== selectedStage ? 0.35 : 1,
+                };
+                const title = `${segment.label}: ${formatUsd(segment.value)}`;
+                return selectable ? (
+                  <button
+                    key={segment.key}
+                    type="button"
+                    title={title}
+                    aria-label={title}
+                    onClick={() => onSelectStage(segment.key as SATBudgetUsageStage)}
+                    className="h-full shrink-0 transition hover:brightness-125"
+                    style={segmentStyle}
+                  />
+                ) : (
+                  <div
+                    key={segment.key}
+                    title={title}
+                    className="h-full shrink-0"
+                    style={segmentStyle}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-[10px] text-white/35">
+              Veri yok
+            </div>
+          )}
+        </div>
+
+        <div className="mt-2 flex items-center justify-between text-[10px] text-white/35">
+          <span>0</span>
+          <span>{formatCompactUsd(summary.totalBudget)}</span>
+        </div>
       </div>
-      <div className="space-y-2">
+
+      <div className="mt-4 space-y-2">
         {summary.segments.map((segment) => {
           const selectable = segment.key !== 'UNUSED';
+          const percent = summary.totalBudget
+            ? Math.round((segment.value / summary.totalBudget) * 100)
+            : 0;
           const content = (
             <>
-            <span className="flex items-center gap-2 text-white/55">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: segment.color }}
-              />
-              {segment.label}
-            </span>
-            <span className="font-semibold text-white/80 tabular-nums">
-              {summary.masked && segment.key === 'UNUSED'
-                ? 'XXX USD'
-                : formatUsd(segment.value)}
-            </span>
+              <span className="flex min-w-0 items-center gap-2 text-white/55">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: segment.color }}
+                />
+                <span>{segment.label}</span>
+                <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-white/40">
+                  %{percent}
+                </span>
+              </span>
+              <span className="font-semibold text-white/80 tabular-nums">
+                {summary.masked && segment.key === 'UNUSED'
+                  ? 'XXX USD'
+                  : formatUsd(segment.value)}
+              </span>
             </>
           );
           return selectable ? (
@@ -649,7 +546,7 @@ function BudgetUsageDonut({
                 onSelectStage(segment.key as SATBudgetUsageStage)
               }
               aria-pressed={selectedStage === segment.key}
-              className={`flex w-full items-center justify-between gap-3 rounded px-1 py-0.5 text-xs transition ${
+              className={`flex w-full items-center justify-between gap-3 rounded px-2 py-1.5 text-xs transition ${
                 selectedStage === segment.key
                   ? 'bg-cyan-400/10 ring-1 ring-cyan-300/35'
                   : 'hover:bg-white/[0.05]'
@@ -660,13 +557,19 @@ function BudgetUsageDonut({
           ) : (
             <div
               key={segment.key}
-              className="flex items-center justify-between gap-3 px-1 py-0.5 text-xs"
+              className="flex items-center justify-between gap-3 px-2 py-1.5 text-xs"
             >
               {content}
             </div>
           );
         })}
       </div>
+
+      {summary.totalBudget <= 0 && summary.used <= 0 && (
+        <div className="mt-3 flex min-h-16 items-center justify-center rounded-lg border border-dashed border-white/10 bg-white/[0.03] text-xs text-white/35">
+          Bütçe veya kullanım kaydı yok
+        </div>
+      )}
       {summary.overrun > 0 && (
         <div className="mt-3 rounded-md border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-[11px] font-medium text-rose-200">
           Bütçe aşımı: {formatUsd(summary.overrun)}
@@ -709,78 +612,215 @@ function MetricCard({
   );
 }
 
-function CompanyFilter({
-  label,
-  value,
-  active,
-  onClick,
+function BudgetSourcesOverview({
+  data,
+  selectedCompany,
+  onSelectCompany,
 }: {
-  label: string;
-  value: number;
-  active: boolean;
-  onClick: () => void;
+  data: {
+    company: SATBudgetCompany;
+    label: string;
+    total: number;
+    masked: boolean;
+    sources: {
+      key: string;
+      label: string;
+      displayLabel: string;
+      sourceCode: string;
+      type: SATBudgetType;
+      typeLabel: string;
+      value: number;
+      count: number;
+      masked: boolean;
+      used: number;
+      unused: number;
+      utilizationPercent: number;
+      barPercent: number;
+    }[];
+  }[];
+  selectedCompany: SATBudgetCompany | null;
+  onSelectCompany: (company: SATBudgetCompany) => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`filter-tile min-h-20 ${active ? 'ring-2 ring-cyan-400/45' : ''}`}
-    >
-      <span className="block text-xs font-medium text-white/50">{label}</span>
-      <strong className="mt-2 block text-xl font-semibold text-white tabular-nums">{value}</strong>
-    </button>
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] p-4">
+      <div className="mb-4 flex items-start gap-2">
+        <Building2 size={17} className="mt-0.5 text-cyan-300" />
+        <div>
+          <h3 className="text-sm font-semibold text-white">Bütçe Kaynakları</h3>
+          <p className="mt-1 text-xs leading-5 text-white/45">
+            Şirket bazında net bütçe kaynakları; Operational CAPEX, OPEX ve CAPEX sırasıyla gösterilir.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {data.map((company) => (
+          <button
+            type="button"
+            key={company.company}
+            onClick={() => onSelectCompany(company.company)}
+            aria-pressed={selectedCompany === company.company}
+            className={`flex h-full w-full flex-col items-stretch justify-start rounded-xl border bg-black/20 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/45 ${
+              selectedCompany === company.company
+                ? 'border-cyan-400/70 ring-2 ring-cyan-400/25'
+                : 'border-white/10'
+            } ${
+              selectedCompany && selectedCompany !== company.company
+                ? 'opacity-55 hover:opacity-80'
+                : ''
+            }`}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-base font-semibold text-white">
+                  {company.label}
+                </h4>
+                <div className="mt-1 text-[11px] text-white/35">
+                  {company.sources.length} bütçe kaynağı
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-semibold text-cyan-300 tabular-nums">
+                  {company.masked ? 'XXX USD' : formatCompactUsd(company.total)}
+                </div>
+                <div className="mt-1 text-[10px] text-white/35">Net toplam</div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {company.sources.map((source) => (
+                <div
+                  key={source.key}
+                  className="rounded-lg border border-white/10 bg-white/[0.045] p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200/70">
+                        {source.typeLabel}
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-sm font-medium text-white/80">
+                        {source.displayLabel}
+                      </div>
+                      <div className="mt-1 text-[11px] text-white/35">
+                        {source.sourceCode}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 text-right text-sm font-semibold tabular-nums ${
+                        source.value < 0 ? 'text-rose-300' : 'text-cyan-300'
+                      }`}
+                    >
+                      {source.masked ? 'XXX USD' : formatUsd(source.value)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/35">
+                    <span>{source.count} hareket</span>
+                    <span>Net bütçe</span>
+                  </div>
+                  <div className="mt-3">
+                    <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px]">
+                      <span className="font-medium text-white/45">
+                        Kullanım oranı
+                      </span>
+                      <span className="font-semibold text-cyan-200 tabular-nums">
+                        %{source.utilizationPercent} kullanıldı
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-500/25">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-400"
+                        style={{ width: `${source.barPercent}%` }}
+                      />
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between gap-3 text-[10px] text-white/35">
+                      <span>Kullanılan: {formatCompactUsd(source.used)}</span>
+                      <span>Kalan: {formatCompactUsd(source.unused)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function SourceBars({
-  data,
-}: {
-  data: {
-    label: string;
-    value: number;
-    company: SATBudgetCompany;
-    sourceCode: string;
-    masked: boolean;
-  }[];
-}) {
-  const max = Math.max(
-    ...data.filter((item) => !item.masked).map((item) => Math.abs(item.value)),
-    1,
+function buildCompanySourceSummary(
+  rows: SATBudgetRow[],
+  usageRows: SATBudgetUsageRow[],
+) {
+  return SAT_BUDGET_COMPANIES.map((company) => {
+    const usageByType = new Map(
+      budgetUsageSummary(rows, usageRows, company).map((summary) => [
+        summary.key,
+        summary,
+      ]),
+    );
+    const sources = SAT_BUDGET_SOURCES.filter(
+      (source) => source.company === company,
+    )
+      .sort(
+        (a, b) =>
+          SOURCE_TYPE_ORDER.indexOf(a.budgetType) -
+          SOURCE_TYPE_ORDER.indexOf(b.budgetType),
+      )
+      .map((source) => {
+        const sourceRows = rows.filter(
+          (row) =>
+            row.company === company &&
+            row.budgetType === source.budgetType &&
+            row.sourceCode === source.code,
+        );
+        const totals = budgetTotals(sourceRows);
+        const usage = usageByType.get(source.budgetType);
+        const totalBudget = Math.max(0, totals.net);
+        const used = usage?.used ?? 0;
+        const unused = Math.max(0, totalBudget - used);
+        const utilization = totalBudget > 0 ? (used / totalBudget) * 100 : 0;
+        return {
+          key: `${company}-${source.code}`,
+          label: source.label,
+          displayLabel: sourceDisplayLabel(source.label),
+          sourceCode: source.code,
+          type: source.budgetType,
+          typeLabel: budgetTypeLabel(source.budgetType),
+          value: totals.net,
+          count: totals.count,
+          masked: sourceRows.some(isMaskedBudgetRow),
+          used,
+          unused,
+          utilizationPercent: Math.round(utilization),
+          barPercent: clamp(utilization, 0, 100),
+        };
+      });
+    return {
+      company,
+      label: companyLabel(company),
+      total: sources.reduce((total, source) => total + source.value, 0),
+      masked: sources.some((source) => source.masked),
+      sources,
+    };
+  });
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sourceDisplayLabel(label: string) {
+  return label
+    .replace(/^Operational\s+CAPEX\s*\/\s*/i, '')
+    .replace(/^CAPEX\s*\/\s*/i, '')
+    .replace(/^OPEX\s*\/\s*/i, '')
+    .trim();
+}
+
+function budgetUsageDisplayLabel(sourceCode: string) {
+  const source = SAT_BUDGET_SOURCES.find(
+    (item) => item.code.toLocaleUpperCase('tr-TR') === sourceCode.toLocaleUpperCase('tr-TR'),
   );
-  return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      {data.map((item) => (
-        <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium text-white/75">{item.label}</div>
-              <div className="mt-1 text-[11px] text-white/35">{companyLabel(item.company)}</div>
-            </div>
-            <span className={`text-sm font-semibold tabular-nums ${item.value < 0 ? 'text-rose-300' : 'text-cyan-300'}`}>
-              {item.masked ? 'XXX USD' : formatUsd(item.value)}
-            </span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
-            <div
-              className={`h-full rounded-full ${
-                item.masked
-                  ? 'bg-slate-500/60'
-                  : item.value < 0
-                    ? 'bg-rose-400'
-                    : 'bg-cyan-400'
-              }`}
-              style={{
-                width: item.masked
-                  ? '100%'
-                  : `${Math.max(1, (Math.abs(item.value) / max) * 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return source ? sourceDisplayLabel(source.label) : 'Tanımlı Kaynak Yok';
 }
 
 function ReportScopeButton({
@@ -808,33 +848,6 @@ function ReportScopeButton({
       <span className="block text-sm font-semibold text-white">{title}</span>
       <span className="mt-1 block text-xs text-white/45">{helper}</span>
     </button>
-  );
-}
-
-function buildSourceSummary(rows: SATBudgetRow[]) {
-  const map = new Map<
-    string,
-    {
-      label: string;
-      value: number;
-      company: SATBudgetCompany;
-      sourceCode: string;
-      masked: boolean;
-    }
-  >();
-  rows.forEach((row) => {
-    const current = map.get(row.sourceLabel) ?? {
-      label: row.sourceLabel,
-      value: 0,
-      company: row.company,
-      sourceCode: row.sourceCode,
-      masked: isMaskedBudgetRow(row),
-    };
-    current.value += row.amount;
-    map.set(row.sourceLabel, current);
-  });
-  return [...map.values()].sort(
-    (a, b) => Math.abs(b.value) - Math.abs(a.value),
   );
 }
 
@@ -898,7 +911,7 @@ const BUDGET_COLUMNS: DataTableColumn<SATBudgetRow>[] = [
   },
 ];
 
-const USAGE_COLUMNS: DataTableColumn<SATBudgetUsageRow>[] = [
+const USAGE_COLUMNS: DataTableColumn<SATBudgetUsageTableRow>[] = [
   {
     key: 'date',
     header: 'Kayıt Tarihi',
@@ -950,12 +963,15 @@ const USAGE_COLUMNS: DataTableColumn<SATBudgetUsageRow>[] = [
     key: 'description',
     header: 'Açıklama',
     sortValue: (row) => row.description,
-    searchValue: (row) => `${row.description} ${row.vendor}`,
+    searchValue: (row) => row.searchText,
     className: 'min-w-72',
     render: (row) => (
       <div>
         <div className="text-white/75">{row.description || '—'}</div>
-        <div className="mt-1 text-xs text-white/35">{row.vendor || 'Satıcı yok'}</div>
+        <div className="mt-1 text-xs text-white/35">
+          {row.vendor || 'Satıcı yok'}
+          {row.rowCount > 1 ? ` · ${row.rowCount} kalem toplandı` : ''}
+        </div>
       </div>
     ),
   },
@@ -973,7 +989,7 @@ const USAGE_COLUMNS: DataTableColumn<SATBudgetUsageRow>[] = [
   },
 ];
 
-function UsageStageBadge({ stage }: { stage: SATBudgetUsageRow['stage'] }) {
+function UsageStageBadge({ stage }: { stage: SATBudgetUsageStage }) {
   const config =
     stage === 'SAT'
       ? { color: '#38bdf8', label: 'SAT' }
@@ -992,6 +1008,112 @@ function UsageStageBadge({ stage }: { stage: SATBudgetUsageRow['stage'] }) {
       {config.label}
     </span>
   );
+}
+
+function buildUsageTableRows(
+  rows: SATBudgetUsageRow[],
+  selectedStage: SATBudgetUsageStage | null,
+): SATBudgetUsageTableRow[] {
+  if (!selectedStage) {
+    return rows.map((row) => usageRowToTableRow(row));
+  }
+
+  const groups = new Map<string, SATBudgetUsageTableRow>();
+  rows.forEach((row) => {
+    const documentNo = usageDocumentNo(row, selectedStage);
+    const groupKey = documentNo
+      ? `${row.company}|${row.budgetType}|${row.sourceCode}|${selectedStage}|${documentNo}`
+      : row.rowId;
+    const current = groups.get(groupKey);
+    if (!current) {
+      groups.set(groupKey, usageRowToTableRow(row, `usage-group-${groupKey}`));
+      return;
+    }
+
+    current.documentDate = laterDate(current.documentDate, row.documentDate);
+    current.amountUsd += row.amountUsd;
+    current.rowCount += 1;
+    current.satNo = mergeDisplayValues(current.satNo, row.satNo);
+    current.sasNo = mergeDisplayValues(current.sasNo, row.sasNo);
+    current.invoiceNo = mergeDisplayValues(current.invoiceNo, row.invoiceNo);
+    current.description = mergeDescription(current.description, row.description);
+    current.vendor = mergeDisplayValues(current.vendor, row.vendor);
+    current.searchText = [
+      current.searchText,
+      row.referenceNo,
+      row.previousDocumentNo,
+      row.satNo,
+      row.sasNo,
+      row.invoiceNo,
+      row.description,
+      row.vendor,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  });
+
+  return [...groups.values()];
+}
+
+function usageRowToTableRow(
+  row: SATBudgetUsageRow,
+  rowId = row.rowId,
+): SATBudgetUsageTableRow {
+  return {
+    rowId,
+    documentDate: row.documentDate,
+    budgetType: row.budgetType,
+    stage: row.stage,
+    satNo: row.satNo,
+    sasNo: row.sasNo,
+    invoiceNo: row.invoiceNo,
+    description: row.description,
+    vendor: row.vendor,
+    amountUsd: row.amountUsd,
+    rowCount: 1,
+    searchText: [
+      row.referenceNo,
+      row.previousDocumentNo,
+      row.satNo,
+      row.sasNo,
+      row.invoiceNo,
+      row.description,
+      row.vendor,
+      row.user,
+    ]
+      .filter(Boolean)
+      .join(' '),
+  };
+}
+
+function usageDocumentNo(
+  row: SATBudgetUsageRow,
+  selectedStage: SATBudgetUsageStage,
+) {
+  if (selectedStage === 'SAT') return row.satNo || row.referenceNo;
+  if (selectedStage === 'SAS') return row.sasNo || row.referenceNo;
+  return row.invoiceNo || row.referenceNo;
+}
+
+function laterDate(a: Date | null, b: Date | null) {
+  if (!a) return b;
+  if (!b) return a;
+  return a.getTime() >= b.getTime() ? a : b;
+}
+
+function mergeDisplayValues(current: string, next: string) {
+  if (!next) return current;
+  if (!current) return next;
+  const values = current.split(', ').filter(Boolean);
+  if (values.includes(next)) return current;
+  if (values.length >= 2) return `${values.slice(0, 2).join(', ')} +${values.length - 1}`;
+  return `${current}, ${next}`;
+}
+
+function mergeDescription(current: string, next: string) {
+  if (!current) return next;
+  if (!next || current === next) return current;
+  return current.includes('kalem toplandı') ? current : current;
 }
 
 function formatNumber(value: number) {

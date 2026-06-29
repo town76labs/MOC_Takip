@@ -22,13 +22,13 @@ export const SAT_BUDGET_TYPE_CONFIG: {
   label: string;
   color: string;
 }[] = [
-  { key: 'CAPEX', label: 'CAPEX', color: '#38bdf8' },
-  { key: 'OPEX', label: 'OPEX', color: '#f59e0b' },
   {
     key: 'OPERATIONAL_CAPEX',
     label: 'Operational CAPEX',
     color: '#8b5cf6',
   },
+  { key: 'OPEX', label: 'OPEX', color: '#f59e0b' },
+  { key: 'CAPEX', label: 'CAPEX', color: '#38bdf8' },
 ];
 
 export const SAT_BUDGET_USAGE_STAGE_CONFIG: {

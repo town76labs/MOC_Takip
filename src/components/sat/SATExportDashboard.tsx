@@ -1,20 +1,15 @@
 import { useMemo, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
-  Cell,
   CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import {
+  AlertTriangle,
   BadgeDollarSign,
   Boxes,
   CalendarClock,
@@ -23,14 +18,12 @@ import {
   FileCheck2,
   FileText,
   FilterX,
-  Layers3,
   Loader2,
   ShoppingCart,
   Truck,
-  UserRoundCheck,
   Users,
 } from 'lucide-react';
-import type { SATExportRow } from '../../types';
+import type { SATBudgetUsageRow, SATBudgetUsageStage, SATExportRow } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import { formatDate } from '../../lib/normalize';
 import {
@@ -46,10 +39,13 @@ import {
   downloadSATExportReportPdf,
   type SATExportReportType,
 } from '../../lib/satExportReportPdf';
+import {
+  budgetTypeLabel,
+  companyLabel,
+} from '../../lib/satBudgetLogic';
 
 const EMPTY_STATUS = '__empty_status__';
 const UNASSIGNED = '__unassigned__';
-const OTHER_MATERIAL_GROUPS = '__other_material_groups__';
 const TOOLTIP_STYLE = {
   backgroundColor: '#111111',
   border: '1px solid rgb(255 255 255 / 0.12)',
@@ -80,14 +76,77 @@ interface SATDocument {
   sasCreators: string[];
 }
 
-type MaterialMetric = 'count' | 'satUsd' | 'sasUsd';
+type ExportPipelineStage = SATBudgetUsageStage;
+type ExportAlertKey = 'sat60' | 'sat90' | 'deliveryNoInvoice' | 'approvalWaiting';
 
-interface MaterialGroupDatum {
-  name: string;
-  value: number;
-  cumulative: number;
-  filterValue: string;
+interface BudgetUsageCardData {
+  key: string;
+  title: string;
+  subtitle: string;
+  code: string;
+  satNos: Set<string>;
+  stageSatNos: Record<ExportPipelineStage, Set<string>>;
+  stageAmounts: Record<ExportPipelineStage, number>;
+  fallback: boolean;
 }
+
+const EXPORT_PIPELINE_STAGES: {
+  key: ExportPipelineStage;
+  label: string;
+  helper: string;
+  color: string;
+}[] = [
+  {
+    key: 'SAT',
+    label: 'Açılan SAT',
+    helper: 'Bütçeden açılan satın alma talepleri',
+    color: '#38bdf8',
+  },
+  {
+    key: 'SAS',
+    label: "SAS'a Dönen SAT",
+    helper: 'Siparişe dönüşen SAT belgeleri',
+    color: '#8b5cf6',
+  },
+  {
+    key: 'FAT',
+    label: 'Fatura Kesilen SAS',
+    helper: 'Fatura aşamasına gelen süreçler',
+    color: '#10b981',
+  },
+];
+
+const EXPORT_ALERTS: {
+  key: ExportAlertKey;
+  title: string;
+  helper: string;
+  color: string;
+}[] = [
+  {
+    key: 'sat60',
+    title: "60+ Gün SAS'a Dönmeyen",
+    helper: 'SAT açılmış, 60-89 gündür siparişe dönmemiş',
+    color: '#f59e0b',
+  },
+  {
+    key: 'sat90',
+    title: "90+ Gün SAS'a Dönmeyen",
+    helper: 'SAT açılmış, 90 günü geçmiş kritik kayıtlar',
+    color: '#ef4444',
+  },
+  {
+    key: 'deliveryNoInvoice',
+    title: 'Teslim Tarihi Geçmiş / Fatura Yok',
+    helper: 'Teslim tarihi geçmiş, son fatura işareti yok',
+    color: '#fb7185',
+  },
+  {
+    key: 'approvalWaiting',
+    title: 'Acil Onay Bekleyen',
+    helper: '30+ gün açık kalan onay / revize adımları',
+    color: '#f97316',
+  },
+];
 
 const REPORT_OPTIONS: {
   type: SATExportReportType;
@@ -97,20 +156,20 @@ const REPORT_OPTIONS: {
 }[] = [
   {
     type: 'executive',
-    title: 'Yönetici Özeti',
-    description: 'KPI, süreç hunisi, Pareto ve öncelikli açık SAT belgeleri.',
+    title: 'Genel SAT Takip Raporu',
+    description: 'KPI, süreç hunisi ve öncelikli açık SAT belgeleri.',
     format: 'Kısa · Dikey',
   },
   {
     type: 'performance',
-    title: 'Süreç Performans Raporu',
-    description: 'Durum, iş yükü, yaşlandırma, aylık trend ve dönüşüm oranları.',
+    title: 'Ortalama İşlem Süresi / Yaşlandırma',
+    description: 'Bekleme yaşı, aylık trend ve SAT → SAS dönüşüm performansı.',
     format: 'Analiz · Dikey',
   },
   {
     type: 'delivery_risk',
-    title: 'Teslimat ve Risk Raporu',
-    description: 'Geciken, yaklaşan ve teslim tarihi olmayan kalemlerin detayı.',
+    title: 'Acil Onay ve Teslimat Riski',
+    description: 'Onayda bekleyen, geciken ve fatura kapanışı olmayan kalemler.',
     format: 'Operasyon · Yatay',
   },
   {
@@ -123,14 +182,17 @@ const REPORT_OPTIONS: {
 
 export function SATExportDashboard() {
   const allRows = useDataStore((state) => state.satExportRows);
+  const budgetUsageRows = useDataStore((state) => state.satBudgetUsageRows);
   const allItemRows = useMemo(() => getUniqueSATItemRows(allRows), [allRows]);
   const [selectedCreator, setSelectedCreator] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSasCreator, setSelectedSasCreator] = useState('');
   const [selectedVendor, setSelectedVendor] = useState('');
   const [selectedApproval, setSelectedApproval] = useState('');
-  const [selectedMaterialGroup, setSelectedMaterialGroup] = useState('');
-  const [materialMetric, setMaterialMetric] = useState<MaterialMetric>('count');
+  const [selectedBudgetKey, setSelectedBudgetKey] = useState('');
+  const [selectedPipelineStage, setSelectedPipelineStage] =
+    useState<ExportPipelineStage | ''>('');
+  const [selectedAlert, setSelectedAlert] = useState<ExportAlertKey | ''>('');
   const [detail, setDetail] = useState<SATExportRow | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportScope, setReportScope] = useState<'filtered' | 'all'>('filtered');
@@ -184,7 +246,7 @@ export function SATExportDashboard() {
       selectedApproval,
     ],
   );
-  const materialChartRows = useMemo(
+  const statusFilteredRows = useMemo(
     () =>
       partyFilteredRows.filter((row) => {
         if (!selectedStatus) return true;
@@ -193,34 +255,45 @@ export function SATExportDashboard() {
       }),
     [partyFilteredRows, selectedStatus],
   );
-  const materialGroupSummary = useMemo(
-    () => buildMaterialGroupData(materialChartRows, materialMetric, 8),
-    [materialChartRows, materialMetric],
+  const statusBaseRows = partyFilteredRows;
+  const budgetUsageCards = useMemo(
+    () => buildBudgetUsageCards(budgetUsageRows, allRows),
+    [budgetUsageRows, allRows],
   );
-  const statusBaseRows = useMemo(
-    () =>
-      filterByMaterialGroup(
-        partyFilteredRows,
-        selectedMaterialGroup,
-        materialGroupSummary.topGroupNames,
-      ),
-    [partyFilteredRows, selectedMaterialGroup, materialGroupSummary.topGroupNames],
-  );
+  const selectedBudget = selectedBudgetKey
+    ? budgetUsageCards.find((item) => item.key === selectedBudgetKey) ?? null
+    : null;
+
+  const baseVisibleRows = statusFilteredRows;
   const visibleRows = useMemo(
     () =>
-      filterByMaterialGroup(
-        materialChartRows,
-        selectedMaterialGroup,
-        materialGroupSummary.topGroupNames,
+      applyOperationalFilters(
+        baseVisibleRows,
+        selectedBudget,
+        selectedPipelineStage,
+        selectedAlert,
       ),
-    [materialChartRows, selectedMaterialGroup, materialGroupSummary.topGroupNames],
+    [baseVisibleRows, selectedBudget, selectedPipelineStage, selectedAlert],
   );
   const visibleItemRows = useMemo(
     () => getUniqueSATItemRows(visibleRows),
     [visibleRows],
   );
   const documents = useMemo(() => buildDocuments(visibleRows), [visibleRows]);
-  const baseDocuments = useMemo(() => buildDocuments(statusBaseRows), [statusBaseRows]);
+  const statusOperationalRows = useMemo(
+    () =>
+      applyOperationalFilters(
+        statusBaseRows,
+        selectedBudget,
+        selectedPipelineStage,
+        selectedAlert,
+      ),
+    [statusBaseRows, selectedBudget, selectedPipelineStage, selectedAlert],
+  );
+  const baseDocuments = useMemo(
+    () => buildDocuments(statusOperationalRows),
+    [statusOperationalRows],
+  );
 
   const statusSummary = useMemo(
     () =>
@@ -265,13 +338,6 @@ export function SATExportDashboard() {
     () => buildDocumentPartyData(documents, (doc) => [doc.satCreator]),
     [documents],
   );
-  const sasCreatorData = useMemo(
-    () =>
-      buildDocumentPartyData(documents, (doc) =>
-        doc.sasCreators.length ? doc.sasCreators : ['Atanmamış'],
-      ).slice(0, 9),
-    [documents],
-  );
   const topSatData = useMemo(
     () =>
       [...documents]
@@ -280,33 +346,25 @@ export function SATExportDashboard() {
         .map((doc) => ({ name: doc.satNo, value: doc.totalSatUsd })),
     [documents],
   );
-  const monthlyData = useMemo(
-    () => buildMonthlyDocuments(documents, (doc) => doc.createdAt),
-    [documents],
-  );
-  const deliveryData = useMemo(
-    () => buildMonthlyRows(visibleRows, (row) => row.deliveryDate),
-    [visibleRows],
-  );
   const agingData = useMemo(() => buildAgingData(documents), [documents]);
   const deliveryRiskData = useMemo(
     () => buildDeliveryRiskData(visibleRows),
     [visibleRows],
   );
   const funnelData = useMemo(() => buildFunnelData(documents), [documents]);
-  const selectedMaterialLabel = selectedMaterialGroup
-    ? materialGroupSummary.data.find(
-        (item) => item.filterValue === selectedMaterialGroup,
-      )?.name ?? selectedMaterialGroup
-    : '';
-
+  const alertSummary = useMemo(
+    () => buildExportAlertSummary(baseVisibleRows),
+    [baseVisibleRows],
+  );
   const filtersActive = Boolean(
     selectedCreator ||
       selectedStatus ||
       selectedSasCreator ||
       selectedVendor ||
       selectedApproval ||
-      selectedMaterialGroup,
+      selectedBudgetKey ||
+      selectedPipelineStage ||
+      selectedAlert,
   );
 
   function clearFilters() {
@@ -315,7 +373,29 @@ export function SATExportDashboard() {
     setSelectedSasCreator('');
     setSelectedVendor('');
     setSelectedApproval('');
-    setSelectedMaterialGroup('');
+    setSelectedBudgetKey('');
+    setSelectedPipelineStage('');
+    setSelectedAlert('');
+  }
+
+  function selectBudget(key: string) {
+    setSelectedBudgetKey((current) => (current === key ? '' : key));
+    setSelectedPipelineStage('');
+    setSelectedAlert('');
+  }
+
+  function selectBudgetStage(key: string, stage: ExportPipelineStage) {
+    setSelectedBudgetKey(key);
+    setSelectedPipelineStage((current) =>
+      selectedBudgetKey === key && current === stage ? '' : stage,
+    );
+    setSelectedAlert('');
+  }
+
+  function selectAlert(key: ExportAlertKey) {
+    setSelectedAlert((current) => (current === key ? '' : key));
+    setSelectedBudgetKey('');
+    setSelectedPipelineStage('');
   }
 
   async function createPDFReport(type: SATExportReportType) {
@@ -336,7 +416,16 @@ export function SATExportDashboard() {
         ? `Satıcı: ${selectedVendor === UNASSIGNED ? 'Atanmamış' : selectedVendor}`
         : '',
       selectedApproval ? `Onay: ${selectedApproval}` : '',
-      selectedMaterialLabel ? `Mal Grubu: ${selectedMaterialLabel}` : '',
+      selectedBudget ? `Bütçe/Kaynak: ${selectedBudget.title}` : '',
+      selectedPipelineStage
+        ? `Aşama: ${
+            EXPORT_PIPELINE_STAGES.find((item) => item.key === selectedPipelineStage)
+              ?.label
+          }`
+        : '',
+      selectedAlert
+        ? `Uyarı: ${EXPORT_ALERTS.find((item) => item.key === selectedAlert)?.title}`
+        : '',
     ].filter(Boolean);
     const scopeLabel =
       reportScope === 'all'
@@ -358,81 +447,50 @@ export function SATExportDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setReportModalOpen(true)}
-          disabled={allRows.length === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-cyan-400 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/35 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <FileText size={17} />
-          PDF Raporu Oluştur
-        </button>
-      </div>
-      <section className="card p-4">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <section className="card p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" />
-              <h2 className="panel-title">SAP Export Dashboard Filtreleri</h2>
-            </div>
+            <h2 className="panel-title">SAT Takip Operasyon Paneli</h2>
+            <p className="panel-subtitle mt-1">
+              Bütçe, SAT/SAS/FAT aşaması ve gecikme uyarılarına tıklayarak aşağıdaki listeyi filtreleyin.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={clearFilters}
-            disabled={!filtersActive}
-            className="inline-flex items-center gap-2 self-start rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            <FilterX size={15} />
-            Filtreleri Temizle
-          </button>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <ExportSelect
-            label="SAT Yaratan"
-            value={selectedCreator}
-            options={options.creators.map(toOption)}
-            onChange={setSelectedCreator}
-          />
-          <ExportSelect
-            label="Özet Durum"
-            value={selectedStatus}
-            options={statusOptions}
-            onChange={setSelectedStatus}
-          />
-          <ExportSelect
-            label="SAS Yaratan"
-            value={selectedSasCreator}
-            options={options.sasCreators}
-            onChange={setSelectedSasCreator}
-          />
-          <ExportSelect
-            label="Satıcı"
-            value={selectedVendor}
-            options={options.vendors}
-            onChange={setSelectedVendor}
-          />
-          <ExportSelect
-            label="SAT Onay Durumu"
-            value={selectedApproval}
-            options={options.approvals.map(toOption)}
-            onChange={setSelectedApproval}
-          />
-        </div>
-        {selectedMaterialGroup && (
-          <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="text-white/40">Grafikten seçilen mal grubu:</span>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setSelectedMaterialGroup('')}
-              className="rounded-full border border-orange-300/35 bg-orange-400/10 px-3 py-1 font-medium text-orange-200 transition hover:bg-orange-400/20"
-              title="Mal grubu filtresini kaldır"
+              onClick={() => setReportModalOpen(true)}
+              disabled={allRows.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-cyan-400 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-cyan-400/35 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {selectedMaterialLabel} ×
+              <FileText size={17} />
+              PDF Raporları
+            </button>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!filtersActive}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <FilterX size={15} />
+              Filtreleri Temizle
             </button>
           </div>
-        )}
+        </div>
+
+        <BudgetUsageOverview
+          cards={budgetUsageCards}
+          selectedBudgetKey={selectedBudgetKey}
+          selectedPipelineStage={selectedPipelineStage}
+          onSelectBudget={selectBudget}
+          onSelectStage={selectBudgetStage}
+        />
       </section>
+
+      <ExportAlertOverview
+        alerts={alertSummary}
+        selectedAlert={selectedAlert}
+        onSelect={selectAlert}
+      />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard
@@ -539,59 +597,6 @@ export function SATExportDashboard() {
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ChartCard
-          title="Aylık SAT Oluşturma Trendi"
-          subtitle="Tekil SAT belgelerinin yaratılma tarihine göre dağılımı"
-          icon={<CalendarClock size={17} />}
-        >
-          <AreaTrend data={monthlyData} name="SAT Belgesi" color="#8b5cf6" gradientId="satExportCreated" />
-        </ChartCard>
-        <ChartCard
-          title="Teslimat Takvimi"
-          subtitle="Teslim tarihi bulunan malzeme kalemleri"
-          icon={<Truck size={17} />}
-        >
-          {deliveryData.length > 0 ? (
-            <AreaTrend data={deliveryData} name="Teslimat" color="#f59e0b" gradientId="satExportDelivery" />
-          ) : (
-            <EmptyChart message="Teslim tarihi bulunan kalem yok." />
-          )}
-        </ChartCard>
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="SAS Yaratan İş Yükü"
-          subtitle="SAS yaratan kişi bazında tekil SAT belge sayısı"
-          icon={<UserRoundCheck size={17} />}
-        >
-          <HorizontalBar data={sasCreatorData} color="#6366f1" name="SAT Belgesi" />
-        </ChartCard>
-        <ChartCard
-          title="Mal Grubu Pareto Analizi"
-          subtitle="CI sütunu · Çubuğa tıklayarak filtreleyin"
-          icon={<Layers3 size={17} />}
-          action={
-            <MaterialMetricToggle
-              value={materialMetric}
-              onChange={setMaterialMetric}
-            />
-          }
-        >
-          <MaterialPareto
-            data={materialGroupSummary.data}
-            metric={materialMetric}
-            selected={selectedMaterialGroup}
-            onSelect={(value) =>
-              setSelectedMaterialGroup((current) =>
-                current === value ? '' : value,
-              )
-            }
-          />
-        </ChartCard>
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartCard
           title="Açık SAT Yaşlandırma"
           subtitle="Tamamlanmamış SAT belgelerinin oluşturulma tarihine göre bekleme süresi"
           icon={<CalendarClock size={17} />}
@@ -627,12 +632,53 @@ export function SATExportDashboard() {
             <p className="mt-1 text-xs text-white/45">
               {documents.length} SAT belgesi · {visibleItemRows.length} tekil kalem ·{' '}
               {visibleRows.length} SAT/SAS satırı
-              {selectedMaterialLabel ? ` · ${selectedMaterialLabel}` : ''}
             </p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/55">
             <FileCheck2 size={15} />
             Satıra tıklayarak tüm takip alanlarını görüntüleyin
+          </div>
+        </div>
+        <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-white">Detay Filtreleri</h3>
+              <p className="mt-1 text-xs text-white/40">
+                Aşağıdaki SAT/SAS/FAT detay listesini ayrıntılı daraltmak için kullanın.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <ExportSelect
+              label="SAT Yaratan"
+              value={selectedCreator}
+              options={options.creators.map(toOption)}
+              onChange={setSelectedCreator}
+            />
+            <ExportSelect
+              label="Özet Durum"
+              value={selectedStatus}
+              options={statusOptions}
+              onChange={setSelectedStatus}
+            />
+            <ExportSelect
+              label="SAS Yaratan"
+              value={selectedSasCreator}
+              options={options.sasCreators}
+              onChange={setSelectedSasCreator}
+            />
+            <ExportSelect
+              label="Satıcı"
+              value={selectedVendor}
+              options={options.vendors}
+              onChange={setSelectedVendor}
+            />
+            <ExportSelect
+              label="SAT Onay Durumu"
+              value={selectedApproval}
+              options={options.approvals.map(toOption)}
+              onChange={setSelectedApproval}
+            />
           </div>
         </div>
         <DataTable
@@ -643,6 +689,7 @@ export function SATExportDashboard() {
           initialSortDir="desc"
           emptyMessage="Seçili filtrelerde SAT kalemi bulunamadı."
           onRowClick={setDetail}
+          rowClassName={exportRowClassName}
         />
       </section>
 
@@ -752,6 +799,179 @@ export function SATExportDashboard() {
   );
 }
 
+function BudgetUsageOverview({
+  cards,
+  selectedBudgetKey,
+  selectedPipelineStage,
+  onSelectBudget,
+  onSelectStage,
+}: {
+  cards: BudgetUsageCardData[];
+  selectedBudgetKey: string;
+  selectedPipelineStage: ExportPipelineStage | '';
+  onSelectBudget: (key: string) => void;
+  onSelectStage: (key: string, stage: ExportPipelineStage) => void;
+}) {
+  const displayCards = cards.slice(0, 6);
+  return (
+    <div className="mt-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Bütçe / Kaynak Bazlı Aşama Takibi</h3>
+          <p className="mt-1 text-xs text-white/40">
+            Her kaynakta Açılan SAT, SAS'a dönen SAT ve Fatura kesilen SAS adedi gösterilir.
+          </p>
+        </div>
+        {cards.some((card) => card.fallback) && (
+          <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] text-white/40">
+            Bütçe kullanım dosyası yoksa mal grubu üzerinden gösterilir
+          </span>
+        )}
+      </div>
+      <div className="grid gap-3 xl:grid-cols-3">
+        {displayCards.map((card) => {
+          const active = selectedBudgetKey === card.key;
+          return (
+            <div
+              key={card.key}
+              className={`rounded-xl border bg-black/20 p-4 transition ${
+                active
+                  ? 'border-cyan-300/70 ring-2 ring-cyan-400/20'
+                  : 'border-white/10'
+              } ${selectedBudgetKey && !active ? 'opacity-55' : ''}`}
+            >
+              <button
+                type="button"
+                onClick={() => onSelectBudget(card.key)}
+                className="w-full text-left"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200/70">
+                      {card.subtitle}
+                    </div>
+                    <h4 className="mt-1 line-clamp-2 text-sm font-semibold text-white">
+                      {card.title}
+                    </h4>
+                    <div className="mt-1 text-[11px] text-white/35">
+                      {card.code || 'Kod belirtilmemiş'}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="text-lg font-semibold text-white tabular-nums">
+                      {formatNumber(card.satNos.size)}
+                    </div>
+                    <div className="text-[10px] text-white/35">SAT</div>
+                  </div>
+                </div>
+              </button>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {EXPORT_PIPELINE_STAGES.map((stage) => {
+                  const count = card.stageSatNos[stage.key].size;
+                  const stageActive =
+                    active && selectedPipelineStage === stage.key;
+                  return (
+                    <button
+                      key={stage.key}
+                      type="button"
+                      onClick={() => onSelectStage(card.key, stage.key)}
+                      className={`rounded-lg border p-2 text-left transition hover:bg-white/[0.08] ${
+                        stageActive
+                          ? 'border-cyan-300/70 bg-cyan-400/10'
+                          : 'border-white/10 bg-white/[0.04]'
+                      }`}
+                    >
+                      <span
+                        className="mb-1 block h-1 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      <div className="text-lg font-semibold text-white tabular-nums">
+                        {count}
+                      </div>
+                      <div className="mt-1 text-[10px] leading-4 text-white/45">
+                        {stage.label}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ExportAlertOverview({
+  alerts,
+  selectedAlert,
+  onSelect,
+}: {
+  alerts: { key: ExportAlertKey; count: number; amount: number }[];
+  selectedAlert: ExportAlertKey | '';
+  onSelect: (key: ExportAlertKey) => void;
+}) {
+  return (
+    <section className="card p-5">
+      <div className="mb-4 flex items-start gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300">
+          <AlertTriangle size={19} />
+        </span>
+        <div>
+          <h2 className="panel-title">Aksiyon Gerektiren SAT Uyarıları</h2>
+          <p className="panel-subtitle mt-1">
+            Uyarıya tıklayınca aşağıdaki SAT/SAS/FAT listesi ilgili kayıtlarla filtrelenir.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {EXPORT_ALERTS.map((config) => {
+          const summary = alerts.find((item) => item.key === config.key);
+          const active = selectedAlert === config.key;
+          return (
+            <button
+              key={config.key}
+              type="button"
+              onClick={() => onSelect(config.key)}
+              className={`relative min-h-32 overflow-hidden rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                active
+                  ? 'border-cyan-300/70 bg-cyan-400/10 ring-2 ring-cyan-400/20'
+                  : 'border-white/10 bg-white/[0.045]'
+              }`}
+            >
+              <span
+                className="absolute inset-x-0 top-0 h-1"
+                style={{ backgroundColor: config.color }}
+              />
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold leading-5 text-white">
+                    {config.title}
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-white/45">
+                    {config.helper}
+                  </div>
+                  <div className="mt-3 text-[11px] font-medium text-white/35">
+                    {formatUsd(summary?.amount ?? 0)}
+                  </div>
+                </div>
+                <div
+                  className="rounded-lg px-2 py-1 text-2xl font-semibold tabular-nums"
+                  style={{ color: config.color, backgroundColor: `${config.color}16` }}
+                >
+                  {summary?.count ?? 0}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
   {
     key: 'satNo',
@@ -759,6 +979,14 @@ const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
     sortValue: (row) => row.satNo,
     searchValue: (row) => row.satNo,
     render: (row) => <span className="font-semibold text-white">{row.satNo}</span>,
+  },
+  {
+    key: 'risk',
+    header: 'Risk',
+    sortValue: (row) => rowRiskPriority(row),
+    searchValue: (row) => rowRiskInfo(row)?.label ?? '',
+    className: 'whitespace-nowrap',
+    render: (row) => <ExportRiskBadge row={row} />,
   },
   {
     key: 'satItemNo',
@@ -847,6 +1075,306 @@ const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
   },
 ];
 
+function buildBudgetUsageCards(
+  usageRows: SATBudgetUsageRow[],
+  exportRows: SATExportRow[],
+): BudgetUsageCardData[] {
+  if (usageRows.length === 0) return buildFallbackBudgetCards(exportRows);
+
+  const exportSatNos = new Set(exportRows.map((row) => row.satNo).filter(Boolean));
+  const map = new Map<string, BudgetUsageCardData>();
+
+  usageRows.forEach((row) => {
+    if (!row.satNo || !exportSatNos.has(row.satNo)) return;
+    const key = `${row.company}|${row.budgetType}|${row.sourceCode}`;
+    const current =
+      map.get(key) ??
+      createBudgetUsageCard({
+        key,
+        title: cleanBudgetSourceLabel(row.sourceLabel),
+        subtitle: `${companyLabel(row.company)} · ${budgetTypeLabel(row.budgetType)}`,
+        code: row.sourceCode,
+        fallback: false,
+      });
+
+    current.satNos.add(row.satNo);
+    current.stageSatNos[row.stage].add(row.satNo);
+    current.stageAmounts[row.stage] += Math.max(0, row.amountUsd);
+    map.set(key, current);
+  });
+
+  const cards = [...map.values()].sort(
+    (a, b) => b.satNos.size - a.satNos.size || a.title.localeCompare(b.title, 'tr'),
+  );
+  return cards.length > 0 ? cards : buildFallbackBudgetCards(exportRows);
+}
+
+function buildFallbackBudgetCards(rows: SATExportRow[]): BudgetUsageCardData[] {
+  const map = new Map<string, BudgetUsageCardData>();
+  rows.forEach((row) => {
+    const group = row.materialGroup || 'Mal Grubu Belirtilmemiş';
+    const key = `material|${group}`;
+    const current =
+      map.get(key) ??
+      createBudgetUsageCard({
+        key,
+        title: group,
+        subtitle: 'Mal Grubu',
+        code: 'CI sütunu',
+        fallback: true,
+      });
+
+    current.satNos.add(row.satNo);
+    current.stageSatNos.SAT.add(row.satNo);
+    current.stageAmounts.SAT += Math.max(0, row.satItemUsd);
+    if (isRowSasConverted(row)) {
+      current.stageSatNos.SAS.add(row.satNo);
+      current.stageAmounts.SAS += Math.max(0, row.sasUsdAmount);
+    }
+    if (row.lastInvoice) {
+      current.stageSatNos.FAT.add(row.satNo);
+      current.stageAmounts.FAT += Math.max(0, row.sasUsdAmount || row.satItemUsd);
+    }
+    map.set(key, current);
+  });
+
+  return [...map.values()]
+    .sort((a, b) => b.satNos.size - a.satNos.size || a.title.localeCompare(b.title, 'tr'))
+    .slice(0, 6);
+}
+
+function createBudgetUsageCard({
+  key,
+  title,
+  subtitle,
+  code,
+  fallback,
+}: {
+  key: string;
+  title: string;
+  subtitle: string;
+  code: string;
+  fallback: boolean;
+}): BudgetUsageCardData {
+  return {
+    key,
+    title,
+    subtitle,
+    code,
+    satNos: new Set<string>(),
+    stageSatNos: {
+      SAT: new Set<string>(),
+      SAS: new Set<string>(),
+      FAT: new Set<string>(),
+    },
+    stageAmounts: { SAT: 0, SAS: 0, FAT: 0 },
+    fallback,
+  };
+}
+
+function cleanBudgetSourceLabel(value: string) {
+  return value
+    .replace(/^CAPEX\s*\/\s*/i, '')
+    .replace(/^OPEX\s*\/\s*/i, '')
+    .replace(/^Operational CAPEX\s*\/\s*/i, '')
+    .trim() || 'Bütçe kaynağı';
+}
+
+function applyOperationalFilters(
+  rows: SATExportRow[],
+  selectedBudget: BudgetUsageCardData | null,
+  selectedStage: ExportPipelineStage | '',
+  selectedAlert: ExportAlertKey | '',
+) {
+  let result = rows;
+  if (selectedBudget) {
+    const satNos = selectedStage
+      ? selectedBudget.stageSatNos[selectedStage]
+      : selectedBudget.satNos;
+    result = result.filter((row) => satNos.has(row.satNo));
+  }
+  if (selectedAlert) {
+    result = filterRowsByAlert(result, selectedAlert);
+  }
+  return result;
+}
+
+function buildExportAlertSummary(rows: SATExportRow[]) {
+  return EXPORT_ALERTS.map((alert) => {
+    const alertRows = filterRowsByAlert(rows, alert.key);
+    return {
+      key: alert.key,
+      count: new Set(alertRows.map((row) => row.satNo)).size,
+      amount: sumSATItemUsd(alertRows),
+    };
+  });
+}
+
+function filterRowsByAlert(rows: SATExportRow[], alert: ExportAlertKey) {
+  if (alert === 'deliveryNoInvoice') {
+    const today = startOfDay(new Date());
+    return rows.filter(
+      (row) =>
+        row.deliveryDate &&
+        startOfDay(row.deliveryDate) < today &&
+        !row.lastInvoice,
+    );
+  }
+
+  const documents = buildDocuments(rows);
+  const satNos = new Set(
+    documents
+      .filter((document) => documentMatchesAlert(document, alert))
+      .map((document) => document.satNo),
+  );
+  return rows.filter((row) => satNos.has(row.satNo));
+}
+
+function documentMatchesAlert(document: SATDocument, alert: ExportAlertKey) {
+  const age = documentAgeDays(document);
+  if (alert === 'sat60') {
+    return age >= 60 && age < 90 && !isDocumentSasConverted(document);
+  }
+  if (alert === 'sat90') {
+    return age >= 90 && !isDocumentSasConverted(document);
+  }
+  if (alert === 'approvalWaiting') {
+    return age >= 30 && isDocumentApprovalWaiting(document);
+  }
+  return false;
+}
+
+function isDocumentSasConverted(document: SATDocument) {
+  return document.rows.some((row) => isRowSasConverted(row));
+}
+
+function isRowSasConverted(row: SATExportRow) {
+  const status = `${row.summaryStatus} ${row.approvalStatusDescription}`.toLocaleLowerCase('tr-TR');
+  return Boolean(
+    row.sasNo ||
+      row.sasUsdAmount > 0 ||
+      status.includes('sipariş') ||
+      status.includes('siparis') ||
+      status.includes('sas'),
+  );
+}
+
+function isDocumentApprovalWaiting(document: SATDocument) {
+  const approval = document.approvalStatusDescription.toLocaleLowerCase('tr-TR');
+  const status = document.summaryStatus.toLocaleLowerCase('tr-TR');
+  if (
+    approval.includes('tamam') ||
+    status.includes('sipariş') ||
+    status.includes('siparis') ||
+    status.includes('fatura')
+  ) {
+    return false;
+  }
+  return (
+    approval.includes('onay') ||
+    approval.includes('bek') ||
+    status.includes('revize') ||
+    status.includes('teknik') ||
+    status.includes('teklif') ||
+    status.includes('sat işleme') ||
+    status.includes('sat isleme')
+  );
+}
+
+function documentAgeDays(document: SATDocument) {
+  if (!document.createdAt || Number.isNaN(document.createdAt.getTime())) return 0;
+  return Math.max(
+    0,
+    Math.floor(
+      (startOfDay(new Date()).getTime() -
+        startOfDay(document.createdAt).getTime()) /
+        86400000,
+    ),
+  );
+}
+
+function exportRowClassName(row: SATExportRow) {
+  const risk = rowRiskInfo(row);
+  if (!risk) return '';
+  if (risk.key === 'sat90') return 'bg-rose-500/[0.08]';
+  if (risk.key === 'deliveryNoInvoice') return 'bg-pink-500/[0.06]';
+  if (risk.key === 'sat60') return 'bg-amber-400/[0.06]';
+  if (risk.key === 'approvalWaiting') return 'bg-orange-400/[0.045]';
+  return '';
+}
+
+function rowRiskInfo(row: SATExportRow): {
+  key: ExportAlertKey;
+  label: string;
+  color: string;
+} | null {
+  const today = startOfDay(new Date());
+  if (
+    row.createdAt &&
+    Math.floor((today.getTime() - startOfDay(row.createdAt).getTime()) / 86400000) >= 90 &&
+    !isRowSasConverted(row)
+  ) {
+    return { key: 'sat90', label: '90+ SAS Yok', color: '#ef4444' };
+  }
+  const age = row.createdAt
+    ? Math.max(
+        0,
+        Math.floor(
+          (today.getTime() - startOfDay(row.createdAt).getTime()) / 86400000,
+        ),
+      )
+    : 0;
+  if (age >= 60 && !isRowSasConverted(row)) {
+    return { key: 'sat60', label: '60+ SAS Yok', color: '#f59e0b' };
+  }
+  if (
+    row.deliveryDate &&
+    startOfDay(row.deliveryDate) < today &&
+    !row.lastInvoice
+  ) {
+    return {
+      key: 'deliveryNoInvoice',
+      label: 'Teslim/Fatura',
+      color: '#fb7185',
+    };
+  }
+  if (age >= 30 && rowApprovalWaiting(row)) {
+    return { key: 'approvalWaiting', label: 'Acil Onay', color: '#f97316' };
+  }
+  return null;
+}
+
+function rowRiskPriority(row: SATExportRow) {
+  const risk = rowRiskInfo(row);
+  if (!risk) return 0;
+  if (risk.key === 'sat90') return 4;
+  if (risk.key === 'sat60') return 3;
+  if (risk.key === 'deliveryNoInvoice') return 2;
+  return 1;
+}
+
+function rowApprovalWaiting(row: SATExportRow) {
+  const approval = row.approvalStatusDescription.toLocaleLowerCase('tr-TR');
+  const status = row.summaryStatus.toLocaleLowerCase('tr-TR');
+  if (
+    approval.includes('tamam') ||
+    status.includes('sipariş') ||
+    status.includes('siparis') ||
+    status.includes('fatura')
+  ) {
+    return false;
+  }
+  return (
+    approval.includes('onay') ||
+    approval.includes('bek') ||
+    status.includes('revize') ||
+    status.includes('teknik') ||
+    status.includes('teklif') ||
+    status.includes('sat işleme') ||
+    status.includes('sat isleme')
+  );
+}
+
 function buildDocuments(rows: SATExportRow[]): SATDocument[] {
   const map = new Map<string, SATDocument>();
   rows.forEach((row) => {
@@ -888,79 +1416,6 @@ function buildDocumentPartyData(
   return [...counts.entries()]
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'tr'));
-}
-
-function buildMaterialGroupData(
-  rows: SATExportRow[],
-  metric: MaterialMetric,
-  limit: number,
-) {
-  const groups = new Map<
-    string,
-    { count: number; satUsd: number; sasUsd: number }
-  >();
-  getUniqueSATItemRows(rows).forEach((row) => {
-    const category = row.materialGroup || 'Mal Grubu Yok';
-    const current = groups.get(category) ?? { count: 0, satUsd: 0, sasUsd: 0 };
-    current.count += 1;
-    current.satUsd += row.satItemUsd;
-    groups.set(category, current);
-  });
-  rows.forEach((row) => {
-    const category = row.materialGroup || 'Mal Grubu Yok';
-    const current = groups.get(category) ?? { count: 0, satUsd: 0, sasUsd: 0 };
-    current.sasUsd += row.sasUsdAmount;
-    groups.set(category, current);
-  });
-
-  const metricValue = (values: { count: number; satUsd: number; sasUsd: number }) =>
-    values[metric];
-  const sorted = [...groups.entries()].sort(
-    ([nameA, valuesA], [nameB, valuesB]) =>
-      metricValue(valuesB) - metricValue(valuesA) ||
-      nameA.localeCompare(nameB, 'tr'),
-  );
-  const topEntries = sorted.slice(0, limit);
-  const topGroupNames = topEntries.map(([name]) => name);
-  const remaining = sorted.slice(limit);
-  const displayEntries: Array<[string, number, string]> = topEntries.map(
-    ([name, values]) => [name, metricValue(values), name],
-  );
-  if (remaining.length > 0) {
-    displayEntries.push([
-      `Diğer (${remaining.length} grup)`,
-      sum(remaining.map(([, values]) => metricValue(values))),
-      OTHER_MATERIAL_GROUPS,
-    ]);
-  }
-  const total = sum(displayEntries.map(([, value]) => value));
-  let running = 0;
-  const data: MaterialGroupDatum[] = displayEntries.map(
-    ([name, value, filterValue]) => {
-      running += value;
-      return {
-        name,
-        value,
-        cumulative: total ? (running / total) * 100 : 0,
-        filterValue,
-      };
-    },
-  );
-  return { data, topGroupNames };
-}
-
-function filterByMaterialGroup(
-  rows: SATExportRow[],
-  selected: string,
-  topGroupNames: string[],
-) {
-  if (!selected) return rows;
-  return rows.filter((row) => {
-    const group = row.materialGroup || 'Mal Grubu Yok';
-    return selected === OTHER_MATERIAL_GROUPS
-      ? !topGroupNames.includes(group)
-      : group === selected;
-  });
 }
 
 function buildAgingData(documents: SATDocument[]) {
@@ -1067,42 +1522,6 @@ function addDays(date: Date, days: number) {
   return result;
 }
 
-function buildMonthlyDocuments(
-  documents: SATDocument[],
-  getDate: (document: SATDocument) => Date | null,
-) {
-  return buildMonthlyValues(documents.map(getDate));
-}
-
-function buildMonthlyRows(
-  rows: SATExportRow[],
-  getDate: (row: SATExportRow) => Date | null,
-) {
-  return buildMonthlyValues(rows.map(getDate));
-}
-
-function buildMonthlyValues(values: (Date | null)[]) {
-  const counts = new Map<string, number>();
-  values.forEach((date) => {
-    if (!date || Number.isNaN(date.getTime())) return;
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  });
-  return [...counts.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => {
-      const [year, month] = key.split('-').map(Number);
-      return {
-        key,
-        value,
-        label: new Date(year, month - 1, 1).toLocaleDateString('tr-TR', {
-          month: 'short',
-          year: '2-digit',
-        }),
-      };
-    });
-}
-
 function MetricCard({
   title,
   value,
@@ -1163,141 +1582,6 @@ function ChartCard({
       </div>
       <div className="h-72 min-w-0">{children}</div>
     </section>
-  );
-}
-
-function MaterialMetricToggle({
-  value,
-  onChange,
-}: {
-  value: MaterialMetric;
-  onChange: (value: MaterialMetric) => void;
-}) {
-  const options: { value: MaterialMetric; label: string }[] = [
-    { value: 'count', label: 'Adet' },
-    { value: 'satUsd', label: 'SAT USD' },
-    { value: 'sasUsd', label: 'SAS USD' },
-  ];
-  return (
-    <div className="inline-flex self-start rounded-lg border border-white/10 bg-black/20 p-1">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition ${
-            value === option.value
-              ? 'bg-orange-400/20 text-orange-200'
-              : 'text-white/40 hover:text-white/70'
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function MaterialPareto({
-  data,
-  metric,
-  selected,
-  onSelect,
-}: {
-  data: MaterialGroupDatum[];
-  metric: MaterialMetric;
-  selected: string;
-  onSelect: (value: string) => void;
-}) {
-  const metricName =
-    metric === 'count' ? 'SAT Kalemi' : metric === 'satUsd' ? 'SAT USD' : 'SAS USD';
-  const isCurrency = metric !== 'count';
-  return data.length > 0 ? (
-    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-      <ComposedChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 0, right: 22, bottom: 0, left: 16 }}
-      >
-        <CartesianGrid stroke="rgb(255 255 255 / 0.07)" horizontal={false} />
-        <XAxis
-          xAxisId="value"
-          type="number"
-          allowDecimals={isCurrency}
-          stroke="#64748b"
-          fontSize={10}
-          tickFormatter={isCurrency ? compactAxis : undefined}
-        />
-        <XAxis
-          xAxisId="percent"
-          type="number"
-          orientation="top"
-          domain={[0, 100]}
-          ticks={[0, 20, 40, 60, 80, 100]}
-          stroke="#fb923c"
-          fontSize={10}
-          tickFormatter={(value) => `%${value}`}
-        />
-        <YAxis
-          type="category"
-          dataKey="name"
-          width={135}
-          stroke="#94a3b8"
-          fontSize={10}
-          tickLine={false}
-          tickFormatter={shortLabel}
-        />
-        <Tooltip
-          contentStyle={TOOLTIP_STYLE}
-          cursor={{ fill: 'rgb(255 255 255 / 0.04)' }}
-          formatter={(value, name) =>
-            name === 'Kümülatif %'
-              ? [`%${Number(value).toFixed(1)}`, name]
-              : [
-                  isCurrency ? formatUsd(Number(value)) : formatNumber(Number(value)),
-                  metricName,
-                ]
-          }
-        />
-        <Bar
-          xAxisId="value"
-          dataKey="value"
-          name={metricName}
-          radius={[0, 5, 5, 0]}
-        >
-          {data.map((item) => (
-            <Cell
-              key={item.filterValue}
-              fill={
-                selected && selected !== item.filterValue ? '#7c2d12' : '#f97316'
-              }
-              fillOpacity={selected && selected !== item.filterValue ? 0.42 : 0.9}
-              onClick={() => onSelect(item.filterValue)}
-              style={{ cursor: 'pointer' }}
-            />
-          ))}
-        </Bar>
-        <Line
-          xAxisId="percent"
-          type="monotone"
-          dataKey="cumulative"
-          name="Kümülatif %"
-          stroke="#facc15"
-          strokeWidth={2.5}
-          dot={{ r: 3, fill: '#facc15', strokeWidth: 0 }}
-          activeDot={{ r: 5 }}
-        />
-        <ReferenceLine
-          xAxisId="percent"
-          x={80}
-          stroke="#facc15"
-          strokeDasharray="4 4"
-          strokeOpacity={0.55}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
-  ) : (
-    <EmptyChart message="Seçili filtrelerde mal grubu verisi yok." />
   );
 }
 
@@ -1420,43 +1704,6 @@ function HorizontalBar({
   );
 }
 
-function AreaTrend({
-  data,
-  name,
-  color,
-  gradientId,
-}: {
-  data: { label: string; value: number }[];
-  name: string;
-  color: string;
-  gradientId: string;
-}) {
-  return (
-    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-      <AreaChart data={data} margin={{ top: 8, right: 16, left: -18, bottom: 0 }}>
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.45} />
-            <stop offset="100%" stopColor={color} stopOpacity={0.03} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke="rgb(255 255 255 / 0.07)" vertical={false} />
-        <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} />
-        <YAxis allowDecimals={false} stroke="#64748b" fontSize={11} />
-        <Tooltip contentStyle={TOOLTIP_STYLE} />
-        <Area
-          type="monotone"
-          dataKey="value"
-          name={name}
-          stroke={color}
-          strokeWidth={2.5}
-          fill={`url(#${gradientId})`}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
 function ExportSelect({
   label,
   value,
@@ -1496,6 +1743,23 @@ function StatusBadge({ status }: { status: string }) {
       style={{ color, borderColor: `${color}45`, backgroundColor: `${color}14` }}
     >
       {config?.label ?? (status || 'Durum Yok')}
+    </span>
+  );
+}
+
+function ExportRiskBadge({ row }: { row: SATExportRow }) {
+  const risk = rowRiskInfo(row);
+  if (!risk) return <span className="text-xs text-slate-400">—</span>;
+  return (
+    <span
+      className="inline-flex rounded-md border px-2 py-1 text-xs font-semibold"
+      style={{
+        color: risk.color,
+        borderColor: `${risk.color}45`,
+        backgroundColor: `${risk.color}16`,
+      }}
+    >
+      {risk.label}
     </span>
   );
 }
