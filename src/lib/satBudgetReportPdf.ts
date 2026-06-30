@@ -8,10 +8,11 @@ import type {
 import type {
   SATBudgetCompany,
   SATBudgetRow,
+  SATBudgetType,
   SATBudgetUsageRow,
+  SATBudgetUsageStage,
 } from '../types';
 import {
-  budgetCompanySummary,
   budgetTotals,
   budgetTypeLabel,
   budgetUsageSummary,
@@ -19,7 +20,10 @@ import {
   isMaskedBudgetRow,
   SAT_BUDGET_COMPANIES,
 } from './satBudgetLogic';
-import { SAT_BUDGET_SOURCES } from './satBudgetParser';
+import {
+  isSTADOpexBudgetSource,
+  SAT_BUDGET_SOURCES,
+} from './satBudgetParser';
 
 interface SATBudgetReportOptions {
   budgetRows: SATBudgetRow[];
@@ -28,11 +32,41 @@ interface SATBudgetReportOptions {
   scopeLabel: string;
 }
 
+interface BudgetSourceSummary {
+  key: string;
+  label: string;
+  displayLabel: string;
+  sourceCode: string;
+  type: SATBudgetType;
+  typeLabel: string;
+  value: number;
+  count: number;
+  masked: boolean;
+  used: number;
+  unused: number;
+  utilizationPercent: number;
+  barPercent: number;
+}
+
+interface CompanySourceSummary {
+  company: SATBudgetCompany;
+  label: string;
+  total: number;
+  masked: boolean;
+  sources: BudgetSourceSummary[];
+}
+
 const COLORS = {
   navy: '#0f172a',
   slate: '#475569',
   line: '#cbd5e1',
   soft: '#f1f5f9',
+  darkPanel: '#080808',
+  darkCard: '#171717',
+  darkCardSoft: '#202020',
+  darkBorder: '#2f2f2f',
+  white: '#f8fafc',
+  mutedDark: '#9ca3af',
   cyan: '#0891b2',
   orange: '#d97706',
   purple: '#7c3aed',
@@ -43,6 +77,49 @@ const COLORS = {
 };
 
 const REPORT_TITLE = 'Bütçe Yönetici Özeti';
+
+const SOURCE_TYPE_ORDER: SATBudgetType[] = [
+  'OPERATIONAL_CAPEX',
+  'OPEX',
+  'CAPEX',
+];
+
+const COMPANY_THEME: Record<
+  SATBudgetCompany,
+  { color: string; soft: string; border: string }
+> = {
+  PETKIM: {
+    color: '#38bdf8',
+    soft: '#082f49',
+    border: '#0891b2',
+  },
+  STAR: {
+    color: '#ef4444',
+    soft: '#450a0a',
+    border: '#b91c1c',
+  },
+  STAD: {
+    color: '#22c55e',
+    soft: '#052e16',
+    border: '#15803d',
+  },
+};
+
+const USAGE_CARD_THEMES = [
+  COMPANY_THEME.PETKIM,
+  COMPANY_THEME.STAR,
+  COMPANY_THEME.STAD,
+];
+
+const STAGE_THEME: Record<
+  SATBudgetUsageStage | 'UNUSED',
+  { color: string; soft: string }
+> = {
+  SAT: { color: '#38bdf8', soft: '#082f49' },
+  SAS: { color: '#ef4444', soft: '#450a0a' },
+  FAT: { color: '#22c55e', soft: '#052e16' },
+  UNUSED: { color: '#64748b', soft: '#1e293b' },
+};
 
 const styles: StyleDictionary = {
   title: { fontSize: 21, bold: true, color: COLORS.navy },
@@ -55,6 +132,8 @@ const styles: StyleDictionary = {
   },
   tableHeader: { bold: true, color: '#ffffff', fontSize: 7.5 },
 };
+
+type UsageSummary = ReturnType<typeof budgetUsageSummary>[number];
 
 export async function downloadSATBudgetReportPdf({
   budgetRows,
@@ -91,14 +170,14 @@ export function buildSATBudgetReportDefinition(
   selectedCompany: SATBudgetCompany | null,
   scopeLabel: string,
 ): TDocumentDefinitions {
-  const totals = budgetTotals(budgetRows);
   const reportCompanies = selectedCompany
     ? [selectedCompany]
     : SAT_BUDGET_COMPANIES;
-  const companies = budgetCompanySummary(budgetRows).filter((company) =>
-    reportCompanies.includes(company.company),
+  const companySources = buildCompanySourceSummary(
+    budgetRows,
+    usageRows,
+    reportCompanies,
   );
-  const reportMasked = budgetRows.some(isMaskedBudgetRow);
   const content: Content[] = [
     {
       columns: [
@@ -143,6 +222,7 @@ export function buildSATBudgetReportDefinition(
       ],
       margin: [0, 12, 0, 12],
     },
+    budgetSourcesDashboard(companySources),
     ...reportCompanies.flatMap((company, index) =>
       companyUsageDashboard(
         company,
@@ -151,35 +231,11 @@ export function buildSATBudgetReportDefinition(
         index > 0,
       ),
     ),
-    kpiGrid([
-      ['Net Toplam Bütçe', reportMasked ? 'XXX USD' : formatUsd(totals.net), reportMasked ? 'Gizli bütçe dahil' : 'Giriş - çıkış'],
-      ['Toplam Giriş', reportMasked ? 'XXX USD' : formatUsd(totals.inflow), reportMasked ? 'Gizli bütçe dahil' : 'Pozitif hareketler'],
-      ['Toplam Çıkış', reportMasked ? 'XXX USD' : formatUsd(totals.outflow), reportMasked ? 'Gizli bütçe dahil' : 'Negatif hareketler'],
-      ['Bütçe Hareketi', formatNumber(totals.count), 'Excel satırı'],
-    ]),
     {
-      text: 'Net Bütçe Özeti',
+      text: 'Bütçe Hareket Detayı',
       style: 'section',
       pageBreak: 'before',
     },
-    standardTable(
-      ['Şirket', 'CAPEX', 'OPEX', 'Operational CAPEX', 'Net Toplam'],
-      companies.map((company) => [
-        company.label,
-        formatUsd(company.types.find((item) => item.key === 'CAPEX')?.net ?? 0),
-        company.types.find((item) => item.key === 'OPEX')?.masked
-          ? 'XXX USD'
-          : formatUsd(company.types.find((item) => item.key === 'OPEX')?.net ?? 0),
-        formatUsd(
-          company.types.find((item) => item.key === 'OPERATIONAL_CAPEX')?.net ?? 0,
-        ),
-        company.types.some((type) => type.masked)
-          ? 'XXX USD'
-          : formatUsd(company.totals.net),
-      ]),
-      [80, 115, 115, 145, 125],
-    ),
-    sectionTitle('Bütçe Hareket Detayı'),
     standardTable(
       ['Tarih', 'Şirket', 'Bütçe Türü', 'Bütçe Tanımı', 'İşlem', 'Tutar', 'Kullanıcı', 'Açıklama'],
       [...budgetRows]
@@ -223,6 +279,202 @@ export function buildSATBudgetReportDefinition(
   };
 }
 
+function budgetSourcesDashboard(companies: CompanySourceSummary[]): Content {
+  return dashboardPanel(
+    [
+      {
+        columns: [
+          {
+            stack: [
+              {
+                text: 'Bütçe Kaynakları',
+                bold: true,
+                fontSize: 13,
+                color: COLORS.white,
+              },
+              {
+                text: 'Şirket bazında net bütçe kaynakları; Operational CAPEX, OPEX ve CAPEX sırasıyla gösterilir.',
+                fontSize: 8,
+                color: COLORS.mutedDark,
+                margin: [0, 4, 0, 0],
+              },
+            ],
+          },
+          {
+            width: 110,
+            text: `${companies.length} kapsam`,
+            alignment: 'right',
+            fontSize: 8,
+            color: COLORS.mutedDark,
+            margin: [0, 3, 0, 0],
+          },
+        ],
+      },
+      {
+        columns: companies.map(
+          (company) => ({
+            width: '*',
+            stack: [companySourceCard(company)],
+          }) as unknown as Content,
+        ),
+        columnGap: 9,
+        margin: [0, 12, 0, 0],
+      },
+    ],
+    [0, 0, 0, 16],
+  );
+}
+
+function companySourceCard(company: CompanySourceSummary): Content {
+  const theme = COMPANY_THEME[company.company];
+  return themedCard(
+    [
+      {
+        columns: [
+          {
+            stack: [
+              {
+                text: company.label,
+                bold: true,
+                fontSize: 12,
+                color: COLORS.white,
+              },
+              {
+                text: `${company.sources.length} bütçe kaynağı`,
+                fontSize: 8,
+                color: COLORS.mutedDark,
+                margin: [0, 4, 0, 0],
+              },
+            ],
+          },
+          {
+            width: 95,
+            stack: [
+              {
+                text: company.masked ? 'XXX USD' : formatCompactUsd(company.total),
+                alignment: 'right',
+                bold: true,
+                fontSize: 11,
+                color: theme.color,
+              },
+              {
+                text: 'Net toplam',
+                alignment: 'right',
+                fontSize: 7,
+                color: COLORS.mutedDark,
+                margin: [0, 3, 0, 0],
+              },
+            ],
+          },
+        ],
+      },
+      ...company.sources.map((source) => sourceSummaryCard(source, theme)),
+    ],
+    theme,
+    [0, 0, 0, 0],
+  );
+}
+
+function sourceSummaryCard(
+  source: BudgetSourceSummary,
+  theme: (typeof COMPANY_THEME)[SATBudgetCompany],
+): Content {
+  return themedCard(
+    [
+      {
+        columns: [
+          {
+            stack: [
+              {
+                text: source.typeLabel.toLocaleUpperCase('tr-TR'),
+                bold: true,
+                fontSize: 8,
+                color: theme.color,
+                characterSpacing: 0.8,
+              },
+              {
+                text: source.displayLabel,
+                bold: true,
+                fontSize: 9.5,
+                color: '#d4d4d8',
+                margin: [0, 4, 0, 0],
+              },
+              {
+                text: source.sourceCode,
+                fontSize: 7.2,
+                color: '#71717a',
+                margin: [0, 3, 0, 0],
+              },
+            ],
+          },
+          {
+            width: 86,
+            stack: [
+              {
+                text: source.masked ? 'XXX USD' : formatCompactUsd(source.value),
+                alignment: 'right',
+                bold: true,
+                fontSize: 9.5,
+                color: theme.color,
+              },
+              {
+                text: 'Net bütçe',
+                alignment: 'right',
+                fontSize: 7,
+                color: COLORS.mutedDark,
+                margin: [0, 3, 0, 0],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        text: `${formatNumber(source.count)} hareket`,
+        fontSize: 7,
+        color: COLORS.mutedDark,
+        margin: [0, 7, 0, 0],
+      },
+      {
+        columns: [
+          {
+            text: 'Kullanım oranı',
+            fontSize: 7.2,
+            color: COLORS.mutedDark,
+          },
+          {
+            text: `%${source.utilizationPercent} kullanıldı`,
+            alignment: 'right',
+            bold: true,
+            fontSize: 7.2,
+            color: '#a5f3fc',
+          },
+        ],
+        margin: [0, 8, 0, 3],
+      },
+      progressBar(source.barPercent, theme.color, 168, 6),
+      {
+        columns: [
+          {
+            text: `Kullanılan: ${formatCompactUsd(source.used)}`,
+            fontSize: 6.8,
+            color: '#71717a',
+          },
+          {
+            text: `Kalan: ${formatCompactUsd(source.unused)}`,
+            alignment: 'right',
+            fontSize: 6.8,
+            color: '#71717a',
+          },
+        ],
+        margin: [0, 4, 0, 0],
+      },
+    ],
+    theme,
+    [0, 10, 0, 0],
+    COLORS.darkCardSoft,
+  );
+}
+
 function companyUsageDashboard(
   company: SATBudgetCompany,
   budgetRows: SATBudgetRow[],
@@ -231,129 +483,95 @@ function companyUsageDashboard(
 ): Content[] {
   const summaries = budgetUsageSummary(budgetRows, usageRows, company);
   const companyUsageRows = usageRows.filter((row) => row.company === company);
-  return [
-    {
-      text: companyLabel(company),
-      bold: true,
-      fontSize: 16,
-      color: COLORS.navy,
-      margin: [0, separatedFromPrevious ? 18 : 6, 0, 0],
-    },
-    {
-      text: `${companyLabel(company)} Bütçe Kullanım Aşamaları`,
-      style: 'section',
-      margin: [0, 6, 0, 7],
-    },
-    {
-      text: 'CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı',
-      style: 'subtitle',
-      margin: [0, 0, 0, 10],
-    },
-    {
-      columns: summaries.map((summary) => ({
-        width: '*',
-        stack: [
+  const companyTheme = COMPANY_THEME[company];
+  const dashboard = dashboardPanel(
+    [
+      {
+        columns: [
           {
-            text: `${summary.label} - ${summary.sourceCode}`,
-            bold: true,
-            fontSize: 10,
-            color: COLORS.navy,
-          },
-          {
-            columns: [
+            width: 30,
+            canvas: [
               {
-                text: formatUsd(summary.totalBudget),
-                bold: true,
-                fontSize: 13,
-                color: COLORS.cyan,
-                margin: [0, 4, 0, 0],
+                type: 'rect',
+                x: 0,
+                y: 0,
+                w: 24,
+                h: 24,
+                r: 5,
+                color: companyTheme.soft,
               },
               {
-                text: `%${utilizationPercent(summary.used, summary.totalBudget)}`,
-                alignment: 'right',
-                bold: true,
-                fontSize: 11,
-                color: summary.overrun > 0 ? COLORS.red : COLORS.navy,
-                margin: [0, 5, 0, 0],
+                type: 'rect',
+                x: 7,
+                y: 5,
+                w: 5,
+                h: 5,
+                r: 1,
+                lineColor: companyTheme.color,
+                lineWidth: 1.2,
+              },
+              {
+                type: 'rect',
+                x: 13,
+                y: 12,
+                w: 5,
+                h: 5,
+                r: 1,
+                lineColor: companyTheme.color,
+                lineWidth: 1.2,
               },
             ],
           },
           {
-            text: `${formatNumber(summary.rowCount)} kullanım hareketi · Toplam bütçe / kullanım oranı`,
-            fontSize: 6.8,
-            color: '#94a3b8',
-            margin: [0, 2, 0, 7],
+            stack: [
+              {
+                text: `${companyLabel(company)} Bütçe Kullanım Aşamaları`,
+                bold: true,
+                fontSize: 13,
+                color: COLORS.white,
+              },
+              {
+                text: 'CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı',
+                fontSize: 8,
+                color: COLORS.mutedDark,
+                margin: [0, 4, 0, 0],
+              },
+            ],
           },
-          usageStackedBar(summary.segments, summary.totalBudget, summary.used),
-          {
-            table: {
-              widths: ['*', 28, 70],
-              body: summary.segments.map((segment) => [
-                {
-                  columns: [
-                    {
-                      canvas: [
-                        {
-                          type: 'rect',
-                          x: 0,
-                          y: 1,
-                          w: 7,
-                          h: 7,
-                          color: segment.color,
-                        },
-                      ],
-                      width: 11,
-                    },
-                    { text: segment.label, fontSize: 7, color: COLORS.slate },
-                  ],
-                },
-                {
-                  text: `%${utilizationPercent(segment.value, summary.totalBudget)}`,
-                  alignment: 'center',
-                  fontSize: 6.5,
-                  bold: true,
-                  color: COLORS.slate,
-                  fillColor: '#f1f5f9',
-                  margin: [2, 1, 2, 1],
-                },
-                {
-                  text: formatUsd(segment.value),
-                  alignment: 'right',
-                  fontSize: 7,
-                  bold: true,
-                  color: COLORS.navy,
-                },
-              ]),
-            },
-            layout: 'noBorders',
-            margin: [0, 7, 0, 0],
-          },
-          ...(summary.overrun > 0
-            ? [
-                {
-                  text: `Bütçe aşımı: ${formatUsd(summary.overrun)}`,
-                  fontSize: 7,
-                  bold: true,
-                  color: COLORS.red,
-                  margin: [0, 5, 0, 0],
-                } as Content,
-              ]
-            : []),
         ],
-        margin: [8, 8, 8, 8],
-      })),
-      columnGap: 10,
-    },
+      },
+      {
+        columns: summaries.map(
+          (summary, index) => ({
+            width: '*',
+            stack: [
+              usageSummaryCard(
+                summary,
+                USAGE_CARD_THEMES[index] ?? USAGE_CARD_THEMES[0],
+              ),
+            ],
+          }) as unknown as Content,
+        ),
+        columnGap: 9,
+        margin: [0, 12, 0, 0],
+      },
+    ],
+    [0, separatedFromPrevious ? 16 : 0, 0, 12],
+    companyTheme.border,
+    separatedFromPrevious ? 'before' : undefined,
+  );
+  return [
+    dashboard,
     sectionTitle(`${companyLabel(company)} Bütçe Kullanım Tablosu`),
     standardTable(
       ['Bütçe Türü / Kod', 'Toplam Bütçe', 'SAT', 'SAS', 'FAT', 'Kullanılmayan', 'Kullanım'],
       summaries.map((summary) => [
         budgetTypeCodeAndDescription(summary.label, summary.sourceCode),
         formatUsd(summary.totalBudget),
-        formatUsd(summary.segments.find((segment) => segment.key === 'SAT')?.value ?? 0),
-        formatUsd(summary.segments.find((segment) => segment.key === 'SAS')?.value ?? 0),
-        formatUsd(summary.segments.find((segment) => segment.key === 'FAT')?.value ?? 0),
-        formatUsd(summary.unused),
+        formatStageTableValue(summary, 'SAT'),
+        formatStageTableValue(summary, 'SAS'),
+        formatStageTableValue(summary, 'FAT'),
+        `${formatUsd(summary.unused)}\n%${utilizationPercent(summary.unused, summary.totalBudget)}`,
         `%${utilizationPercent(summary.used, summary.totalBudget)}`,
       ]),
       [155, 90, 80, 80, 80, 95, 50],
@@ -368,12 +586,216 @@ function companyUsageDashboard(
   ];
 }
 
+function usageSummaryCard(
+  summary: UsageSummary,
+  theme: (typeof COMPANY_THEME)[SATBudgetCompany],
+): Content {
+  const utilization = utilizationPercent(summary.used, summary.totalBudget);
+  return themedCard(
+    [
+      {
+        columns: [
+          {
+            stack: [
+              {
+                text: `${summary.label} - ${budgetUsageDisplayLabel(summary.sourceCode)}`,
+                bold: true,
+                fontSize: 10.2,
+                color: COLORS.white,
+              },
+              {
+                text: `${summary.sourceCode} · ${formatNumber(summary.rowCount)} kullanım hareketi`,
+                fontSize: 7.3,
+                color: COLORS.mutedDark,
+                margin: [0, 4, 0, 0],
+              },
+            ],
+          },
+          {
+            width: 86,
+            stack: [
+              {
+                text: summary.masked
+                  ? 'XXX USD'
+                  : isSTADOpexBudgetSource(summary.sourceCode)
+                    ? formatUsd(summary.totalBudget)
+                    : formatCompactUsd(summary.totalBudget),
+                alignment: 'right',
+                bold: true,
+                fontSize: 10.2,
+                color: theme.color,
+              },
+              {
+                text: 'Toplam bütçe',
+                alignment: 'right',
+                fontSize: 7,
+                color: COLORS.mutedDark,
+                margin: [0, 3, 0, 0],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        table: {
+          widths: ['*'],
+          body: [
+            [
+              {
+                stack: [
+                  {
+                    columns: [
+                      {
+                        stack: [
+                          {
+                            text: 'Kullanım oranı',
+                            fontSize: 7.2,
+                            color: COLORS.mutedDark,
+                          },
+                          {
+                            text: summary.masked ? 'XXX' : `%${utilization}`,
+                            bold: true,
+                            fontSize: 15,
+                            color: COLORS.white,
+                            margin: [0, 3, 0, 0],
+                          },
+                        ],
+                      },
+                      {
+                        width: 80,
+                        stack: [
+                          {
+                            text: 'Kullanılan',
+                            alignment: 'right',
+                            fontSize: 7.2,
+                            color: COLORS.mutedDark,
+                          },
+                          {
+                            text: formatCompactUsd(summary.used),
+                            alignment: 'right',
+                            bold: true,
+                            fontSize: 8.2,
+                            color: '#d4d4d8',
+                            margin: [0, 4, 0, 0],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  usageStackedBar(
+                    summary.segments,
+                    summary.totalBudget,
+                    summary.used,
+                    176,
+                    12,
+                    [0, 7, 0, 0],
+                  ),
+                  {
+                    columns: [
+                      { text: '0', fontSize: 6.6, color: '#71717a' },
+                      {
+                        text: formatCompactUsd(summary.totalBudget),
+                        alignment: 'right',
+                        fontSize: 6.6,
+                        color: '#71717a',
+                      },
+                    ],
+                    margin: [0, 4, 0, 0],
+                  },
+                ],
+                fillColor: COLORS.darkCard,
+                margin: [8, 7, 8, 7],
+              },
+            ],
+          ],
+        },
+        layout: borderLayout(theme.border),
+        margin: [0, 12, 0, 10],
+      },
+      stageRows(summary),
+      ...(summary.overrun > 0
+        ? [
+            {
+              text: `Bütçe aşımı: ${formatUsd(summary.overrun)}`,
+              fontSize: 7,
+              bold: true,
+              color: COLORS.red,
+              margin: [0, 6, 0, 0],
+            } as Content,
+          ]
+        : []),
+    ],
+    theme,
+    [0, 0, 0, 0],
+  );
+}
+
+function stageRows(summary: UsageSummary): Content {
+  return {
+    table: {
+      widths: [82, 54, '*'],
+      body: summary.segments.map((segment) => {
+        const stageTheme = STAGE_THEME[segment.key];
+        const percent = utilizationPercent(segment.value, summary.totalBudget);
+        return [
+          {
+            columns: [
+              {
+                width: 9,
+                canvas: [
+                  {
+                    type: 'ellipse',
+                    x: 4,
+                    y: 5,
+                    r1: 3.5,
+                    r2: 3.5,
+                    color: stageTheme.color,
+                  },
+                ],
+              },
+              {
+                text: segment.label,
+                fontSize: 7.7,
+                color: '#d4d4d8',
+              },
+              {
+                text: `%${percent}`,
+                fontSize: 6.6,
+                bold: true,
+                color: '#a1a1aa',
+                fillColor: '#262626',
+                margin: [2, 1, 2, 1],
+              },
+            ],
+            margin: [0, 2, 0, 2],
+          },
+          progressBar(percent, stageTheme.color, 52, 5, stageTheme.soft),
+          {
+            text:
+              summary.masked && segment.key === 'UNUSED'
+                ? 'XXX USD'
+                : formatUsd(segment.value),
+            alignment: 'right',
+            bold: true,
+            fontSize: 7.5,
+            color: '#d4d4d8',
+            margin: [0, 1, 0, 0],
+          },
+        ];
+      }),
+    },
+    layout: 'noBorders',
+  };
+}
+
 function usageStackedBar(
-  segments: { value: number; color: string }[],
+  segments: { key: SATBudgetUsageStage | 'UNUSED'; value: number }[],
   totalBudget: number,
   used: number,
+  width = 210,
+  height = 12,
+  margin: [number, number, number, number] = [0, 0, 0, 0],
 ): Content {
-  const width = 210;
   const scaleTotal = Math.max(totalBudget, used, 1);
   let x = 0;
   const bars = segments
@@ -385,16 +807,107 @@ function usageStackedBar(
         x,
         y: 0,
         w: Math.min(segmentWidth, width - x),
-        h: 12,
-        color: segment.color,
+        h: height,
+        color: STAGE_THEME[segment.key].color,
       };
       x = Math.min(width, x + segmentWidth);
       return rect;
     });
   return {
     canvas: [
-      { type: 'rect', x: 0, y: 0, w: width, h: 12, color: '#e2e8f0' },
+      { type: 'rect', x: 0, y: 0, w: width, h: height, color: '#334155' },
       ...bars,
+    ],
+    margin,
+  };
+}
+
+function dashboardPanel(
+  stack: Content[],
+  margin: [number, number, number, number],
+  borderColor = COLORS.darkBorder,
+  pageBreak?: 'before' | 'after',
+): Content {
+  return {
+    table: {
+      widths: ['*'],
+      body: [
+        [
+          {
+            stack,
+            fillColor: COLORS.darkPanel,
+            margin: [12, 12, 12, 12],
+          },
+        ],
+      ],
+    },
+    layout: borderLayout(borderColor, 0.8),
+    margin,
+    ...(pageBreak ? { pageBreak } : {}),
+  };
+}
+
+function themedCard(
+  stack: Content[],
+  theme: (typeof COMPANY_THEME)[SATBudgetCompany],
+  margin: [number, number, number, number],
+  fillColor = COLORS.darkCard,
+): Content {
+  return {
+    table: {
+      widths: ['*'],
+      body: [
+        [
+          {
+            stack,
+            fillColor,
+            margin: [9, 9, 9, 9],
+          },
+        ],
+      ],
+    },
+    layout: borderLayout(theme.border, 0.7),
+    margin,
+  };
+}
+
+function borderLayout(color: string, width = 0.5) {
+  return {
+    hLineColor: () => color,
+    vLineColor: () => color,
+    hLineWidth: () => width,
+    vLineWidth: () => width,
+    paddingLeft: () => 0,
+    paddingRight: () => 0,
+    paddingTop: () => 0,
+    paddingBottom: () => 0,
+  };
+}
+
+function progressBar(
+  percent: number,
+  color: string,
+  width: number,
+  height: number,
+  background = '#334155',
+): Content {
+  const normalized = clamp(percent, 0, 100);
+  const fillWidth = normalized > 0 ? Math.max(1, (normalized / 100) * width) : 0;
+  return {
+    canvas: [
+      { type: 'rect', x: 0, y: 0, w: width, h: height, color: background },
+      ...(fillWidth > 0
+        ? [
+            {
+              type: 'rect' as const,
+              x: 0,
+              y: 0,
+              w: fillWidth,
+              h: height,
+              color,
+            },
+          ]
+        : []),
     ],
   };
 }
@@ -404,52 +917,99 @@ function utilizationPercent(used: number, total: number) {
 }
 
 function budgetTypeCodeAndDescription(typeLabel: string, sourceCode: string) {
-  const source = SAT_BUDGET_SOURCES.find((item) => item.code === sourceCode);
-  const description = source
-    ? source.label.replace(new RegExp(`^${escapeRegExp(typeLabel)}\\s*/\\s*`, 'i'), '')
-    : '';
+  const description = budgetUsageDisplayLabel(sourceCode);
   return description
-    ? `${typeLabel} - ${sourceCode}\n${description}`
-    : `${typeLabel} - ${sourceCode}`;
+    ? `${typeLabel} - ${description}\n${sourceCode}`
+    : `${typeLabel}\n${sourceCode}`;
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function formatStageTableValue(
+  summary: UsageSummary,
+  stage: SATBudgetUsageStage,
+) {
+  const value =
+    summary.segments.find((segment) => segment.key === stage)?.value ?? 0;
+  return `${formatUsd(value)}\n%${utilizationPercent(value, summary.totalBudget)}`;
 }
 
-function kpiGrid(items: [string, string, string][]): Content {
-  return {
-    table: {
-      widths: Array(items.length).fill('*'),
-      body: [
-        items.map(([label, value, helper]): TableCell => ({
-          stack: [
-            { text: label, fontSize: 7.5, color: COLORS.slate },
-            {
-              text: value,
-              fontSize: 15,
-              bold: true,
-              color: COLORS.navy,
-              margin: [0, 5, 0, 2],
-            },
-            { text: helper, fontSize: 6.8, color: '#94a3b8' },
-          ],
-          fillColor: COLORS.soft,
-          margin: [7, 7, 7, 7],
-        })),
-      ],
-    },
-    layout: {
-      hLineColor: () => '#ffffff',
-      vLineColor: () => '#ffffff',
-      hLineWidth: () => 3,
-      vLineWidth: () => 3,
-      paddingLeft: () => 0,
-      paddingRight: () => 0,
-      paddingTop: () => 0,
-      paddingBottom: () => 0,
-    },
-  };
+function buildCompanySourceSummary(
+  rows: SATBudgetRow[],
+  usageRows: SATBudgetUsageRow[],
+  companies: SATBudgetCompany[],
+): CompanySourceSummary[] {
+  return companies.map((company) => {
+    const usageByType = new Map(
+      budgetUsageSummary(rows, usageRows, company).map((summary) => [
+        summary.key,
+        summary,
+      ]),
+    );
+    const sources = SAT_BUDGET_SOURCES.filter(
+      (source) => source.company === company,
+    )
+      .sort(
+        (a, b) =>
+          SOURCE_TYPE_ORDER.indexOf(a.budgetType) -
+          SOURCE_TYPE_ORDER.indexOf(b.budgetType),
+      )
+      .map((source): BudgetSourceSummary => {
+        const sourceRows = rows.filter(
+          (row) =>
+            row.company === company &&
+            row.budgetType === source.budgetType &&
+            row.sourceCode === source.code,
+        );
+        const totals = budgetTotals(sourceRows);
+        const usage = usageByType.get(source.budgetType);
+        const totalBudget = Math.max(0, totals.net);
+        const used = usage?.used ?? 0;
+        const unused = Math.max(0, totalBudget - used);
+        const utilization = totalBudget > 0 ? (used / totalBudget) * 100 : 0;
+        return {
+          key: `${company}-${source.code}`,
+          label: source.label,
+          displayLabel: sourceDisplayLabel(source.label),
+          sourceCode: source.code,
+          type: source.budgetType,
+          typeLabel: budgetTypeLabel(source.budgetType),
+          value: totals.net,
+          count: totals.count,
+          masked: sourceRows.some(isMaskedBudgetRow),
+          used,
+          unused,
+          utilizationPercent: Math.round(utilization),
+          barPercent: clamp(utilization, 0, 100),
+        };
+      });
+    return {
+      company,
+      label: companyLabel(company),
+      total: sources.reduce((total, source) => total + source.value, 0),
+      masked: sources.some((source) => source.masked),
+      sources,
+    };
+  });
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sourceDisplayLabel(label: string) {
+  return label
+    .replace(/^Operational\s+CAPEX\s*\/\s*/i, '')
+    .replace(/^CAPEX\s*\/\s*/i, '')
+    .replace(/^OPEX\s*\/\s*/i, '')
+    .trim();
+}
+
+function budgetUsageDisplayLabel(sourceCode: string) {
+  const source = SAT_BUDGET_SOURCES.find(
+    (item) =>
+      item.code.toLocaleUpperCase('tr-TR') ===
+      sourceCode.toLocaleUpperCase('tr-TR'),
+  );
+  return source ? sourceDisplayLabel(source.label) : 'Tanımlı Kaynak Yok';
 }
 
 function sectionTitle(text: string): Content {
@@ -506,6 +1066,21 @@ function formatUsd(value: number) {
   return `${new Intl.NumberFormat('tr-TR', {
     maximumFractionDigits: 2,
   }).format(value)} USD`;
+}
+
+function formatCompactUsd(value: number) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) {
+    return `${new Intl.NumberFormat('tr-TR', {
+      maximumFractionDigits: 2,
+    }).format(value / 1_000_000)} Mn USD`;
+  }
+  if (abs >= 1_000) {
+    return `${new Intl.NumberFormat('tr-TR', {
+      maximumFractionDigits: 2,
+    }).format(value / 1_000)} B USD`;
+  }
+  return formatUsd(value);
 }
 
 function formatSignedUsd(value: number) {

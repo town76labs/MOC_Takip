@@ -1,14 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
   Building2,
   FileText,
   FilterX,
   Loader2,
   ReceiptText,
   Workflow,
-  WalletCards,
 } from 'lucide-react';
 import type {
   SATBudgetCompany,
@@ -43,6 +40,76 @@ const SOURCE_TYPE_ORDER: SATBudgetType[] = [
   'OPEX',
   'CAPEX',
 ];
+
+const AZERBAIJAN_COMPANY_THEME: Record<
+  SATBudgetCompany,
+  {
+    color: string;
+    soft: string;
+    border: string;
+    ring: string;
+    glow: string;
+    gradient: string;
+  }
+> = {
+  PETKIM: {
+    color: '#38bdf8',
+    soft: 'rgba(56, 189, 248, 0.12)',
+    border: 'rgba(56, 189, 248, 0.5)',
+    ring: 'rgba(56, 189, 248, 0.24)',
+    glow: 'rgba(56, 189, 248, 0.18)',
+    gradient: 'linear-gradient(90deg, #38bdf8, #06b6d4)',
+  },
+  STAR: {
+    color: '#ef4444',
+    soft: 'rgba(239, 68, 68, 0.12)',
+    border: 'rgba(239, 68, 68, 0.5)',
+    ring: 'rgba(239, 68, 68, 0.24)',
+    glow: 'rgba(239, 68, 68, 0.18)',
+    gradient: 'linear-gradient(90deg, #ef4444, #f97316)',
+  },
+  STAD: {
+    color: '#22c55e',
+    soft: 'rgba(34, 197, 94, 0.12)',
+    border: 'rgba(34, 197, 94, 0.5)',
+    ring: 'rgba(34, 197, 94, 0.24)',
+    glow: 'rgba(34, 197, 94, 0.18)',
+    gradient: 'linear-gradient(90deg, #22c55e, #14b8a6)',
+  },
+};
+
+type AzerbaijanCompanyTheme =
+  (typeof AZERBAIJAN_COMPANY_THEME)[SATBudgetCompany];
+
+const BUDGET_USAGE_CARD_THEMES: AzerbaijanCompanyTheme[] = [
+  AZERBAIJAN_COMPANY_THEME.PETKIM,
+  AZERBAIJAN_COMPANY_THEME.STAR,
+  AZERBAIJAN_COMPANY_THEME.STAD,
+];
+
+type UsageStageVisualKey = SATBudgetUsageStage | 'UNUSED';
+
+const USAGE_STAGE_BAR_THEME: Record<
+  UsageStageVisualKey,
+  { color: string; soft: string }
+> = {
+  SAT: {
+    color: '#38bdf8',
+    soft: 'rgba(56, 189, 248, 0.18)',
+  },
+  SAS: {
+    color: '#ef4444',
+    soft: 'rgba(239, 68, 68, 0.18)',
+  },
+  FAT: {
+    color: '#22c55e',
+    soft: 'rgba(34, 197, 94, 0.18)',
+  },
+  UNUSED: {
+    color: '#64748b',
+    soft: 'rgba(100, 116, 139, 0.24)',
+  },
+};
 
 interface SATBudgetUsageTableRow {
   rowId: string;
@@ -81,8 +148,6 @@ export function SATBudgetOverviewDashboard() {
         : allRows,
     [allRows, selectedCompany],
   );
-  const totals = useMemo(() => budgetTotals(visibleRows), [visibleRows]);
-  const totalsMasked = visibleRows.some(isMaskedBudgetRow);
   const budgetMovementRows = useMemo(
     () =>
       selectedBudgetType
@@ -117,6 +182,9 @@ export function SATBudgetOverviewDashboard() {
         : [],
     [allRows, selectedCompany, usageRows],
   );
+  const selectedCompanyTheme = selectedCompany
+    ? AZERBAIJAN_COMPANY_THEME[selectedCompany]
+    : null;
 
   function selectCompany(company: SATBudgetCompany | null) {
     setSelectedCompany(company);
@@ -210,10 +278,22 @@ export function SATBudgetOverviewDashboard() {
         />
       </section>
 
-      {selectedCompany && (
-        <section className="card p-5">
+      {selectedCompany && selectedCompanyTheme && (
+        <section
+          className="card p-5"
+          style={{
+            borderColor: selectedCompanyTheme.border,
+            boxShadow: `inset 0 1px 0 ${selectedCompanyTheme.glow}`,
+          }}
+        >
           <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                backgroundColor: selectedCompanyTheme.soft,
+                color: selectedCompanyTheme.color,
+              }}
+            >
               <Workflow size={18} />
             </span>
             <div>
@@ -227,7 +307,7 @@ export function SATBudgetOverviewDashboard() {
           </div>
           {usageFile ? (
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              {usageSummaries.map((summary) => (
+              {usageSummaries.map((summary, index) => (
                 <BudgetUsageBar
                   key={summary.key}
                   summary={summary}
@@ -236,6 +316,10 @@ export function SATBudgetOverviewDashboard() {
                     selectedBudgetType === summary.key
                       ? selectedUsageStage
                       : null
+                  }
+                  theme={
+                    BUDGET_USAGE_CARD_THEMES[index] ??
+                    BUDGET_USAGE_CARD_THEMES[0]
                   }
                   onSelectType={() => selectBudgetType(summary.key)}
                   onSelectStage={(stage) =>
@@ -257,37 +341,6 @@ export function SATBudgetOverviewDashboard() {
           )}
         </section>
       )}
-
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard
-          title="Net Toplam Bütçe"
-          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.net)}
-          helper={totalsMasked ? 'Gizli bütçe dahil' : formatUsd(totals.net)}
-          color="#38bdf8"
-          icon={<WalletCards size={21} />}
-        />
-        <MetricCard
-          title="Toplam Bütçe Girişi"
-          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.inflow)}
-          helper={totalsMasked ? 'Gizli bütçe dahil' : 'Pozitif L sütunu hareketleri'}
-          color="#10b981"
-          icon={<ArrowUpCircle size={21} />}
-        />
-        <MetricCard
-          title="Toplam Bütçe Çıkışı"
-          value={totalsMasked ? 'XXX USD' : formatCompactUsd(totals.outflow)}
-          helper={totalsMasked ? 'Gizli bütçe dahil' : 'Negatif L sütunu hareketleri'}
-          color="#f97316"
-          icon={<ArrowDownCircle size={21} />}
-        />
-        <MetricCard
-          title="Bütçe Hareketi"
-          value={formatNumber(totals.count)}
-          helper="Tanımlı kaynak satırı"
-          color="#8b5cf6"
-          icon={<ReceiptText size={21} />}
-        />
-      </section>
 
       {selectedCompany && usageFile && (
         <section className="card p-5">
@@ -402,12 +455,14 @@ function BudgetUsageBar({
   summary,
   active,
   selectedStage,
+  theme,
   onSelectType,
   onSelectStage,
 }: {
   summary: UsageSummary;
   active: boolean;
   selectedStage: SATBudgetUsageStage | null;
+  theme: AzerbaijanCompanyTheme;
   onSelectType: () => void;
   onSelectStage: (stage: SATBudgetUsageStage) => void;
 }) {
@@ -418,17 +473,20 @@ function BudgetUsageBar({
   const barSegments = summary.segments.filter((segment) => segment.value > 0);
   return (
     <div
-      className={`rounded-lg border bg-black/20 p-4 transition ${
-        active
-          ? 'border-cyan-400/65 ring-2 ring-cyan-400/20'
-          : 'border-white/10'
-      }`}
+      className="rounded-lg border bg-black/20 p-4 transition"
+      style={{
+        borderColor: active ? theme.border : 'rgba(255,255,255,0.12)',
+        boxShadow: active
+          ? `0 0 0 2px ${theme.ring}, 0 18px 38px ${theme.glow}`
+          : `inset 0 1px 0 ${theme.glow}`,
+      }}
     >
       <button
         type="button"
         onClick={onSelectType}
         aria-pressed={active}
-        className="flex w-full items-start justify-between gap-3 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+        className="flex w-full items-start justify-between gap-3 rounded-md text-left focus:outline-none focus:ring-2"
+        style={{ '--tw-ring-color': theme.ring } as CSSProperties}
       >
         <div>
           <h3 className="text-sm font-semibold text-white">
@@ -439,7 +497,10 @@ function BudgetUsageBar({
           </p>
         </div>
         <div className="text-right">
-          <div className="text-sm font-semibold text-cyan-300">
+          <div
+            className="text-sm font-semibold"
+            style={{ color: theme.color }}
+          >
             {summary.masked
               ? 'XXX USD'
               : isSTADOpexBudgetSource(summary.sourceCode)
@@ -450,7 +511,10 @@ function BudgetUsageBar({
         </div>
       </button>
 
-      <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+      <div
+        className="mt-5 rounded-lg border bg-white/[0.035] p-3"
+        style={{ borderColor: theme.border }}
+      >
         <div className="mb-2 flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-medium text-white/45">
@@ -474,9 +538,11 @@ function BudgetUsageBar({
               {barSegments.map((segment) => {
                 const width = Math.min(100, (segment.value / barBase) * 100);
                 const selectable = segment.key !== 'UNUSED';
+                const stageTheme =
+                  USAGE_STAGE_BAR_THEME[segment.key as UsageStageVisualKey];
                 const segmentStyle = {
                   width: `${Math.max(width, width > 0 ? 1 : 0)}%`,
-                  backgroundColor: segment.color,
+                  backgroundColor: stageTheme.color,
                   opacity: selectedStage && segment.key !== selectedStage ? 0.35 : 1,
                 };
                 const title = `${segment.label}: ${formatUsd(segment.value)}`;
@@ -519,16 +585,36 @@ function BudgetUsageBar({
           const percent = summary.totalBudget
             ? Math.round((segment.value / summary.totalBudget) * 100)
             : 0;
+          const stageTheme =
+            USAGE_STAGE_BAR_THEME[segment.key as UsageStageVisualKey];
+          const rowBarWidth = summary.totalBudget
+            ? Math.min(100, (segment.value / summary.totalBudget) * 100)
+            : 0;
+          const rowBarStyle = {
+            width: `${Math.max(rowBarWidth, rowBarWidth > 0 ? 1 : 0)}%`,
+            backgroundColor: stageTheme.color,
+          };
           const content = (
             <>
-              <span className="flex min-w-0 items-center gap-2 text-white/55">
+              <span className="flex min-w-0 flex-1 items-center gap-3 text-white/55">
+                <span className="flex min-w-[128px] items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: stageTheme.color }}
+                  />
+                  <span>{segment.label}</span>
+                  <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-white/40">
+                    %{percent}
+                  </span>
+                </span>
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: segment.color }}
-                />
-                <span>{segment.label}</span>
-                <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-white/40">
-                  %{percent}
+                  className="h-2 min-w-20 flex-1 overflow-hidden rounded-full"
+                  style={{ backgroundColor: stageTheme.soft }}
+                >
+                  <span
+                    className="block h-full rounded-full transition-all"
+                    style={rowBarStyle}
+                  />
                 </span>
               </span>
               <span className="font-semibold text-white/80 tabular-nums">
@@ -547,10 +633,18 @@ function BudgetUsageBar({
               }
               aria-pressed={selectedStage === segment.key}
               className={`flex w-full items-center justify-between gap-3 rounded px-2 py-1.5 text-xs transition ${
-                selectedStage === segment.key
-                  ? 'bg-cyan-400/10 ring-1 ring-cyan-300/35'
+              selectedStage === segment.key
+                  ? ''
                   : 'hover:bg-white/[0.05]'
               }`}
+              style={
+                selectedStage === segment.key
+                  ? {
+                      backgroundColor: theme.soft,
+                      boxShadow: `0 0 0 1px ${theme.border}`,
+                    }
+                  : undefined
+              }
             >
               {content}
             </button>
@@ -575,39 +669,6 @@ function BudgetUsageBar({
           Bütçe aşımı: {formatUsd(summary.overrun)}
         </div>
       )}
-    </div>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  helper,
-  color,
-  icon,
-}: {
-  title: string;
-  value: string;
-  helper: string;
-  color: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="metric-card min-h-36">
-      <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-xs font-medium leading-5 text-white/50">{title}</div>
-          <div className="mt-3 truncate text-2xl font-semibold text-white tabular-nums">{value}</div>
-        </div>
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          style={{ color, backgroundColor: `${color}20` }}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-3 truncate text-[11px] text-white/35">{helper}</div>
     </div>
   );
 }
@@ -653,22 +714,25 @@ function BudgetSourcesOverview({
         </div>
       </div>
       <div className="grid gap-3 lg:grid-cols-3">
-        {data.map((company) => (
-          <button
-            type="button"
-            key={company.company}
-            onClick={() => onSelectCompany(company.company)}
-            aria-pressed={selectedCompany === company.company}
-            className={`flex h-full w-full flex-col items-stretch justify-start rounded-xl border bg-black/20 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/45 ${
-              selectedCompany === company.company
-                ? 'border-cyan-400/70 ring-2 ring-cyan-400/25'
-                : 'border-white/10'
-            } ${
-              selectedCompany && selectedCompany !== company.company
-                ? 'opacity-55 hover:opacity-80'
-                : ''
-            }`}
-          >
+        {data.map((company) => {
+          const theme = AZERBAIJAN_COMPANY_THEME[company.company];
+          const active = selectedCompany === company.company;
+          return (
+            <button
+              type="button"
+              key={company.company}
+              onClick={() => onSelectCompany(company.company)}
+              aria-pressed={active}
+              className={`flex h-full w-full flex-col items-stretch justify-start rounded-xl border bg-black/20 p-4 text-left transition hover:-translate-y-0.5 ${
+                selectedCompany && !active ? 'opacity-55 hover:opacity-80' : ''
+              }`}
+              style={{
+                borderColor: active ? theme.border : 'rgba(255,255,255,0.12)',
+                boxShadow: active
+                  ? `0 0 0 2px ${theme.ring}, 0 20px 45px ${theme.glow}`
+                  : `inset 0 1px 0 ${theme.glow}`,
+              }}
+            >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h4 className="text-base font-semibold text-white">
@@ -679,7 +743,10 @@ function BudgetSourcesOverview({
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-semibold text-cyan-300 tabular-nums">
+                <div
+                  className="text-sm font-semibold tabular-nums"
+                  style={{ color: theme.color }}
+                >
                   {company.masked ? 'XXX USD' : formatCompactUsd(company.total)}
                 </div>
                 <div className="mt-1 text-[10px] text-white/35">Net toplam</div>
@@ -690,11 +757,18 @@ function BudgetSourcesOverview({
               {company.sources.map((source) => (
                 <div
                   key={source.key}
-                  className="rounded-lg border border-white/10 bg-white/[0.045] p-3"
+                  className="rounded-lg border p-3"
+                  style={{
+                    borderColor: theme.border,
+                    background: `linear-gradient(135deg, ${theme.soft}, rgba(255,255,255,0.035))`,
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200/70">
+                      <div
+                        className="text-[11px] font-semibold uppercase tracking-wide"
+                        style={{ color: theme.color }}
+                      >
                         {source.typeLabel}
                       </div>
                       <div className="mt-1 line-clamp-2 text-sm font-medium text-white/80">
@@ -705,9 +779,8 @@ function BudgetSourcesOverview({
                       </div>
                     </div>
                     <span
-                      className={`shrink-0 text-right text-sm font-semibold tabular-nums ${
-                        source.value < 0 ? 'text-rose-300' : 'text-cyan-300'
-                      }`}
+                      className="shrink-0 text-right text-sm font-semibold tabular-nums"
+                      style={{ color: source.value < 0 ? '#fda4af' : theme.color }}
                     >
                       {source.masked ? 'XXX USD' : formatUsd(source.value)}
                     </span>
@@ -721,14 +794,20 @@ function BudgetSourcesOverview({
                       <span className="font-medium text-white/45">
                         Kullanım oranı
                       </span>
-                      <span className="font-semibold text-cyan-200 tabular-nums">
+                      <span
+                        className="font-semibold tabular-nums"
+                        style={{ color: theme.color }}
+                      >
                         %{source.utilizationPercent} kullanıldı
                       </span>
                     </div>
                     <div className="h-2.5 overflow-hidden rounded-full bg-slate-500/25">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-400"
-                        style={{ width: `${source.barPercent}%` }}
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${source.barPercent}%`,
+                          background: theme.gradient,
+                        }}
                       />
                     </div>
                     <div className="mt-1.5 flex items-center justify-between gap-3 text-[10px] text-white/35">
@@ -740,7 +819,8 @@ function BudgetSourcesOverview({
               ))}
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1114,10 +1194,6 @@ function mergeDescription(current: string, next: string) {
   if (!current) return next;
   if (!next || current === next) return current;
   return current.includes('kalem toplandı') ? current : current;
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('tr-TR').format(value);
 }
 
 function formatUsd(value: number) {
