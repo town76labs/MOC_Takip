@@ -33,8 +33,10 @@ import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDa
 type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
 
 const AUTH_SESSION_KEY = 'moc-dashboard-authenticated';
-const AUTH_USERNAME = 'sarkhan.hajizada';
-const AUTH_PASSWORD = 'Sarxan*155';
+const AUTH_USERS = [
+  { username: 'sarkhan.hajizada', password: 'Sarxan*155' },
+  { username: 'kaan.ayaz', password: 'Kaan*570' },
+] as const;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -46,8 +48,11 @@ function App() {
   });
 
   function handleLogin(username: string, password: string) {
-    const valid =
-      username.trim() === AUTH_USERNAME && password === AUTH_PASSWORD;
+    const normalizedUsername = username.trim();
+    const valid = AUTH_USERS.some(
+      (user) =>
+        user.username === normalizedUsername && user.password === password,
+    );
 
     if (!valid) return false;
 

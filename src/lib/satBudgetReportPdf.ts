@@ -19,6 +19,7 @@ import {
   isMaskedBudgetRow,
   SAT_BUDGET_COMPANIES,
 } from './satBudgetLogic';
+import { SAT_BUDGET_SOURCES } from './satBudgetParser';
 
 interface SATBudgetReportOptions {
   budgetRows: SATBudgetRow[];
@@ -40,6 +41,8 @@ const COLORS = {
   blue: '#2563eb',
   gray: '#64748b',
 };
+
+const REPORT_TITLE = 'Bütçe Yönetici Özeti';
 
 const styles: StyleDictionary = {
   title: { fontSize: 21, bold: true, color: COLORS.navy },
@@ -79,7 +82,7 @@ export async function downloadSATBudgetReportPdf({
         scopeLabel,
       ),
     )
-    .download(`${slugify(`sat-butce-genel-bakis-${scopeLabel}`)}.pdf`);
+    .download(`${slugify(`${REPORT_TITLE}-${scopeLabel}`)}.pdf`);
 }
 
 export function buildSATBudgetReportDefinition(
@@ -107,7 +110,7 @@ export function buildSATBudgetReportDefinition(
               bold: true,
               fontSize: 9,
             },
-            { text: 'SAT Bütçe Genel Bakış Raporu', style: 'title' },
+            { text: REPORT_TITLE, style: 'title' },
             { text: `Kapsam: ${scopeLabel}`, style: 'subtitle' },
           ],
         },
@@ -201,7 +204,7 @@ export function buildSATBudgetReportDefinition(
     pageOrientation: 'landscape',
     pageMargins: [30, 34, 30, 34],
     info: {
-      title: 'SAT Bütçe Genel Bakış Raporu',
+      title: REPORT_TITLE,
       author: 'Enstrüman Bakım Müdürlüğü',
       subject: scopeLabel,
     },
@@ -224,15 +227,22 @@ function companyUsageDashboard(
   company: SATBudgetCompany,
   budgetRows: SATBudgetRow[],
   usageRows: SATBudgetUsageRow[],
-  pageBreakBefore: boolean,
+  separatedFromPrevious: boolean,
 ): Content[] {
   const summaries = budgetUsageSummary(budgetRows, usageRows, company);
   const companyUsageRows = usageRows.filter((row) => row.company === company);
   return [
     {
-      text: `${companyLabel(company)} Bütçe Kullanım Dashboardı`,
+      text: companyLabel(company),
+      bold: true,
+      fontSize: 16,
+      color: COLORS.navy,
+      margin: [0, separatedFromPrevious ? 18 : 6, 0, 0],
+    },
+    {
+      text: `${companyLabel(company)} Bütçe Kullanım Aşamaları`,
       style: 'section',
-      ...(pageBreakBefore ? { pageBreak: 'before' as const } : {}),
+      margin: [0, 6, 0, 7],
     },
     {
       text: 'CAPEX, OPEX ve Operational CAPEX bütçelerinin SAT · SAS · FAT · Kullanılmayan dağılımı',
@@ -277,7 +287,7 @@ function companyUsageDashboard(
           usageStackedBar(summary.segments, summary.totalBudget, summary.used),
           {
             table: {
-              widths: ['*', 70],
+              widths: ['*', 28, 70],
               body: summary.segments.map((segment) => [
                 {
                   columns: [
@@ -296,6 +306,15 @@ function companyUsageDashboard(
                     },
                     { text: segment.label, fontSize: 7, color: COLORS.slate },
                   ],
+                },
+                {
+                  text: `%${utilizationPercent(segment.value, summary.totalBudget)}`,
+                  alignment: 'center',
+                  fontSize: 6.5,
+                  bold: true,
+                  color: COLORS.slate,
+                  fillColor: '#f1f5f9',
+                  margin: [2, 1, 2, 1],
                 },
                 {
                   text: formatUsd(segment.value),
@@ -329,7 +348,7 @@ function companyUsageDashboard(
     standardTable(
       ['Bütçe Türü / Kod', 'Toplam Bütçe', 'SAT', 'SAS', 'FAT', 'Kullanılmayan', 'Kullanım'],
       summaries.map((summary) => [
-        `${summary.label} - ${summary.sourceCode}`,
+        budgetTypeCodeAndDescription(summary.label, summary.sourceCode),
         formatUsd(summary.totalBudget),
         formatUsd(summary.segments.find((segment) => segment.key === 'SAT')?.value ?? 0),
         formatUsd(summary.segments.find((segment) => segment.key === 'SAS')?.value ?? 0),
@@ -337,7 +356,7 @@ function companyUsageDashboard(
         formatUsd(summary.unused),
         `%${utilizationPercent(summary.used, summary.totalBudget)}`,
       ]),
-      [125, 95, 90, 90, 90, 100, 55],
+      [155, 90, 80, 80, 80, 95, 50],
       6.8,
     ),
     {
@@ -382,6 +401,20 @@ function usageStackedBar(
 
 function utilizationPercent(used: number, total: number) {
   return total ? Math.round((used / total) * 100) : 0;
+}
+
+function budgetTypeCodeAndDescription(typeLabel: string, sourceCode: string) {
+  const source = SAT_BUDGET_SOURCES.find((item) => item.code === sourceCode);
+  const description = source
+    ? source.label.replace(new RegExp(`^${escapeRegExp(typeLabel)}\\s*/\\s*`, 'i'), '')
+    : '';
+  return description
+    ? `${typeLabel} - ${sourceCode}\n${description}`
+    : `${typeLabel} - ${sourceCode}`;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function kpiGrid(items: [string, string, string][]): Content {
