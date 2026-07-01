@@ -7,6 +7,7 @@ import type {
   SATStage,
 } from '../types';
 import { normalize, parseDate, toDisplayString } from './normalize';
+import { parseSATTrackingListExport } from './satTrackingListParser';
 
 type SATField =
   | 'sıraNo'
@@ -108,6 +109,10 @@ export async function parseSATExcel(
       type: 'array',
       cellDates: true,
     });
+    const trackingListData = parseSATTrackingListExport(workbook);
+    if (trackingListData.length > 0) {
+      return { data: [], exportData: trackingListData, format: 'sap_export' };
+    }
     const exportData = parseSAPExport(workbook);
     if (exportData.length > 0) {
       return { data: [], exportData, format: 'sap_export' };

@@ -74,7 +74,8 @@ export async function parseSATBudgetUsageExcel(
             !stage ||
             !source ||
             !referenceNo ||
-            (isSTADOpexBudgetSource(sourceCode) && normalize(user) !== 'tpinar')
+            (isSTADOpexBudgetSource(sourceCode) &&
+              !isAllowedSTADOpexUser(user))
           ) {
             return null;
           }
@@ -160,6 +161,11 @@ function parseStage(value: unknown): SATBudgetUsageStage | null {
   if (clean === 'satinalma siparisleri') return 'SAS';
   if (clean === 'faturalar' || clean === 'fatura') return 'FAT';
   return null;
+}
+
+function isAllowedSTADOpexUser(value: string) {
+  const clean = normalize(value).replace(/\s+/g, '');
+  return clean === 'tpinar' || clean === 'tunapinar';
 }
 
 function parseSignedAmount(value: unknown) {

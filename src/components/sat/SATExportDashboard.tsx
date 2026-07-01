@@ -1,31 +1,21 @@
 import { useMemo, useState } from 'react';
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import {
   AlertTriangle,
-  BadgeDollarSign,
-  Boxes,
-  CalendarClock,
-  CheckCircle2,
-  ClipboardList,
   FileCheck2,
   FileText,
   FilterX,
   Loader2,
-  ShoppingCart,
-  Truck,
-  Users,
 } from 'lucide-react';
-import type { SATBudgetUsageRow, SATBudgetUsageStage, SATExportRow } from '../../types';
+import type {
+  SATBudgetCompany,
+  SATBudgetRow,
+  SATBudgetType,
+  SATBudgetUsageRow,
+  SATBudgetUsageStage,
+  SATExportRow,
+} from '../../types';
 import { useDataStore } from '../../store/dataStore';
-import { formatDate } from '../../lib/normalize';
+import { formatDate, normalize } from '../../lib/normalize';
 import {
   getUniqueSATItemRows,
   sumSATItemUsd,
@@ -40,19 +30,17 @@ import {
   type SATExportReportType,
 } from '../../lib/satExportReportPdf';
 import {
+  budgetTotals,
   budgetTypeLabel,
   companyLabel,
 } from '../../lib/satBudgetLogic';
+import {
+  isSTADOpexBudgetSource,
+  SAT_BUDGET_SOURCES,
+} from '../../lib/satBudgetParser';
 
 const EMPTY_STATUS = '__empty_status__';
 const UNASSIGNED = '__unassigned__';
-const TOOLTIP_STYLE = {
-  backgroundColor: '#111111',
-  border: '1px solid rgb(255 255 255 / 0.12)',
-  borderRadius: 8,
-  color: '#f8fafc',
-};
-
 const STATUS_CONFIG = [
   { key: EMPTY_STATUS, label: 'Durum Girilmemiş', color: '#94a3b8' },
   { key: 'SAT İŞLEME ALINDI', label: 'SAT İşleme Alındı', color: '#06b6d4' },
@@ -84,11 +72,46 @@ interface BudgetUsageCardData {
   title: string;
   subtitle: string;
   code: string;
+  company?: SATBudgetCompany;
+  budgetType?: SATBudgetType;
+  totalBudget: number;
   satNos: Set<string>;
   stageSatNos: Record<ExportPipelineStage, Set<string>>;
   stageAmounts: Record<ExportPipelineStage, number>;
   fallback: boolean;
 }
+
+const BUDGET_USAGE_COMPANIES: {
+  key: SATBudgetCompany;
+  label: string;
+  color: string;
+}[] = [
+  { key: 'PETKIM', label: 'Petkim', color: '#38bdf8' },
+  { key: 'STAR', label: 'Star', color: '#ef4444' },
+  { key: 'STAD', label: 'STAD', color: '#22c55e' },
+];
+
+const BUDGET_USAGE_TYPE_ORDER: SATBudgetType[] = [
+  'OPERATIONAL_CAPEX',
+  'OPEX',
+  'CAPEX',
+];
+
+const FALLBACK_BUDGET_THEME = {
+  label: 'Kaynak',
+  color: '#38bdf8',
+};
+
+const BUDGET_USAGE_BAR_ROWS: {
+  key: ExportPipelineStage | 'UNUSED';
+  label: string;
+  color: string;
+}[] = [
+  { key: 'SAT', label: 'SAT', color: '#38bdf8' },
+  { key: 'SAS', label: 'SAS', color: '#ef4444' },
+  { key: 'FAT', label: 'FAT', color: '#22c55e' },
+  { key: 'UNUSED', label: 'Kullanılmayan', color: '#64748b' },
+];
 
 const EXPORT_PIPELINE_STAGES: {
   key: ExportPipelineStage;
@@ -183,6 +206,7 @@ const REPORT_OPTIONS: {
 export function SATExportDashboard() {
   const allRows = useDataStore((state) => state.satExportRows);
   const budgetUsageRows = useDataStore((state) => state.satBudgetUsageRows);
+  const budgetRows = useDataStore((state) => state.satBudgetRows);
   const allItemRows = useMemo(() => getUniqueSATItemRows(allRows), [allRows]);
   const [selectedCreator, setSelectedCreator] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -257,8 +281,8 @@ export function SATExportDashboard() {
   );
   const statusBaseRows = partyFilteredRows;
   const budgetUsageCards = useMemo(
-    () => buildBudgetUsageCards(budgetUsageRows, allRows),
-    [budgetUsageRows, allRows],
+    () => buildBudgetUsageCards(budgetUsageRows, allRows, budgetRows),
+    [budgetUsageRows, allRows, budgetRows],
   );
   const selectedBudget = selectedBudgetKey
     ? budgetUsageCards.find((item) => item.key === selectedBudgetKey) ?? null
@@ -312,20 +336,6 @@ export function SATExportDashboard() {
     [baseDocuments],
   );
 
-  const totals = useMemo(
-    () => ({
-      satUsd: sum(documents.map((doc) => doc.totalSatUsd)),
-      sasUsd: sum(visibleRows.map((row) => row.sasUsdAmount)),
-      completed: visibleItemRows.filter((row) => row.completed).length,
-      lastDelivery: visibleItemRows.filter((row) => row.lastDelivery).length,
-      lastInvoice: visibleItemRows.filter((row) => row.lastInvoice).length,
-      approvedDocs: documents.filter((doc) =>
-        doc.approvalStatusDescription.toLocaleLowerCase('tr-TR').includes('tamam'),
-      ).length,
-    }),
-    [documents, visibleItemRows, visibleRows],
-  );
-
   const detailDocumentTotal = useMemo(
     () =>
       detail
@@ -334,24 +344,6 @@ export function SATExportDashboard() {
     [allRows, detail],
   );
 
-  const creatorData = useMemo(
-    () => buildDocumentPartyData(documents, (doc) => [doc.satCreator]),
-    [documents],
-  );
-  const topSatData = useMemo(
-    () =>
-      [...documents]
-        .sort((a, b) => b.totalSatUsd - a.totalSatUsd)
-        .slice(0, 8)
-        .map((doc) => ({ name: doc.satNo, value: doc.totalSatUsd })),
-    [documents],
-  );
-  const agingData = useMemo(() => buildAgingData(documents), [documents]);
-  const deliveryRiskData = useMemo(
-    () => buildDeliveryRiskData(visibleRows),
-    [visibleRows],
-  );
-  const funnelData = useMemo(() => buildFunnelData(documents), [documents]);
   const alertSummary = useMemo(
     () => buildExportAlertSummary(baseVisibleRows),
     [baseVisibleRows],
@@ -381,14 +373,6 @@ export function SATExportDashboard() {
   function selectBudget(key: string) {
     setSelectedBudgetKey((current) => (current === key ? '' : key));
     setSelectedPipelineStage('');
-    setSelectedAlert('');
-  }
-
-  function selectBudgetStage(key: string, stage: ExportPipelineStage) {
-    setSelectedBudgetKey(key);
-    setSelectedPipelineStage((current) =>
-      selectedBudgetKey === key && current === stage ? '' : stage,
-    );
     setSelectedAlert('');
   }
 
@@ -452,7 +436,7 @@ export function SATExportDashboard() {
           <div>
             <h2 className="panel-title">SAT Takip Operasyon Paneli</h2>
             <p className="panel-subtitle mt-1">
-              Bütçe, SAT/SAS/FAT aşaması ve gecikme uyarılarına tıklayarak aşağıdaki listeyi filtreleyin.
+              Bütçe ve gecikme uyarılarına tıklayarak aşağıdaki SAT listesini filtreleyin.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -480,60 +464,7 @@ export function SATExportDashboard() {
         <BudgetUsageOverview
           cards={budgetUsageCards}
           selectedBudgetKey={selectedBudgetKey}
-          selectedPipelineStage={selectedPipelineStage}
           onSelectBudget={selectBudget}
-          onSelectStage={selectBudgetStage}
-        />
-      </section>
-
-      <ExportAlertOverview
-        alerts={alertSummary}
-        selectedAlert={selectedAlert}
-        onSelect={selectAlert}
-      />
-
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <MetricCard
-          title="Tekil SAT Belgesi"
-          value={formatNumber(documents.length)}
-          helper={`${totals.approvedDocs} belge onayı tamamlandı`}
-          color="#38bdf8"
-          icon={<ClipboardList size={21} />}
-        />
-        <MetricCard
-          title="SAT Kalemi"
-          value={formatNumber(visibleItemRows.length)}
-          helper={`${formatNumber(visibleRows.length)} SAP/SAS satırı`}
-          color="#8b5cf6"
-          icon={<Boxes size={21} />}
-        />
-        <MetricCard
-          title="Toplam SAT USD"
-          value={formatCompactUsd(totals.satUsd)}
-          helper={formatUsd(totals.satUsd)}
-          color="#06b6d4"
-          icon={<BadgeDollarSign size={21} />}
-        />
-        <MetricCard
-          title="SAS USD Tutarı"
-          value={formatCompactUsd(totals.sasUsd)}
-          helper={formatUsd(totals.sasUsd)}
-          color="#10b981"
-          icon={<ShoppingCart size={21} />}
-        />
-        <MetricCard
-          title="Tamamlanan Kalem"
-          value={formatNumber(totals.completed)}
-          helper={percent(totals.completed, visibleItemRows.length)}
-          color="#22c55e"
-          icon={<CheckCircle2 size={21} />}
-        />
-        <MetricCard
-          title="Teslimat / Fatura"
-          value={`${totals.lastDelivery} / ${totals.lastInvoice}`}
-          helper="Son teslimat · son fatura"
-          color="#f59e0b"
-          icon={<Truck size={21} />}
         />
       </section>
 
@@ -547,52 +478,11 @@ export function SATExportDashboard() {
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="SAT Yaratan Dağılımı"
-          subtitle="Tekil SAT belge sayısı"
-          icon={<Users size={17} />}
-        >
-          <HorizontalBar data={creatorData} color="#38bdf8" name="SAT Belgesi" />
-        </ChartCard>
-        <ChartCard
-          title="En Yüksek SAT Belgeleri"
-          subtitle="Toplam SAT USD tutarına göre ilk sekiz belge"
-          icon={<BadgeDollarSign size={17} />}
-        >
-          <HorizontalBar data={topSatData} color="#14b8a6" name="USD" currency />
-        </ChartCard>
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartCard
-          title="Açık SAT Yaşlandırma"
-          subtitle="Tamamlanmamış SAT belgelerinin oluşturulma tarihine göre bekleme süresi"
-          icon={<CalendarClock size={17} />}
-        >
-          <HorizontalBar data={agingData} color="#a78bfa" name="SAT Belgesi" />
-        </ChartCard>
-        <ChartCard
-          title="Teslimat Riski"
-          subtitle={`${deliveryRiskData.overdueCount} gecikmiş kalem · ${formatUsd(deliveryRiskData.overdueUsd)}`}
-          icon={<Truck size={17} />}
-        >
-          <DeliveryRiskGrid data={deliveryRiskData.data} />
-        </ChartCard>
-      </section>
-
-      <section className="card p-5">
-        <div className="mb-5 flex items-center gap-2">
-          <span className="text-cyan-300"><ShoppingCart size={17} /></span>
-          <div>
-            <h2 className="panel-title">SAT → SAS → Teslimat → Fatura Hunisi</h2>
-            <p className="panel-subtitle mt-1">
-              Tekil SAT belgelerinin satınalma sürecindeki ilerleme ve dönüşüm oranları
-            </p>
-          </div>
-        </div>
-        <ProcurementFunnel data={funnelData} />
-      </section>
+      <ExportAlertOverview
+        alerts={alertSummary}
+        selectedAlert={selectedAlert}
+        onSelect={selectAlert}
+      />
 
       <section className="card p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -771,24 +661,31 @@ export function SATExportDashboard() {
 function BudgetUsageOverview({
   cards,
   selectedBudgetKey,
-  selectedPipelineStage,
   onSelectBudget,
-  onSelectStage,
 }: {
   cards: BudgetUsageCardData[];
   selectedBudgetKey: string;
-  selectedPipelineStage: ExportPipelineStage | '';
   onSelectBudget: (key: string) => void;
-  onSelectStage: (key: string, stage: ExportPipelineStage) => void;
 }) {
-  const displayCards = cards.slice(0, 6);
+  const companyCards = BUDGET_USAGE_COMPANIES.map((company) => ({
+    ...company,
+    cards: cards
+      .filter((card) => card.company === company.key)
+      .sort(
+        (a, b) =>
+          BUDGET_USAGE_TYPE_ORDER.indexOf(a.budgetType ?? 'CAPEX') -
+          BUDGET_USAGE_TYPE_ORDER.indexOf(b.budgetType ?? 'CAPEX'),
+      ),
+  }));
+  const hasCompanyCards = companyCards.some((group) => group.cards.length > 0);
+
   return (
     <div className="mt-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-white">Bütçe / Kaynak Bazlı Aşama Takibi</h3>
           <p className="mt-1 text-xs text-white/40">
-            Her kaynakta Açılan SAT, SAS'a dönen SAT ve Fatura kesilen SAS adedi gösterilir.
+            Her bütçe kaynağında SAT, SAS, FAT ve kalan bütçe dağılımı yatay bar olarak gösterilir.
           </p>
         </div>
         {cards.some((card) => card.fallback) && (
@@ -797,79 +694,182 @@ function BudgetUsageOverview({
           </span>
         )}
       </div>
-      <div className="grid gap-3 xl:grid-cols-3">
-        {displayCards.map((card) => {
-          const active = selectedBudgetKey === card.key;
-          return (
+      {hasCompanyCards ? (
+        <div className="grid gap-3 xl:grid-cols-3">
+          {companyCards.map((group) => (
             <div
-              key={card.key}
-              className={`rounded-xl border bg-black/20 p-4 transition ${
-                active
-                  ? 'border-cyan-300/70 ring-2 ring-cyan-400/20'
-                  : 'border-white/10'
-              } ${selectedBudgetKey && !active ? 'opacity-55' : ''}`}
+              key={group.key}
+              className={`rounded-2xl border bg-black/15 p-3 transition ${
+                selectedBudgetKey &&
+                !group.cards.some((card) => card.key === selectedBudgetKey)
+                  ? 'opacity-55'
+                  : ''
+              }`}
+              style={{
+                borderColor: `${group.color}55`,
+                boxShadow: `inset 0 1px 0 ${group.color}22`,
+              }}
             >
-              <button
-                type="button"
-                onClick={() => onSelectBudget(card.key)}
-                className="w-full text-left"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-200/70">
-                      {card.subtitle}
-                    </div>
-                    <h4 className="mt-1 line-clamp-2 text-sm font-semibold text-white">
-                      {card.title}
-                    </h4>
-                    <div className="mt-1 text-[11px] text-white/35">
-                      {card.code || 'Kod belirtilmemiş'}
-                    </div>
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <div
+                    className="text-[11px] font-bold uppercase tracking-[0.2em]"
+                    style={{ color: group.color }}
+                  >
+                    {group.label}
                   </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-lg font-semibold text-white tabular-nums">
-                      {formatNumber(card.satNos.size)}
-                    </div>
-                    <div className="text-[10px] text-white/35">SAT</div>
+                  <div className="mt-1 text-[11px] text-white/35">
+                    Operational CAPEX · OPEX · CAPEX
                   </div>
                 </div>
-              </button>
+                <div
+                  className="h-2 w-14 rounded-full"
+                  style={{ backgroundColor: group.color }}
+                />
+              </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {EXPORT_PIPELINE_STAGES.map((stage) => {
-                  const count = card.stageSatNos[stage.key].size;
-                  const stageActive =
-                    active && selectedPipelineStage === stage.key;
-                  return (
-                    <button
-                      key={stage.key}
-                      type="button"
-                      onClick={() => onSelectStage(card.key, stage.key)}
-                      className={`rounded-lg border p-2 text-left transition hover:bg-white/[0.08] ${
-                        stageActive
-                          ? 'border-cyan-300/70 bg-cyan-400/10'
-                          : 'border-white/10 bg-white/[0.04]'
-                      }`}
-                    >
-                      <span
-                        className="mb-1 block h-1 rounded-full"
-                        style={{ backgroundColor: stage.color }}
-                      />
-                      <div className="text-lg font-semibold text-white tabular-nums">
-                        {count}
-                      </div>
-                      <div className="mt-1 text-[10px] leading-4 text-white/45">
-                        {stage.label}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="space-y-3">
+                {group.cards.map((card) => (
+                  <BudgetSourceCard
+                    key={card.key}
+                    card={card}
+                    theme={group}
+                    selectedBudgetKey={selectedBudgetKey}
+                    onSelectBudget={onSelectBudget}
+                  />
+                ))}
+                {group.cards.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-white/10 p-4 text-xs text-white/30">
+                    Bu şirket için bütçe kaynağı bulunamadı.
+                  </div>
+                )}
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 xl:grid-cols-3">
+          {cards.map((card) => (
+            <BudgetSourceCard
+              key={card.key}
+              card={card}
+              theme={FALLBACK_BUDGET_THEME}
+              selectedBudgetKey={selectedBudgetKey}
+              onSelectBudget={onSelectBudget}
+            />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function BudgetSourceCard({
+  card,
+  theme,
+  selectedBudgetKey,
+  onSelectBudget,
+}: {
+  card: BudgetUsageCardData;
+  theme: { label: string; color: string };
+  selectedBudgetKey: string;
+  onSelectBudget: (key: string) => void;
+}) {
+  const active = selectedBudgetKey === card.key;
+  const usedAmount = sum(Object.values(card.stageAmounts));
+  const hasBudget = card.totalBudget > 0;
+  const totalBase = Math.max(hasBudget ? card.totalBudget : usedAmount, 1);
+  const unusedAmount = hasBudget ? Math.max(0, card.totalBudget - usedAmount) : 0;
+  const barRows = BUDGET_USAGE_BAR_ROWS.filter(
+    (row) => row.key !== 'UNUSED' || hasBudget,
+  ).map((row) => {
+    const value =
+      row.key === 'UNUSED'
+        ? unusedAmount
+        : card.stageAmounts[row.key] ?? 0;
+    const count =
+      row.key === 'UNUSED' ? 0 : card.stageSatNos[row.key].size;
+    return {
+      ...row,
+      value,
+      count,
+      percent: totalBase > 0 ? (value / totalBase) * 100 : 0,
+    };
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelectBudget(card.key)}
+      className={`w-full rounded-xl border bg-black/20 p-4 text-left transition hover:bg-white/[0.045] ${
+        selectedBudgetKey && !active ? 'opacity-55' : ''
+      }`}
+      style={{
+        borderColor: active ? theme.color : 'rgb(255 255 255 / 0.1)',
+        boxShadow: active ? `0 0 0 2px ${theme.color}33` : undefined,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wide"
+            style={{ color: `${theme.color}cc` }}
+          >
+            {card.subtitle}
+          </div>
+          <h4 className="mt-1 line-clamp-2 text-sm font-semibold text-white">
+            {card.title}
+          </h4>
+          <div className="mt-1 text-[11px] text-white/35">
+            {card.code || 'Kod belirtilmemiş'}
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-lg font-semibold text-white tabular-nums">
+            {hasBudget ? formatCompactUsd(card.totalBudget) : formatNumber(card.satNos.size)}
+          </div>
+          <div className="text-[10px] text-white/35">
+            {hasBudget ? 'Toplam bütçe' : 'SAT'}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2.5">
+        {barRows.map((row) => (
+          <div
+            key={row.key}
+            className="grid grid-cols-[minmax(78px,0.9fr)_42px_minmax(90px,1.3fr)_minmax(88px,auto)] items-center gap-2"
+          >
+            <span className="flex min-w-0 items-center gap-2 text-xs text-white/55">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: row.color }}
+              />
+              <span className="truncate">{row.label}</span>
+            </span>
+            <span className="rounded-md bg-white/[0.055] px-2 py-1 text-center text-[10px] font-semibold text-white/40 tabular-nums">
+              %{Math.round(row.percent)}
+            </span>
+            <span className="h-2.5 overflow-hidden rounded-full bg-slate-500/25">
+              <span
+                className="block h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.max(row.percent, row.percent > 0 ? 1.5 : 0)}%`,
+                  backgroundColor: row.color,
+                }}
+              />
+            </span>
+            <span className="text-right text-xs font-semibold text-white/70 tabular-nums">
+              {row.value > 0
+                ? formatUsd(row.value)
+                : row.count > 0
+                  ? `${formatNumber(row.count)} SAT`
+                  : '0'}
+            </span>
+          </div>
+        ))}
+      </div>
+    </button>
   );
 }
 
@@ -1047,15 +1047,15 @@ const EXPORT_COLUMNS: DataTableColumn<SATExportRow>[] = [
 function buildBudgetUsageCards(
   usageRows: SATBudgetUsageRow[],
   exportRows: SATExportRow[],
+  budgetRows: SATBudgetRow[],
 ): BudgetUsageCardData[] {
-  if (usageRows.length === 0) return buildFallbackBudgetCards(exportRows);
-
-  const exportSatNos = new Set(exportRows.map((row) => row.satNo).filter(Boolean));
   const map = new Map<string, BudgetUsageCardData>();
+  const usageAmountStageKeys = new Set<string>();
 
   usageRows.forEach((row) => {
-    if (!row.satNo || !exportSatNos.has(row.satNo)) return;
-    const key = `${row.company}|${row.budgetType}|${row.sourceCode}`;
+    const processKey = budgetUsageProcessKey(row);
+    if (!processKey || !shouldIncludeBudgetUsageRow(row)) return;
+    const key = budgetCardKey(row.company, row.budgetType, row.sourceCode);
     const current =
       map.get(key) ??
       createBudgetUsageCard({
@@ -1063,22 +1063,114 @@ function buildBudgetUsageCards(
         title: cleanBudgetSourceLabel(row.sourceLabel),
         subtitle: `${companyLabel(row.company)} · ${budgetTypeLabel(row.budgetType)}`,
         code: row.sourceCode,
+        company: row.company,
+        budgetType: row.budgetType,
         fallback: false,
       });
 
-    current.satNos.add(row.satNo);
-    current.stageSatNos[row.stage].add(row.satNo);
+    current.satNos.add(processKey);
+    current.stageSatNos[row.stage].add(processKey);
     current.stageAmounts[row.stage] += Math.max(0, row.amountUsd);
+    if (row.amountUsd > 0) usageAmountStageKeys.add(`${key}|${row.stage}`);
     map.set(key, current);
   });
+
+  addExportRowsToBudgetCards(map, exportRows, usageAmountStageKeys);
+  applyBudgetTotalsToCards(map, budgetRows);
 
   const cards = [...map.values()].sort(
     (a, b) => b.satNos.size - a.satNos.size || a.title.localeCompare(b.title, 'tr'),
   );
-  return cards.length > 0 ? cards : buildFallbackBudgetCards(exportRows);
+  return cards.length > 0 ? cards : buildMaterialFallbackBudgetCards(exportRows);
 }
 
-function buildFallbackBudgetCards(rows: SATExportRow[]): BudgetUsageCardData[] {
+function addExportRowsToBudgetCards(
+  map: Map<string, BudgetUsageCardData>,
+  rows: SATExportRow[],
+  usageAmountStageKeys: Set<string>,
+) {
+  const satItemSeen = new Set<string>();
+  rows.forEach((row) => {
+    if (!row.budgetSourceCode || !row.budgetCompany || !row.budgetType) return;
+    if (!shouldIncludeExportBudgetRow(row)) return;
+    const key = budgetCardKey(
+      row.budgetCompany,
+      row.budgetType,
+      row.budgetSourceCode,
+    );
+    const current =
+      map.get(key) ??
+      createBudgetUsageCard({
+        key,
+        title: cleanBudgetSourceLabel(row.budgetSourceLabel || row.budgetSourceCode),
+        subtitle: `${companyLabel(row.budgetCompany)} · ${budgetTypeLabel(row.budgetType)}`,
+        code: row.budgetSourceCode,
+        company: row.budgetCompany,
+        budgetType: row.budgetType,
+        fallback: false,
+      });
+
+    current.satNos.add(row.satNo);
+    current.stageSatNos.SAT.add(row.satNo);
+    const satItemKey = `${key}|SAT|${row.satNo}|${row.satItemNo || row.sourceRow}`;
+    if (!usageAmountStageKeys.has(`${key}|SAT`) && !satItemSeen.has(satItemKey)) {
+      satItemSeen.add(satItemKey);
+      current.stageAmounts.SAT += Math.max(0, row.satItemUsd);
+    }
+    if (isRowSasConverted(row)) {
+      current.stageSatNos.SAS.add(row.satNo);
+      if (!usageAmountStageKeys.has(`${key}|SAS`)) {
+        current.stageAmounts.SAS += Math.max(0, row.sasUsdAmount);
+      }
+    }
+    if (row.lastInvoice) {
+      current.stageSatNos.FAT.add(row.satNo);
+      if (!usageAmountStageKeys.has(`${key}|FAT`)) {
+        current.stageAmounts.FAT += Math.max(
+          0,
+          row.sasUsdAmount || row.satItemUsd,
+        );
+      }
+    }
+    map.set(key, current);
+  });
+}
+
+function applyBudgetTotalsToCards(
+  map: Map<string, BudgetUsageCardData>,
+  budgetRows: SATBudgetRow[],
+) {
+  SAT_BUDGET_SOURCES.forEach((source) => {
+    const totalBudget = Math.max(
+      0,
+      budgetTotals(
+        budgetRows.filter(
+          (row) =>
+            row.company === source.company &&
+            row.budgetType === source.budgetType &&
+            row.sourceCode === source.code,
+        ),
+      ).net,
+    );
+    const key = budgetCardKey(source.company, source.budgetType, source.code);
+    if (totalBudget <= 0 && !map.has(key)) return;
+    const current =
+      map.get(key) ??
+      createBudgetUsageCard({
+        key,
+        title: cleanBudgetSourceLabel(source.label),
+        subtitle: `${companyLabel(source.company)} · ${budgetTypeLabel(source.budgetType)}`,
+        code: source.code,
+        company: source.company,
+        budgetType: source.budgetType,
+        fallback: false,
+      });
+    current.totalBudget = totalBudget;
+    map.set(key, current);
+  });
+}
+
+function buildMaterialFallbackBudgetCards(rows: SATExportRow[]): BudgetUsageCardData[] {
   const map = new Map<string, BudgetUsageCardData>();
   rows.forEach((row) => {
     const group = row.materialGroup || 'Mal Grubu Belirtilmemiş';
@@ -1112,17 +1204,56 @@ function buildFallbackBudgetCards(rows: SATExportRow[]): BudgetUsageCardData[] {
     .slice(0, 6);
 }
 
+function budgetCardKey(
+  company: string,
+  budgetType: string,
+  sourceCode: string,
+) {
+  return `${company}|${budgetType}|${sourceCode}`;
+}
+
+function budgetUsageProcessKey(row: SATBudgetUsageRow) {
+  return (
+    row.satNo ||
+    (row.stage === 'FAT' ? row.previousDocumentNo : '') ||
+    row.referenceNo
+  );
+}
+
+function shouldIncludeBudgetUsageRow(row: SATBudgetUsageRow) {
+  return (
+    !isSTADOpexBudgetSource(row.sourceCode) ||
+    isAllowedSTADOpexUser(row.user)
+  );
+}
+
+function shouldIncludeExportBudgetRow(row: SATExportRow) {
+  return (
+    !isSTADOpexBudgetSource(row.budgetSourceCode) ||
+    [row.sasCreator, row.satCreator].some(isAllowedSTADOpexUser)
+  );
+}
+
+function isAllowedSTADOpexUser(value: string) {
+  const clean = normalize(value).replace(/\s+/g, '');
+  return clean === 'tpinar' || clean === 'tunapinar';
+}
+
 function createBudgetUsageCard({
   key,
   title,
   subtitle,
   code,
+  company,
+  budgetType,
   fallback,
 }: {
   key: string;
   title: string;
   subtitle: string;
   code: string;
+  company?: SATBudgetCompany;
+  budgetType?: SATBudgetType;
   fallback: boolean;
 }): BudgetUsageCardData {
   return {
@@ -1130,6 +1261,9 @@ function createBudgetUsageCard({
     title,
     subtitle,
     code,
+    company,
+    budgetType,
+    totalBudget: 0,
     satNos: new Set<string>(),
     stageSatNos: {
       SAT: new Set<string>(),
@@ -1372,232 +1506,8 @@ function buildDocuments(rows: SATExportRow[]): SATDocument[] {
   }));
 }
 
-function buildDocumentPartyData(
-  documents: SATDocument[],
-  getParties: (document: SATDocument) => string[],
-) {
-  const counts = new Map<string, number>();
-  documents.forEach((doc) => {
-    [...new Set(getParties(doc).filter(Boolean))].forEach((party) =>
-      counts.set(party, (counts.get(party) ?? 0) + 1),
-    );
-  });
-  return [...counts.entries()]
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'tr'));
-}
-
-function buildAgingData(documents: SATDocument[]) {
-  const today = startOfDay(new Date());
-  const buckets = [
-    { name: '0–15 Gün', value: 0 },
-    { name: '16–30 Gün', value: 0 },
-    { name: '31–60 Gün', value: 0 },
-    { name: '60+ Gün', value: 0 },
-    { name: 'Tarih Yok', value: 0 },
-  ];
-  documents
-    .filter((document) => !document.rows.every((row) => row.completed))
-    .forEach((document) => {
-      if (!document.createdAt || Number.isNaN(document.createdAt.getTime())) {
-        buckets[4].value += 1;
-        return;
-      }
-      const days = Math.max(
-        0,
-        Math.floor((today.getTime() - startOfDay(document.createdAt).getTime()) / 86400000),
-      );
-      if (days <= 15) buckets[0].value += 1;
-      else if (days <= 30) buckets[1].value += 1;
-      else if (days <= 60) buckets[2].value += 1;
-      else buckets[3].value += 1;
-    });
-  return buckets;
-}
-
-function buildDeliveryRiskData(rows: SATExportRow[]) {
-  const today = startOfDay(new Date());
-  const inSevenDays = addDays(today, 7);
-  const inThirtyDays = addDays(today, 30);
-  const buckets = [
-    { name: 'Gecikmiş', value: 0 },
-    { name: 'Önümüzdeki 7 Gün', value: 0 },
-    { name: '8–30 Gün', value: 0 },
-    { name: 'Teslim Tarihi Yok', value: 0 },
-  ];
-  let overdueUsd = 0;
-  rows
-    .filter((row) => !row.lastDelivery)
-    .forEach((row) => {
-      if (!row.deliveryDate || Number.isNaN(row.deliveryDate.getTime())) {
-        buckets[3].value += 1;
-        return;
-      }
-      const deliveryDate = startOfDay(row.deliveryDate);
-      if (deliveryDate < today) {
-        buckets[0].value += 1;
-        overdueUsd += row.sasUsdAmount;
-      } else if (deliveryDate <= inSevenDays) {
-        buckets[1].value += 1;
-      } else if (deliveryDate <= inThirtyDays) {
-        buckets[2].value += 1;
-      }
-    });
-  return {
-    data: buckets,
-    overdueCount: buckets[0].value,
-    overdueUsd,
-  };
-}
-
-function buildFunnelData(documents: SATDocument[]) {
-  const created = documents;
-  const processing = created.filter(
-    (document) =>
-      document.summaryStatus || document.rows.some((row) => row.sasUsdAmount > 0),
-  );
-  const ordered = processing.filter((document) =>
-    document.rows.some(
-      (row) => row.sasUsdAmount > 0 || row.lastDelivery || row.lastInvoice,
-    ),
-  );
-  const delivered = ordered.filter((document) =>
-    document.rows.some((row) => row.lastDelivery),
-  );
-  const invoiced = delivered.filter((document) =>
-    document.rows.some((row) => row.lastInvoice),
-  );
-  return [
-    { label: 'SAT Oluşturuldu', documents: created, color: '#38bdf8' },
-    { label: 'İşleme Alındı', documents: processing, color: '#8b5cf6' },
-    { label: 'SAS / Sipariş', documents: ordered, color: '#f59e0b' },
-    { label: 'Teslim Edildi', documents: delivered, color: '#10b981' },
-    { label: 'Faturalandı', documents: invoiced, color: '#22c55e' },
-  ].map((stage) => ({
-    label: stage.label,
-    count: stage.documents.length,
-    totalUsd: sum(stage.documents.map((document) => document.totalSatUsd)),
-    color: stage.color,
-  }));
-}
-
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function MetricCard({
-  title,
-  value,
-  helper,
-  color,
-  icon,
-}: {
-  title: string;
-  value: string;
-  helper: string;
-  color: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="metric-card min-h-36">
-      <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color }} />
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-xs font-medium leading-5 text-white/50">{title}</div>
-          <div className="mt-3 truncate text-3xl font-semibold text-white tabular-nums">{value}</div>
-        </div>
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-          style={{ color, backgroundColor: `${color}20` }}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-3 truncate text-[11px] text-white/35">{helper}</div>
-    </div>
-  );
-}
-
-function ChartCard({
-  title,
-  subtitle,
-  icon,
-  action,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="card min-w-0 p-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-cyan-300">{icon}</span>
-          <div>
-            <h2 className="panel-title">{title}</h2>
-            <p className="panel-subtitle mt-1">{subtitle}</p>
-          </div>
-        </div>
-        {action}
-      </div>
-      <div className="h-72 min-w-0">{children}</div>
-    </section>
-  );
-}
-
-function ProcurementFunnel({
-  data,
-}: {
-  data: { label: string; count: number; totalUsd: number; color: string }[];
-}) {
-  const max = Math.max(data[0]?.count ?? 0, 1);
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {data.map((stage, index) => {
-        const conversion = index === 0 ? 100 : (stage.count / max) * 100;
-        return (
-          <div
-            key={stage.label}
-            className="relative min-w-64 overflow-hidden rounded-lg border border-white/10 px-4 py-3 transition hover:border-white/20"
-            style={{
-              width: `${Math.max(38, (stage.count / max) * 100)}%`,
-              backgroundColor: `${stage.color}16`,
-            }}
-          >
-            <span
-              className="absolute inset-y-0 left-0 w-1"
-              style={{ backgroundColor: stage.color }}
-            />
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-medium text-white/55">{stage.label}</div>
-                <div className="mt-1 text-xl font-semibold text-white tabular-nums">
-                  {formatNumber(stage.count)}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs font-semibold" style={{ color: stage.color }}>
-                  %{conversion.toFixed(0)}
-                </div>
-                <div className="mt-1 text-[10px] text-white/35">
-                  {formatCompactUsd(stage.totalUsd)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 interface StatusFlowItem {
@@ -1745,79 +1655,6 @@ function StatusFlowBars({
   );
 }
 
-function DeliveryRiskGrid({ data }: { data: { name: string; value: number }[] }) {
-  const colors = ['#ef4444', '#f97316', '#f59e0b', '#64748b'];
-  const total = sum(data.map((item) => item.value));
-  return (
-    <div className="grid h-full grid-cols-2 gap-3">
-      {data.map((item, index) => (
-        <div
-          key={item.name}
-          className="relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.035] p-4"
-        >
-          <span
-            className="absolute inset-x-0 top-0 h-1"
-            style={{ backgroundColor: colors[index] }}
-          />
-          <div className="text-xs font-medium text-white/45">{item.name}</div>
-          <div className="mt-3 text-3xl font-semibold text-white tabular-nums">
-            {formatNumber(item.value)}
-          </div>
-          <div className="mt-2 text-[11px]" style={{ color: colors[index] }}>
-            {percent(item.value, total)} açık kalem
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HorizontalBar({
-  data,
-  color,
-  name,
-  currency = false,
-}: {
-  data: { name: string; value: number }[];
-  color: string;
-  name: string;
-  currency?: boolean;
-}) {
-  return data.length > 0 ? (
-    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-      <BarChart data={data} layout="vertical" margin={{ left: 12, right: 22 }}>
-        <CartesianGrid stroke="rgb(255 255 255 / 0.07)" horizontal={false} />
-        <XAxis
-          type="number"
-          allowDecimals={false}
-          stroke="#64748b"
-          fontSize={11}
-          tickFormatter={currency ? compactAxis : undefined}
-        />
-        <YAxis
-          type="category"
-          dataKey="name"
-          width={128}
-          stroke="#94a3b8"
-          fontSize={10}
-          tickLine={false}
-          tickFormatter={shortLabel}
-        />
-        <Tooltip
-          contentStyle={TOOLTIP_STYLE}
-          cursor={{ fill: 'rgb(255 255 255 / 0.04)' }}
-          formatter={(value) =>
-            currency ? [formatUsd(Number(value)), name] : [Number(value), name]
-          }
-        />
-        <Bar dataKey="value" name={name} fill={color} radius={[0, 5, 5, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  ) : (
-    <EmptyChart message="Seçili filtrelerde grafik verisi yok." />
-  );
-}
-
 function ExportSelect({
   label,
   value,
@@ -1957,14 +1794,6 @@ function ExportDetail({
   );
 }
 
-function EmptyChart({ message }: { message: string }) {
-  return (
-    <div className="flex h-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] px-6 text-center text-sm text-white/40">
-      {message}
-    </div>
-  );
-}
-
 function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
 }
@@ -2011,21 +1840,6 @@ function formatCompactUsd(value: number) {
   }).format(value)} USD`;
 }
 
-function percent(value: number, total: number) {
-  return total ? `%${Math.round((value / total) * 100)}` : '%0';
-}
-
 function yesNo(value: boolean) {
   return value ? 'Evet' : 'Hayır';
-}
-
-function shortLabel(value: string) {
-  return value.length > 20 ? `${value.slice(0, 19)}…` : value;
-}
-
-function compactAxis(value: number) {
-  return new Intl.NumberFormat('tr-TR', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
 }

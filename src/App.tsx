@@ -316,7 +316,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               <FileUpload
                 title="SAT Takip Excel'i"
                 subtitle="Satın alma talepleri, onay ve teklif süreçlerini içeren dosya"
-                hint="SAT LİSTESİ veya SAP EXPORT dosyası desteklenir. SAP Export verileri sabit sütun konumlarından, hücre renginden bağımsız okunur."
+                hint="SAT LİSTESİ, yeni SAT Takip Listesi veya SAP EXPORT desteklenir. Sabit sütun konumlarından, hücre renginden bağımsız okunur."
                 fileMeta={satFile}
                 loading={satLoading}
                 error={satError}

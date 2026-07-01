@@ -168,6 +168,10 @@ export interface SATRow {
 
 export type SATFileFormat = 'legacy' | 'sap_export';
 
+export type SATBudgetCompany = 'PETKIM' | 'STAR' | 'STAD';
+
+export type SATBudgetType = 'CAPEX' | 'OPEX' | 'OPERATIONAL_CAPEX';
+
 export interface SATExportRow {
   rowId: string;
   sourceRow: number;
@@ -196,11 +200,11 @@ export interface SATExportRow {
   vendorName: string;
   materialGroup: string;
   approvalStatusDescription: string;
+  budgetCompany?: SATBudgetCompany;
+  budgetType?: SATBudgetType;
+  budgetSourceCode?: string;
+  budgetSourceLabel?: string;
 }
-
-export type SATBudgetCompany = 'PETKIM' | 'STAR' | 'STAD';
-
-export type SATBudgetType = 'CAPEX' | 'OPEX' | 'OPERATIONAL_CAPEX';
 
 export interface SATBudgetRow {
   rowId: string;
