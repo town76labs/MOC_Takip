@@ -538,44 +538,13 @@ export function SATExportDashboard() {
       </section>
 
       <section className="card p-5">
-        <div className="mb-4">
-          <h2 className="panel-title">Satınalma Özet Durum Akışı</h2>
-          <p className="panel-subtitle mt-1">
-            Belge bazında hesaplanır; karta tıklayarak tüm dashboard'ı filtreleyin.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-          {statusSummary.map((status) => {
-            const active = selectedStatus === status.key;
-            return (
-              <button
-                key={status.key}
-                type="button"
-                onClick={() => setSelectedStatus(active ? '' : status.key)}
-                aria-pressed={active}
-                className={`relative min-h-32 overflow-hidden rounded-lg border p-3 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.08] ${
-                  active
-                    ? 'border-cyan-300/70 bg-cyan-400/10 ring-2 ring-cyan-400/25'
-                    : 'border-white/10 bg-white/[0.045]'
-                }`}
-              >
-                <span
-                  className="absolute inset-x-0 top-0 h-1"
-                  style={{ backgroundColor: status.color }}
-                />
-                <div className="mt-1 text-[11px] font-medium leading-4 text-white/55">
-                  {status.label}
-                </div>
-                <div className="mt-3 text-2xl font-semibold text-white tabular-nums">
-                  {status.count}
-                </div>
-                <div className="mt-2 truncate text-[10px] text-white/35">
-                  {formatUsd(status.totalUsd)}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <StatusFlowBars
+          statuses={statusSummary}
+          selectedStatus={selectedStatus}
+          onSelect={(status) =>
+            setSelectedStatus(selectedStatus === status ? '' : status)
+          }
+        />
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -1627,6 +1596,151 @@ function ProcurementFunnel({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+interface StatusFlowItem {
+  key: string;
+  label: string;
+  color: string;
+  count: number;
+  totalUsd: number;
+}
+
+function StatusFlowBars({
+  statuses,
+  selectedStatus,
+  onSelect,
+}: {
+  statuses: StatusFlowItem[];
+  selectedStatus: string;
+  onSelect: (status: string) => void;
+}) {
+  const [metric, setMetric] = useState<'count' | 'usd'>('count');
+  const totalCount = sum(statuses.map((status) => status.count));
+  const totalUsd = sum(statuses.map((status) => status.totalUsd));
+  const total = metric === 'count' ? totalCount : totalUsd;
+  const visibleStatuses = statuses.filter((status) => status.count > 0);
+
+  function metricValue(status: StatusFlowItem) {
+    return metric === 'count' ? status.count : status.totalUsd;
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="panel-title">Satınalma Özet Durum Akışı</h2>
+          <p className="panel-subtitle mt-1">
+            Belge bazında hesaplanır; barlara tıklayarak tüm dashboard'ı filtreleyin.
+          </p>
+        </div>
+        <div className="inline-flex w-fit rounded-lg border border-white/10 bg-white/[0.04] p-1">
+          {[
+            { key: 'count' as const, label: 'Adet' },
+            { key: 'usd' as const, label: 'SAT USD' },
+          ].map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setMetric(item.key)}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                metric === item.key
+                  ? 'bg-cyan-400 text-slate-950'
+                  : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.035]">
+        <div className="flex h-5 w-full overflow-hidden bg-white/[0.04]">
+          {visibleStatuses.length > 0 ? (
+            visibleStatuses.map((status) => {
+              const value = metricValue(status);
+              const percentValue = total ? (value / total) * 100 : 0;
+              const active = selectedStatus === status.key;
+              return (
+                <button
+                  key={status.key}
+                  type="button"
+                  title={`${status.label} · ${formatNumber(status.count)} SAT · ${formatUsd(status.totalUsd)}`}
+                  onClick={() => onSelect(status.key)}
+                  aria-pressed={active}
+                  className={`h-full shrink-0 transition hover:brightness-125 ${
+                    active ? 'brightness-125 ring-2 ring-inset ring-white/70' : ''
+                  }`}
+                  style={{
+                    width: `${Math.max(percentValue, percentValue > 0 ? 1.5 : 0)}%`,
+                    backgroundColor: status.color,
+                  }}
+                />
+              );
+            })
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[10px] text-white/35">
+              Veri yok
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-x-6 gap-y-1.5 p-3 xl:grid-cols-2">
+          {statuses.map((status) => {
+            const value = metricValue(status);
+            const percentValue = total ? (value / total) * 100 : 0;
+            const active = selectedStatus === status.key;
+            return (
+              <button
+                key={status.key}
+                type="button"
+                onClick={() => onSelect(status.key)}
+                aria-pressed={active}
+                className={`grid grid-cols-[minmax(150px,1.1fr)_minmax(130px,1.6fr)_auto] items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
+                  active
+                    ? 'bg-cyan-400/10 ring-1 ring-cyan-300/45'
+                    : 'hover:bg-white/[0.045]'
+                }`}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: status.color }}
+                  />
+                  <span className="truncate text-xs font-medium text-white/70">
+                    {status.label}
+                  </span>
+                </span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-500/25">
+                    <span
+                      className="block h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(percentValue, percentValue > 0 ? 1.5 : 0)}%`,
+                        backgroundColor: status.color,
+                      }}
+                    />
+                  </span>
+                  <span className="w-10 text-right text-[10px] font-semibold text-white/40 tabular-nums">
+                    %{Math.round(percentValue)}
+                  </span>
+                </span>
+                <span className="text-right">
+                  <span className="block text-sm font-semibold text-white tabular-nums">
+                    {formatNumber(status.count)}
+                  </span>
+                  <span className="block text-[10px] text-white/35">
+                    {formatCompactUsd(status.totalUsd)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

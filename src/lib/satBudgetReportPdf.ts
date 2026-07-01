@@ -61,12 +61,12 @@ const COLORS = {
   slate: '#475569',
   line: '#cbd5e1',
   soft: '#f1f5f9',
-  darkPanel: '#080808',
-  darkCard: '#171717',
-  darkCardSoft: '#202020',
-  darkBorder: '#2f2f2f',
-  white: '#f8fafc',
-  mutedDark: '#9ca3af',
+  darkPanel: '#ffffff',
+  darkCard: '#ffffff',
+  darkCardSoft: '#f8fafc',
+  darkBorder: '#e2e8f0',
+  white: '#0f172a',
+  mutedDark: '#64748b',
   cyan: '#0891b2',
   orange: '#d97706',
   purple: '#7c3aed',
@@ -90,18 +90,18 @@ const COMPANY_THEME: Record<
 > = {
   PETKIM: {
     color: '#38bdf8',
-    soft: '#082f49',
-    border: '#0891b2',
+    soft: '#e0f2fe',
+    border: '#7dd3fc',
   },
   STAR: {
     color: '#ef4444',
-    soft: '#450a0a',
-    border: '#b91c1c',
+    soft: '#fee2e2',
+    border: '#fca5a5',
   },
   STAD: {
     color: '#22c55e',
-    soft: '#052e16',
-    border: '#15803d',
+    soft: '#dcfce7',
+    border: '#86efac',
   },
 };
 
@@ -115,10 +115,10 @@ const STAGE_THEME: Record<
   SATBudgetUsageStage | 'UNUSED',
   { color: string; soft: string }
 > = {
-  SAT: { color: '#38bdf8', soft: '#082f49' },
-  SAS: { color: '#ef4444', soft: '#450a0a' },
-  FAT: { color: '#22c55e', soft: '#052e16' },
-  UNUSED: { color: '#64748b', soft: '#1e293b' },
+  SAT: { color: '#38bdf8', soft: '#e0f2fe' },
+  SAS: { color: '#ef4444', soft: '#fee2e2' },
+  FAT: { color: '#22c55e', soft: '#dcfce7' },
+  UNUSED: { color: '#64748b', soft: '#e2e8f0' },
 };
 
 const styles: StyleDictionary = {
@@ -280,8 +280,8 @@ export function buildSATBudgetReportDefinition(
 }
 
 function budgetSourcesDashboard(companies: CompanySourceSummary[]): Content {
-  return dashboardPanel(
-    [
+  return {
+    stack: [
       {
         columns: [
           {
@@ -290,12 +290,12 @@ function budgetSourcesDashboard(companies: CompanySourceSummary[]): Content {
                 text: 'Bütçe Kaynakları',
                 bold: true,
                 fontSize: 13,
-                color: COLORS.white,
+                color: COLORS.navy,
               },
               {
                 text: 'Şirket bazında net bütçe kaynakları; Operational CAPEX, OPEX ve CAPEX sırasıyla gösterilir.',
                 fontSize: 8,
-                color: COLORS.mutedDark,
+                color: COLORS.slate,
                 margin: [0, 4, 0, 0],
               },
             ],
@@ -305,10 +305,24 @@ function budgetSourcesDashboard(companies: CompanySourceSummary[]): Content {
             text: `${companies.length} kapsam`,
             alignment: 'right',
             fontSize: 8,
-            color: COLORS.mutedDark,
+            color: COLORS.slate,
             margin: [0, 3, 0, 0],
           },
         ],
+      },
+      {
+        canvas: [
+          {
+            type: 'line',
+            x1: 0,
+            y1: 0,
+            x2: 760,
+            y2: 0,
+            lineWidth: 0.6,
+            lineColor: COLORS.line,
+          },
+        ],
+        margin: [0, 8, 0, 10],
       },
       {
         columns: companies.map(
@@ -318,17 +332,16 @@ function budgetSourcesDashboard(companies: CompanySourceSummary[]): Content {
           }) as unknown as Content,
         ),
         columnGap: 9,
-        margin: [0, 12, 0, 0],
       },
     ],
-    [0, 0, 0, 16],
-  );
+    margin: [0, 0, 0, 16],
+  };
 }
 
 function companySourceCard(company: CompanySourceSummary): Content {
   const theme = COMPANY_THEME[company.company];
-  return themedCard(
-    [
+  return {
+    stack: [
       {
         columns: [
           {
@@ -337,7 +350,7 @@ function companySourceCard(company: CompanySourceSummary): Content {
                 text: company.label,
                 bold: true,
                 fontSize: 12,
-                color: COLORS.white,
+                color: COLORS.navy,
               },
               {
                 text: `${company.sources.length} bütçe kaynağı`,
@@ -367,12 +380,11 @@ function companySourceCard(company: CompanySourceSummary): Content {
             ],
           },
         ],
+        margin: [0, 0, 0, 8],
       },
       ...company.sources.map((source) => sourceSummaryCard(source, theme)),
     ],
-    theme,
-    [0, 0, 0, 0],
-  );
+  };
 }
 
 function sourceSummaryCard(
@@ -396,13 +408,13 @@ function sourceSummaryCard(
                 text: source.displayLabel,
                 bold: true,
                 fontSize: 9.5,
-                color: '#d4d4d8',
+                color: COLORS.navy,
                 margin: [0, 4, 0, 0],
               },
               {
                 text: source.sourceCode,
                 fontSize: 7.2,
-                color: '#71717a',
+                color: '#64748b',
                 margin: [0, 3, 0, 0],
               },
             ],
@@ -446,7 +458,7 @@ function sourceSummaryCard(
             alignment: 'right',
             bold: true,
             fontSize: 7.2,
-            color: '#a5f3fc',
+            color: theme.color,
           },
         ],
         margin: [0, 8, 0, 3],
@@ -457,13 +469,13 @@ function sourceSummaryCard(
           {
             text: `Kullanılan: ${formatCompactUsd(source.used)}`,
             fontSize: 6.8,
-            color: '#71717a',
+            color: '#64748b',
           },
           {
             text: `Kalan: ${formatCompactUsd(source.unused)}`,
             alignment: 'right',
             fontSize: 6.8,
-            color: '#71717a',
+            color: '#64748b',
           },
         ],
         margin: [0, 4, 0, 0],
@@ -557,7 +569,6 @@ function companyUsageDashboard(
       },
     ],
     [0, separatedFromPrevious ? 16 : 0, 0, 12],
-    companyTheme.border,
     separatedFromPrevious ? 'before' : undefined,
   );
   return [
@@ -675,7 +686,7 @@ function usageSummaryCard(
                             alignment: 'right',
                             bold: true,
                             fontSize: 8.2,
-                            color: '#d4d4d8',
+                            color: COLORS.navy,
                             margin: [0, 4, 0, 0],
                           },
                         ],
@@ -692,12 +703,12 @@ function usageSummaryCard(
                   ),
                   {
                     columns: [
-                      { text: '0', fontSize: 6.6, color: '#71717a' },
+                      { text: '0', fontSize: 6.6, color: '#64748b' },
                       {
                         text: formatCompactUsd(summary.totalBudget),
                         alignment: 'right',
                         fontSize: 6.6,
-                        color: '#71717a',
+                        color: '#64748b',
                       },
                     ],
                     margin: [0, 4, 0, 0],
@@ -756,14 +767,14 @@ function stageRows(summary: UsageSummary): Content {
               {
                 text: segment.label,
                 fontSize: 7.7,
-                color: '#d4d4d8',
+                color: COLORS.slate,
               },
               {
                 text: `%${percent}`,
                 fontSize: 6.6,
                 bold: true,
-                color: '#a1a1aa',
-                fillColor: '#262626',
+                color: COLORS.slate,
+                fillColor: COLORS.soft,
                 margin: [2, 1, 2, 1],
               },
             ],
@@ -778,7 +789,7 @@ function stageRows(summary: UsageSummary): Content {
             alignment: 'right',
             bold: true,
             fontSize: 7.5,
-            color: '#d4d4d8',
+            color: COLORS.navy,
             margin: [0, 1, 0, 0],
           },
         ];
@@ -815,7 +826,7 @@ function usageStackedBar(
     });
   return {
     canvas: [
-      { type: 'rect', x: 0, y: 0, w: width, h: height, color: '#334155' },
+      { type: 'rect', x: 0, y: 0, w: width, h: height, color: '#e2e8f0' },
       ...bars,
     ],
     margin,
@@ -825,7 +836,6 @@ function usageStackedBar(
 function dashboardPanel(
   stack: Content[],
   margin: [number, number, number, number],
-  borderColor = COLORS.darkBorder,
   pageBreak?: 'before' | 'after',
 ): Content {
   return {
@@ -841,7 +851,7 @@ function dashboardPanel(
         ],
       ],
     },
-    layout: borderLayout(borderColor, 0.8),
+    layout: 'noBorders',
     margin,
     ...(pageBreak ? { pageBreak } : {}),
   };
@@ -868,6 +878,7 @@ function themedCard(
     },
     layout: borderLayout(theme.border, 0.7),
     margin,
+    unbreakable: true,
   };
 }
 
@@ -889,7 +900,7 @@ function progressBar(
   color: string,
   width: number,
   height: number,
-  background = '#334155',
+  background = '#e2e8f0',
 ): Content {
   const normalized = clamp(percent, 0, 100);
   const fillWidth = normalized > 0 ? Math.max(1, (normalized / 100) * width) : 0;
