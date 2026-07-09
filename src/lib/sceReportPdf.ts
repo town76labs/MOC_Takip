@@ -7,7 +7,10 @@ import type {
 } from 'pdfmake/interfaces';
 import type { SCERow } from '../types';
 import { formatDate, normalize, parseDate } from './normalize';
-import { classifySCEMaintenance } from './sceMaintenance';
+import {
+  classifySCEMaintenance,
+  classifySCEShutdownRequirement,
+} from './sceMaintenance';
 
 export type SCEReportView = 'overview' | 'tracking';
 
@@ -226,6 +229,7 @@ function buildTrackingReport(rows: SCERow[], scopeLabel: string): Content[] {
         'Duruş Gerekliliği',
         'Duruş Açıklaması',
         'Deferral',
+        'Son Kontrol',
         'Son Bakım',
         'Sonraki Bakım',
         'Durum',
@@ -241,11 +245,12 @@ function buildTrackingReport(rows: SCERow[], scopeLabel: string): Content[] {
         row.durusGereklilikYorumu || '—',
         row.durusAciklamasi || '—',
         row.deferralSureci || '—',
+        row.sonKontrolTarihi || '—',
         row.sonBakimTarihi || '—',
         row.sonrakiBakimTarihi || '—',
         maintenanceStatusLabel(row),
       ]),
-      [36, 44, 66, 50, 54, 48, 38, 62, 72, 44, 44, 46, 58],
+      [34, 40, 62, 48, 50, 44, 36, 58, 68, 40, 42, 42, 44, 54],
       5.4,
     ),
   ];
@@ -450,15 +455,15 @@ function buildMaintenanceDistribution(rows: SCERow[]): DistributionRow[] {
 
 function buildShutdownDistribution(rows: SCERow[]): DistributionRow[] {
   const definitions = [
-    ['Duruş Gereklidir', 'durus gereklidir', COLORS.orange],
-    ['Duruş Gerekli Değildir', 'durus gerekli degildir', COLORS.green],
-    ['Force ile Yapılabilir', 'force ile yapilabilir', COLORS.purple],
+    ['Duruş Gereklidir', 'required', COLORS.orange],
+    ['Duruş Gerekli Değildir', 'not_required', COLORS.green],
+    ['Force ile Yapılabilir', 'force', COLORS.purple],
   ] as const;
   return definitions.map(([label, value, color]) => ({
     label,
     color,
     value: rows.filter(
-      (row) => normalize(row.durusGereklilikYorumu) === value,
+      (row) => classifySCEShutdownRequirement(row.durusGereklilikYorumu) === value,
     ).length,
   }));
 }

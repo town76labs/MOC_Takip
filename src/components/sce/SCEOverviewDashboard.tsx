@@ -26,7 +26,7 @@ import {
   ShieldCheck,
   Wrench,
 } from 'lucide-react';
-import type { SCERow } from '../../types';
+import type { SCECompany, SCERow } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import { formatDate, parseDate } from '../../lib/normalize';
 import {
@@ -50,6 +50,32 @@ const MAINTENANCE_COLORS = {
   notRequired: '#8b5cf6',
 };
 
+const COMPANY_CONFIG: {
+  key: SCECompany;
+  label: string;
+  color: string;
+  accentClass: string;
+}[] = [
+  {
+    key: 'PETKIM',
+    label: 'Petkim',
+    color: '#38bdf8',
+    accentClass: 'from-sky-400 to-cyan-600',
+  },
+  {
+    key: 'STAR',
+    label: 'Star',
+    color: '#ef4444',
+    accentClass: 'from-red-500 to-red-700',
+  },
+  {
+    key: 'STAD',
+    label: 'STAD',
+    color: '#22c55e',
+    accentClass: 'from-emerald-500 to-green-700',
+  },
+];
+
 type MaintenanceFilter =
   | 'completed'
   | 'deferral_started'
@@ -58,31 +84,34 @@ type MaintenanceFilter =
 
 export function SCEOverviewDashboard() {
   const rows = useDataStore((state) => state.sceRows);
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [selectedFactory, setSelectedFactory] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<SCECompany | ''>('');
   const [selectedMaintenanceFilter, setSelectedMaintenanceFilter] =
     useState<MaintenanceFilter | null>(null);
   const [detail, setDetail] = useState<SCERow | null>(null);
-
-  const options = useMemo(
-    () => ({
-      companies: unique(rows.map((row) => row.sirket)),
-      factories: unique(rows.map((row) => row.fabrika)),
-      groups: unique(rows.map((row) => row.sceGrubu)),
-    }),
-    [rows],
-  );
 
   const filteredRows = useMemo(
     () =>
       rows.filter(
         (row) =>
-          (!selectedCompany || row.sirket === selectedCompany) &&
-          (!selectedFactory || row.fabrika === selectedFactory) &&
-          (!selectedGroup || row.sceGrubu === selectedGroup),
+          !selectedCompany || row.sirket === selectedCompany,
       ),
-    [rows, selectedCompany, selectedFactory, selectedGroup],
+    [rows, selectedCompany],
+  );
+
+  const companySummaries = useMemo(
+    () =>
+      COMPANY_CONFIG.map((company) => {
+        const companyRows = rows.filter((row) => row.sirket === company.key);
+        const maintenance = buildMaintenanceSummary(companyRows);
+        return {
+          ...company,
+          total: companyRows.length,
+          planned: maintenance.planned,
+          completed: maintenance.completed,
+          overdue: maintenance.overdue,
+        };
+      }),
+    [rows],
   );
 
   const summary = useMemo(
@@ -117,24 +146,19 @@ export function SCEOverviewDashboard() {
     [filteredRows],
   );
 
-  const filtersActive = Boolean(
-    selectedCompany || selectedFactory || selectedGroup,
-  );
+  const filtersActive = Boolean(selectedCompany);
 
   function clearFilters() {
     setSelectedCompany('');
-    setSelectedFactory('');
-    setSelectedGroup('');
     setSelectedMaintenanceFilter(null);
   }
 
-  const reportFilterLabel = [
-    selectedCompany ? `Şirket: ${selectedCompany}` : '',
-    selectedFactory ? `Fabrika: ${selectedFactory}` : '',
-    selectedGroup ? `SCE Grubu: ${selectedGroup}` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ') || 'Mevcut SCE Genel Bakış Görünümü';
+  const selectedCompanyLabel =
+    COMPANY_CONFIG.find((company) => company.key === selectedCompany)?.label ??
+    'Genel';
+  const reportFilterLabel = selectedCompany
+    ? `Şirket: ${selectedCompanyLabel}`
+    : 'Mevcut SCE Genel Bakış Görünümü';
 
   return (
     <div className="space-y-6">
@@ -146,12 +170,12 @@ export function SCEOverviewDashboard() {
           view="overview"
         />
       </div>
-      <section className="card p-4">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <section className="card p-5">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="panel-title">SCE Genel Bakış Filtreleri</h2>
+            <h2 className="panel-title">SCE Şirket Genel Bakışı</h2>
             <p className="panel-subtitle mt-1">
-              KPI, grafik ve kritik ekipman listesi birlikte filtrelenir.
+              Petkim, Star ve STAD kartlarına tıklayarak genel bakış dashboard'unu filtreleyin.
             </p>
           </div>
           <button
@@ -164,25 +188,80 @@ export function SCEOverviewDashboard() {
             Filtreleri Temizle
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <SCESelect
-            label="Şirket"
-            value={selectedCompany}
-            options={options.companies}
-            onChange={setSelectedCompany}
-          />
-          <SCESelect
-            label="Fabrika / Ünite"
-            value={selectedFactory}
-            options={options.factories}
-            onChange={setSelectedFactory}
-          />
-          <SCESelect
-            label="SCE Grubu"
-            value={selectedGroup}
-            options={options.groups}
-            onChange={setSelectedGroup}
-          />
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          {companySummaries.map((company) => {
+            const active = selectedCompany === company.key;
+            return (
+              <button
+                key={company.key}
+                type="button"
+                onClick={() =>
+                  setSelectedCompany((current) =>
+                    current === company.key ? '' : company.key,
+                  )
+                }
+                aria-pressed={active}
+                className={`rounded-2xl border bg-black/20 p-4 text-left transition hover:bg-white/[0.045] ${
+                  selectedCompany && !active ? 'opacity-55' : ''
+                }`}
+                style={{
+                  borderColor: active ? company.color : `${company.color}55`,
+                  boxShadow: active ? `0 0 0 2px ${company.color}33` : undefined,
+                }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div
+                      className="text-lg font-extrabold uppercase tracking-[0.35em]"
+                      style={{ color: company.color }}
+                    >
+                      {company.label}
+                    </div>
+                    <div className="mt-2 text-xs text-white/40">
+                      SCE ekipman kapsamı
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-semibold text-white tabular-nums">
+                      {formatNumber(company.total)}
+                    </div>
+                    <div className="text-[10px] text-white/35">ekipman</div>
+                  </div>
+                </div>
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-500/20">
+                  <div
+                    className={`h-full rounded-full bg-gradient-to-r ${company.accentClass}`}
+                    style={{
+                      width: `${Math.max(
+                        4,
+                        rows.length ? (company.total / rows.length) * 100 : 0,
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2">
+                    <div className="text-white/35">Planlı</div>
+                    <div className="mt-1 font-semibold text-white tabular-nums">
+                      {formatNumber(company.planned)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2">
+                    <div className="text-white/35">Bakımı</div>
+                    <div className="mt-1 font-semibold text-white tabular-nums">
+                      {formatNumber(company.completed)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2">
+                    <div className="text-white/35">Gecikmiş</div>
+                    <div className="mt-1 font-semibold text-white tabular-nums">
+                      {formatNumber(company.overdue)}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -848,36 +927,6 @@ function ChartCard({
   );
 }
 
-function SCESelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-white/50">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="input appearance-none bg-[#171717]"
-      >
-        <option value="">Tümü</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function EmptyChart({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] px-6 text-center text-sm text-white/40">
@@ -903,6 +952,7 @@ function SCEOverviewDetail({ row }: { row: SCERow }) {
     ['Duruş Gereklilik / Yapılabilirlik', row.durusGereklilikYorumu],
     ['Duruş Açıklaması', row.durusAciklamasi],
     ['Deferral Süreci', row.deferralSureci],
+    ['Son Kontrol Tarihi', row.sonKontrolTarihi],
     ['Son Bakım Tarihi', row.sonBakimTarihi],
     ['Sonraki Bakım Tarihi', row.sonrakiBakimTarihi],
   ];
@@ -1088,10 +1138,10 @@ function buildCountData(values: string[]) {
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'tr'));
 }
 
-function unique(values: string[]) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
-}
-
 function percent(value: number, total: number) {
   return total ? `%${Math.round((value / total) * 100)}` : '%0';
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('tr-TR').format(value);
 }

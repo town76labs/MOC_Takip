@@ -15,7 +15,6 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useDataStore } from '../../store/dataStore';
-import { normalize } from '../../lib/normalize';
 import type {
   SCECategory,
   SCECompany,
@@ -28,6 +27,7 @@ import {
   SCE_FACTORY_CODES,
 } from '../../lib/sceParser';
 import {
+  classifySCEShutdownRequirement,
   classifySCEMaintenance,
   hasSCEValue,
 } from '../../lib/sceMaintenance';
@@ -420,7 +420,7 @@ function PeriodicMaintenanceDonut({
         <div>
           <h2 className="panel-title">Periyodik Bakım Dağılımı</h2>
           <p className="panel-subtitle mt-1">
-            H ve J sütunları tamamlanmayı; N ve P sütunları deferral gerekliliğini belirler.
+            H bakım planını, J/K tarihleri tamamlanmayı; O ve Q sütunları deferral durumunu belirler.
           </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-right">
@@ -685,6 +685,7 @@ function sceDetailFields(row: SCERow) {
     },
     { label: 'Duruş Açıklaması', value: row.durusAciklamasi },
     { label: 'Deferral Süreci', value: row.deferralSureci },
+    { label: 'Son Kontrol Tarihi', value: row.sonKontrolTarihi },
     { label: 'Son Bakım Tarihi', value: row.sonBakimTarihi },
     {
       label: 'Son Bakım Bildirim/Sipariş',
@@ -816,7 +817,7 @@ function matchesShutdownRequirement(
   );
   return (
     !!config &&
-    normalize(row.durusGereklilikYorumu) === config.normalizedValue
+    classifySCEShutdownRequirement(row.durusGereklilikYorumu) === config.key
   );
 }
 
@@ -920,6 +921,13 @@ function columnsForCategory(
       sortValue: (row) => row.bakimPeriyodu,
       searchValue: (row) => row.bakimPeriyodu,
       render: (row) => row.bakimPeriyodu || '—',
+    },
+    {
+      key: 'lastControl',
+      header: 'Son Kontrol Tarihi',
+      sortValue: (row) => row.sonKontrolTarihi,
+      searchValue: (row) => row.sonKontrolTarihi,
+      render: (row) => row.sonKontrolTarihi || '—',
     },
     {
       key: 'lastMaintenance',

@@ -4,6 +4,7 @@ import {
   BatteryCharging,
   ChevronDown,
   FileChartColumn,
+  FileSearch,
   FileSpreadsheet,
   Gauge,
   GitCompareArrows,
@@ -29,13 +30,22 @@ import { MOCOverviewDashboard } from './components/overview/MOCOverviewDashboard
 import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
 import { SATExportDashboard } from './components/sat/SATExportDashboard';
 import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDashboard';
+import { RCADashboard } from './components/rca/RCADashboard';
 
-type AppMode = 'select' | 'moc' | 'legal' | 'sce' | 'energy' | 'sat';
+type AppMode =
+  | 'select'
+  | 'moc'
+  | 'legal'
+  | 'sce'
+  | 'energy'
+  | 'sat'
+  | 'rca';
 
 const AUTH_SESSION_KEY = 'moc-dashboard-authenticated';
 const AUTH_USERS = [
   { username: 'sarkhan.hajizada', password: 'Sarxan*155' },
   { username: 'kaan.ayaz', password: 'Kaan*570' },
+  { username: 'gokhan.kaya', password: 'gokhan*749' },
 ] as const;
 
 function App() {
@@ -102,6 +112,21 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const sceError = useDataStore((s) => s.sceError);
   const uploadSCE = useDataStore((s) => s.uploadSCE);
   const clearSCE = useDataStore((s) => s.clearSCE);
+  const sceStarFile = useDataStore((s) => s.sceStarFile);
+  const sceStarLoading = useDataStore((s) => s.sceStarLoading);
+  const sceStarError = useDataStore((s) => s.sceStarError);
+  const uploadSCEStar = useDataStore((s) => s.uploadSCEStar);
+  const clearSCEStar = useDataStore((s) => s.clearSCEStar);
+  const sceStadFile = useDataStore((s) => s.sceStadFile);
+  const sceStadLoading = useDataStore((s) => s.sceStadLoading);
+  const sceStadError = useDataStore((s) => s.sceStadError);
+  const uploadSCEStad = useDataStore((s) => s.uploadSCEStad);
+  const clearSCEStad = useDataStore((s) => s.clearSCEStad);
+  const rcaFile = useDataStore((s) => s.rcaFile);
+  const rcaLoading = useDataStore((s) => s.rcaLoading);
+  const rcaError = useDataStore((s) => s.rcaError);
+  const uploadRCA = useDataStore((s) => s.uploadRCA);
+  const clearRCA = useDataStore((s) => s.clearRCA);
   const satFile = useDataStore((s) => s.satFile);
   const satLoading = useDataStore((s) => s.satLoading);
   const satError = useDataStore((s) => s.satError);
@@ -164,7 +189,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <button
                 type="button"
                 onClick={() => setAppMode('moc')}
@@ -212,12 +237,115 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Satın Alma Talepleri ve Bütçe Takibi
                 </div>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('rca')}
+                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-amber-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm">
+                  <FileSearch size={25} strokeWidth={1.8} />
+                </div>
+                <div className="mt-8 text-3xl font-semibold text-white">
+                  RCA Dashboard
+                </div>
+                <div className="mt-3 text-sm text-white/50">
+                  Root Cause Analysis Aksiyon Takibi
+                </div>
+              </button>
             </div>
           </section>
         </main>
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-medium text-white/45 shadow-elevated backdrop-blur">
           Copyright Sarkhan HAJIZADA
         </div>
+      </div>
+    );
+  }
+
+  if (appMode === 'rca') {
+    return (
+      <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm ring-1 ring-white/10">
+                <FileSearch size={20} strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
+                <h1 className="text-base font-semibold leading-tight text-white">
+                  RCA Dashboard
+                </h1>
+                <p className="text-xs text-white/50">
+                  Root Cause Analysis Aksiyon Takibi
+                </p>
+              </div>
+              {rcaFile && (
+                <button
+                  type="button"
+                  onClick={clearRCA}
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30 sm:inline-flex"
+                >
+                  <FileSpreadsheet size={16} />
+                  Excel'i Değiştir
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAppMode('select')}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+            >
+              <ArrowLeft size={16} />
+              Dashboard Seçimi
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          {!rcaFile && (
+            <section className="mb-6 max-w-3xl">
+              <FileUpload
+                title="RCA Aksiyon Excel'i"
+                subtitle="RCA öneri aksiyonları, sorumluları ve hedef tamamlanma tarihleri"
+                hint="Recommendation ID, Analysis ID, Job Title, Status ve Target Completion Date başlıkları beklenir. Aksiyon sahibi F sütunundan alınır."
+                fileMeta={rcaFile}
+                loading={rcaLoading}
+                error={rcaError}
+                onFile={uploadRCA}
+                onClear={clearRCA}
+                accentColorClass="from-amber-400 to-orange-700"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
+
+          {!rcaFile ? (
+            <div className="card mx-auto max-w-3xl p-10 text-center">
+              <FileSearch
+                size={36}
+                className="mx-auto mb-4 text-amber-300"
+                strokeWidth={1.8}
+              />
+              <h2 className="text-lg font-semibold text-white">
+                Başlamak için RCA Excel dosyasını yükleyin
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                Proje/proses otomasyon kapsamı dışarıda bırakılır; kalan RCA
+                aksiyonları Petkim, Star ve STAD olarak ayrıştırılır.
+              </p>
+            </div>
+          ) : (
+            <RCADashboard />
+          )}
+        </main>
+
+        <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
+          Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
+        </footer>
       </div>
     );
   }
@@ -481,7 +609,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   }
 
   if (appMode === 'sce') {
-    const showSCEUpload = !sceFile || sceUploadsOpen;
+    const hasAnySCEFile = !!sceFile || !!sceStarFile || !!sceStadFile;
+    const showSCEUpload =
+      !sceFile || !sceStarFile || !sceStadFile || sceUploadsOpen;
 
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
@@ -502,7 +632,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Safety Critical Element
                 </p>
               </div>
-              {sceFile && (
+              {hasAnySCEFile && (
                 <button
                   type="button"
                   onClick={() => setSceUploadsOpen((open) => !open)}
@@ -510,7 +640,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:inline-flex"
                 >
                   <FileSpreadsheet size={16} />
-                  SCE Excel Dosyası
+                  SCE Excel Dosyaları
                   <ChevronDown
                     size={16}
                     className={`transition ${
@@ -521,7 +651,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {sceFile && (
+              {hasAnySCEFile && (
                 <button
                   type="button"
                   onClick={() => setSceUploadsOpen((open) => !open)}
@@ -546,10 +676,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
           {showSCEUpload && (
-            <section className="mb-6 max-w-3xl">
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
               <FileUpload
-                title="SCE Ekipmanları Excel'i"
-                subtitle="SCE ekipmanları, bakım planları ve periyodik bakım durumları"
+                title="Petkim SCE Excel'i"
+                subtitle="Petkim SCE ekipmanları, bakım planları ve periyodik bakım durumları"
                 hint="A sütununda fabrika kodu bulunmalıdır: 1000, 1001, 1002, 1007, 1008, 1009, 1010 veya 1014."
                 fileMeta={sceFile}
                 loading={sceLoading}
@@ -559,10 +689,34 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 accentColorClass="from-sky-400 to-sky-600"
                 surfaceClassName="upload-panel-dark"
               />
+              <FileUpload
+                title="Star SCE Excel'i"
+                subtitle="Star SCE ekipmanları için dosya girişi"
+                hint="Şimdilik aynı SCE formatı beklenir. Yüklenen kayıtlar Star şirketi altında tutulur."
+                fileMeta={sceStarFile}
+                loading={sceStarLoading}
+                error={sceStarError}
+                onFile={uploadSCEStar}
+                onClear={clearSCEStar}
+                accentColorClass="from-red-500 to-red-700"
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="STAD SCE Excel'i"
+                subtitle="STAD SCE ekipmanları için dosya girişi"
+                hint="Şimdilik aynı SCE formatı beklenir. Yüklenen kayıtlar STAD şirketi altında tutulur."
+                fileMeta={sceStadFile}
+                loading={sceStadLoading}
+                error={sceStadError}
+                onFile={uploadSCEStad}
+                onClear={clearSCEStad}
+                accentColorClass="from-emerald-500 to-green-700"
+                surfaceClassName="upload-panel-dark"
+              />
             </section>
           )}
 
-          {sceFile && (
+          {hasAnySCEFile && (
             <div className="mb-6 inline-flex rounded-lg border border-white/10 bg-black/35 p-1 shadow-sm">
               <button
                 type="button"
@@ -593,7 +747,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
             </div>
           )}
 
-          {!sceFile ? (
+          {!hasAnySCEFile ? (
             <div className="card mx-auto max-w-3xl p-10 text-center">
               <ShieldAlert
                 size={34}
@@ -832,12 +986,12 @@ function LoginScreen({
                   Enstrüman Bakım Müdürlüğü
                 </h1>
                 <p className="mt-4 max-w-md text-sm leading-6 text-white/55">
-                  MOC, SCE ve SAT dashboardlarına devam etmek için kullanıcı adı
-                  ve şifre ile giriş yapın.
+                  MOC, SCE, SAT ve RCA dashboardlarına devam etmek için kullanıcı
+                  adı ve şifre ile giriş yapın.
                 </p>
               </div>
 
-              <div className="mt-10 grid gap-3 text-sm text-white/50 sm:grid-cols-3">
+              <div className="mt-10 grid gap-3 text-sm text-white/50 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                   <ShieldCheck size={20} className="mb-3 text-emerald-300" />
                   MOC Takip
@@ -849,6 +1003,10 @@ function LoginScreen({
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                   <FileChartColumn size={20} className="mb-3 text-cyan-300" />
                   SAT Takip
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <FileSearch size={20} className="mb-3 text-amber-300" />
+                  RCA Takip
                 </div>
               </div>
             </div>

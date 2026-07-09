@@ -2,11 +2,13 @@ import { create } from 'zustand';
 import type {
   ActionRow,
   ParseError,
+  RCARow,
   SATBudgetRow,
   SATBudgetUsageRow,
   SATExportRow,
   SATFileFormat,
   SATRow,
+  SCECompany,
   SCERow,
   TechnicalRow,
   TechnicalStatus,
@@ -17,6 +19,7 @@ import {
   parseTechnicalExcel,
 } from '../lib/excelParser';
 import { parseSCEExcel } from '../lib/sceParser';
+import { parseRCAExcel } from '../lib/rcaParser';
 import { parseSATExcel } from '../lib/satParser';
 import { parseSATBudgetExcel } from '../lib/satBudgetParser';
 import {
@@ -30,12 +33,22 @@ interface FileMeta {
   uploadedAt: Date;
 }
 
+interface SCERowBuckets {
+  scePetkimRows: SCERow[];
+  sceStarRows: SCERow[];
+  sceStadRows: SCERow[];
+}
+
 interface DataState {
   // Yüklenen veriler
   technicalRows: TechnicalRow[];
   actionRows: ActionRow[];
   mocTakipMocNos: string[];
   sceRows: SCERow[];
+  scePetkimRows: SCERow[];
+  sceStarRows: SCERow[];
+  sceStadRows: SCERow[];
+  rcaRows: RCARow[];
   satRows: SATRow[];
   satExportRows: SATExportRow[];
   satBudgetRows: SATBudgetRow[];
@@ -45,6 +58,9 @@ interface DataState {
   actionsFile: FileMeta | null;
   mocTakipFile: FileMeta | null;
   sceFile: FileMeta | null;
+  sceStarFile: FileMeta | null;
+  sceStadFile: FileMeta | null;
+  rcaFile: FileMeta | null;
   satFile: FileMeta | null;
   satBudgetFile: FileMeta | null;
   satBudgetUsageFile: FileMeta | null;
@@ -54,6 +70,9 @@ interface DataState {
   actionsLoading: boolean;
   mocTakipLoading: boolean;
   sceLoading: boolean;
+  sceStarLoading: boolean;
+  sceStadLoading: boolean;
+  rcaLoading: boolean;
   satLoading: boolean;
   satBudgetLoading: boolean;
   satBudgetUsageLoading: boolean;
@@ -61,6 +80,9 @@ interface DataState {
   actionsError: ParseError | null;
   mocTakipError: ParseError | null;
   sceError: ParseError | null;
+  sceStarError: ParseError | null;
+  sceStadError: ParseError | null;
+  rcaError: ParseError | null;
   satError: ParseError | null;
   satBudgetError: ParseError | null;
   satBudgetUsageError: ParseError | null;
@@ -74,6 +96,9 @@ interface DataState {
   uploadActions: (file: File) => Promise<void>;
   uploadMOCTakip: (file: File) => Promise<void>;
   uploadSCE: (file: File) => Promise<void>;
+  uploadSCEStar: (file: File) => Promise<void>;
+  uploadSCEStad: (file: File) => Promise<void>;
+  uploadRCA: (file: File) => Promise<void>;
   uploadSAT: (file: File) => Promise<void>;
   uploadSATBudget: (file: File) => Promise<void>;
   uploadSATBudgetUsage: (file: File) => Promise<void>;
@@ -81,6 +106,9 @@ interface DataState {
   clearActions: () => void;
   clearMOCTakip: () => void;
   clearSCE: () => void;
+  clearSCEStar: () => void;
+  clearSCEStad: () => void;
+  clearRCA: () => void;
   clearSAT: () => void;
   clearSATBudget: () => void;
   clearSATBudgetUsage: () => void;
@@ -93,6 +121,10 @@ export const useDataStore = create<DataState>((set, get) => ({
   actionRows: [],
   mocTakipMocNos: [],
   sceRows: [],
+  scePetkimRows: [],
+  sceStarRows: [],
+  sceStadRows: [],
+  rcaRows: [],
   satRows: [],
   satExportRows: [],
   satBudgetRows: [],
@@ -102,6 +134,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   actionsFile: null,
   mocTakipFile: null,
   sceFile: null,
+  sceStarFile: null,
+  sceStadFile: null,
+  rcaFile: null,
   satFile: null,
   satBudgetFile: null,
   satBudgetUsageFile: null,
@@ -109,6 +144,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   actionsLoading: false,
   mocTakipLoading: false,
   sceLoading: false,
+  sceStarLoading: false,
+  sceStadLoading: false,
+  rcaLoading: false,
   satLoading: false,
   satBudgetLoading: false,
   satBudgetUsageLoading: false,
@@ -116,6 +154,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   actionsError: null,
   mocTakipError: null,
   sceError: null,
+  sceStarError: null,
+  sceStadError: null,
+  rcaError: null,
   satError: null,
   satBudgetError: null,
   satBudgetUsageError: null,
@@ -188,19 +229,103 @@ export const useDataStore = create<DataState>((set, get) => ({
     set({ sceLoading: true, sceError: null });
     const { data, error } = await parseSCEExcel(file);
     if (error) {
-      set({
+      set((state) => {
+        const scePetkimRows: SCERow[] = [];
+        return {
+          sceLoading: false,
+          sceError: error,
+          scePetkimRows,
+          sceRows: combineSCERows({ ...state, scePetkimRows }),
+          sceFile: null,
+        };
+      });
+      return;
+    }
+    set((state) => {
+      const scePetkimRows = forceSCECompany(data, 'PETKIM');
+      return {
         sceLoading: false,
-        sceError: error,
-        sceRows: [],
-        sceFile: null,
+        scePetkimRows,
+        sceRows: combineSCERows({ ...state, scePetkimRows }),
+        sceFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+        sceError: null,
+      };
+    });
+  },
+
+  uploadSCEStar: async (file: File) => {
+    set({ sceStarLoading: true, sceStarError: null });
+    const { data, error } = await parseSCEExcel(file);
+    if (error) {
+      set((state) => {
+        const sceStarRows: SCERow[] = [];
+        return {
+          sceStarLoading: false,
+          sceStarError: error,
+          sceStarRows,
+          sceRows: combineSCERows({ ...state, sceStarRows }),
+          sceStarFile: null,
+        };
+      });
+      return;
+    }
+    set((state) => {
+      const sceStarRows = forceSCECompany(data, 'STAR');
+      return {
+        sceStarLoading: false,
+        sceStarRows,
+        sceRows: combineSCERows({ ...state, sceStarRows }),
+        sceStarFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+        sceStarError: null,
+      };
+    });
+  },
+
+  uploadSCEStad: async (file: File) => {
+    set({ sceStadLoading: true, sceStadError: null });
+    const { data, error } = await parseSCEExcel(file);
+    if (error) {
+      set((state) => {
+        const sceStadRows: SCERow[] = [];
+        return {
+          sceStadLoading: false,
+          sceStadError: error,
+          sceStadRows,
+          sceRows: combineSCERows({ ...state, sceStadRows }),
+          sceStadFile: null,
+        };
+      });
+      return;
+    }
+    set((state) => {
+      const sceStadRows = forceSCECompany(data, 'STAD');
+      return {
+        sceStadLoading: false,
+        sceStadRows,
+        sceRows: combineSCERows({ ...state, sceStadRows }),
+        sceStadFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+        sceStadError: null,
+      };
+    });
+  },
+
+  uploadRCA: async (file: File) => {
+    set({ rcaLoading: true, rcaError: null });
+    const { data, error } = await parseRCAExcel(file);
+    if (error) {
+      set({
+        rcaLoading: false,
+        rcaError: error,
+        rcaRows: [],
+        rcaFile: null,
       });
       return;
     }
     set({
-      sceLoading: false,
-      sceRows: data,
-      sceFile: { name: file.name, size: file.size, uploadedAt: new Date() },
-      sceError: null,
+      rcaLoading: false,
+      rcaRows: data,
+      rcaFile: { name: file.name, size: file.size, uploadedAt: new Date() },
+      rcaError: null,
     });
   },
 
@@ -308,10 +433,40 @@ export const useDataStore = create<DataState>((set, get) => ({
       selectedTechnicalStatuses: [],
     }),
   clearSCE: () =>
+    set((state) => {
+      const scePetkimRows: SCERow[] = [];
+      return {
+        scePetkimRows,
+        sceRows: combineSCERows({ ...state, scePetkimRows }),
+        sceFile: null,
+        sceError: null,
+      };
+    }),
+  clearSCEStar: () =>
+    set((state) => {
+      const sceStarRows: SCERow[] = [];
+      return {
+        sceStarRows,
+        sceRows: combineSCERows({ ...state, sceStarRows }),
+        sceStarFile: null,
+        sceStarError: null,
+      };
+    }),
+  clearSCEStad: () =>
+    set((state) => {
+      const sceStadRows: SCERow[] = [];
+      return {
+        sceStadRows,
+        sceRows: combineSCERows({ ...state, sceStadRows }),
+        sceStadFile: null,
+        sceStadError: null,
+      };
+    }),
+  clearRCA: () =>
     set({
-      sceRows: [],
-      sceFile: null,
-      sceError: null,
+      rcaRows: [],
+      rcaFile: null,
+      rcaError: null,
     }),
   clearSAT: () =>
     set((state) => ({
@@ -341,3 +496,19 @@ export const useDataStore = create<DataState>((set, get) => ({
   setSelectedCompanies: (v) => set({ selectedCompanies: v }),
   setSelectedTechnicalStatuses: (v) => set({ selectedTechnicalStatuses: v }),
 }));
+
+function forceSCECompany(rows: SCERow[], company: SCECompany): SCERow[] {
+  return rows.map((row) => ({
+    ...row,
+    rowId: `${company}-${row.rowId}`,
+    sirket: company,
+  }));
+}
+
+function combineSCERows(state: SCERowBuckets) {
+  return [
+    ...state.scePetkimRows,
+    ...state.sceStarRows,
+    ...state.sceStadRows,
+  ];
+}

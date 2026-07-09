@@ -124,9 +124,34 @@ export interface SCERow {
   durusAciklamasi: string;
   deferralSureci: string;
   periyodikBakimDurumu: string;
+  sonKontrolTarihi: string;
+  sonKontrolSutunuVar: boolean;
   sonBakimTarihi: string;
   sonBakimBildirimSiparis: string;
   sonrakiBakimTarihi: string;
+  raw: Record<string, string>;
+}
+
+export type RCACompany = 'PETKIM' | 'STAR' | 'STAD';
+
+export type RCAStatus = 'completed' | 'open';
+
+export interface RCARow {
+  rowId: string;
+  sourceRow: number;
+  recommendationId: string;
+  analysisId: string;
+  headline: string;
+  description: string;
+  assignedToName: string;
+  assignedToUserId: string;
+  owner: string;
+  jobTitle: string;
+  company: RCACompany;
+  statusRaw: string;
+  status: RCAStatus;
+  targetCompletionDate: Date | null;
+  overdue: boolean;
   raw: Record<string, string>;
 }
 

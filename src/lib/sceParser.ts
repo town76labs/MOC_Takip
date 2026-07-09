@@ -102,6 +102,8 @@ const FIELD_ALIASES = {
   bakimPeriyodu: [
     'bakim periyodu',
     'bakım periyodu',
+    'bakim periyodlari',
+    'bakım periyodları',
     'periyot',
     'period',
     'frequency',
@@ -142,6 +144,15 @@ const FIELD_ALIASES = {
     'maintenance status',
     'durum',
     'status',
+  ],
+  sonKontrolTarihi: [
+    'son kontrolunun yapildigi tarih',
+    'son kontrolünün yapıldığı tarih',
+    'son kontrol yapildigi tarih',
+    'son kontrol yapıldığı tarih',
+    'last control date',
+    'last inspection date',
+    'last check date',
   ],
   sonBakimTarihi: [
     'son bakim tarihi',
@@ -351,6 +362,36 @@ function parseSCERow(
     const index = fieldMap[field] ?? fallbackIndex;
     return index === undefined ? '' : toDisplayString(cells[index]);
   };
+  const hasControlDateColumn = fieldMap.sonKontrolTarihi !== undefined;
+  const fallback = hasControlDateColumn
+    ? {
+        ekipmanAdi: 13, // N
+        ekipmanTuru: 20, // U
+        sceGrubu: 18, // S
+        sceGozdenGecirme: 29, // AD
+        sceSebebi: 19, // T
+        bakimPeriyodu: 12, // M
+        durusGereklilikYorumu: 14, // O
+        durusAciklamasi: 15, // P
+        deferralSureci: 16, // Q
+        sonKontrolTarihi: 9, // J
+        sonBakimTarihi: 10, // K
+        sonBakimBildirimSiparis: 11, // L
+      }
+    : {
+        ekipmanAdi: 12,
+        ekipmanTuru: 18,
+        sceGrubu: 16,
+        sceGozdenGecirme: 27,
+        sceSebebi: 17,
+        bakimPeriyodu: 11,
+        durusGereklilikYorumu: 13,
+        durusAciklamasi: 14,
+        deferralSureci: 15,
+        sonKontrolTarihi: undefined,
+        sonBakimTarihi: 9,
+        sonBakimBildirimSiparis: 10,
+      };
 
   return {
     rowId: `${fabrikaKodu}-${sourceRow}`,
@@ -359,27 +400,35 @@ function parseSCERow(
     fabrikaKodu,
     ekipmanNo: value('ekipmanNo', 1),
     tagNo: value('tagNo', 2),
-    ekipmanAdi: value('ekipmanAdi', 12),
+    ekipmanAdi: value('ekipmanAdi', fallback.ekipmanAdi),
     sutunELabel: headerAt(headers, 4, 'Excel E Sütunu'),
     sutunE: valueAt(cells, 4),
     sutunFLabel: headerAt(headers, 5, 'Excel F Sütunu'),
     sutunF: valueAt(cells, 5),
     sutunGLabel: headerAt(headers, 6, 'Excel G Sütunu'),
     sutunG: valueAt(cells, 6),
-    ekipmanTuru: value('ekipmanTuru', 18),
-    sceGrubu: value('sceGrubu', 16),
-    sceGozdenGecirme: value('sceGozdenGecirme', 27),
-    sceSebebi: value('sceSebebi', 17),
+    ekipmanTuru: value('ekipmanTuru', fallback.ekipmanTuru),
+    sceGrubu: value('sceGrubu', fallback.sceGrubu),
+    sceGozdenGecirme: value('sceGozdenGecirme', fallback.sceGozdenGecirme),
+    sceSebebi: value('sceSebebi', fallback.sceSebebi),
     bakimPlaniNo: value('bakimPlaniNo', 7),
     bakimKalemiNo: value('bakimKalemiNo', 8),
     bakimPlani: value('bakimPlani'),
-    bakimPeriyodu: value('bakimPeriyodu', 11),
-    durusGereklilikYorumu: value('durusGereklilikYorumu', 13),
-    durusAciklamasi: value('durusAciklamasi'),
-    deferralSureci: value('deferralSureci', 14),
+    bakimPeriyodu: value('bakimPeriyodu', fallback.bakimPeriyodu),
+    durusGereklilikYorumu: value(
+      'durusGereklilikYorumu',
+      fallback.durusGereklilikYorumu,
+    ),
+    durusAciklamasi: value('durusAciklamasi', fallback.durusAciklamasi),
+    deferralSureci: value('deferralSureci', fallback.deferralSureci),
     periyodikBakimDurumu: value('periyodikBakimDurumu'),
-    sonBakimTarihi: value('sonBakimTarihi', 9),
-    sonBakimBildirimSiparis: value('sonBakimBildirimSiparis', 10),
+    sonKontrolTarihi: value('sonKontrolTarihi', fallback.sonKontrolTarihi),
+    sonKontrolSutunuVar: hasControlDateColumn,
+    sonBakimTarihi: value('sonBakimTarihi', fallback.sonBakimTarihi),
+    sonBakimBildirimSiparis: value(
+      'sonBakimBildirimSiparis',
+      fallback.sonBakimBildirimSiparis,
+    ),
     sonrakiBakimTarihi: value('sonrakiBakimTarihi'),
     raw,
   };
