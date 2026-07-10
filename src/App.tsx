@@ -46,6 +46,7 @@ const AUTH_USERS = [
   { username: 'sarkhan.hajizada', password: 'Sarxan*155' },
   { username: 'kaan.ayaz', password: 'Kaan*570' },
   { username: 'gokhan.kaya', password: 'gokhan*749' },
+  { username: 'ilhan.keskin', password: '122333444455555' },
 ] as const;
 
 function App() {
