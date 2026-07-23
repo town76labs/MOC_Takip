@@ -10,6 +10,8 @@ import type {
   SATRow,
   SCECompany,
   SCERow,
+  SCEV2ControlRow,
+  SCEV2Row,
   TechnicalRow,
   TechnicalStatus,
 } from '../types';
@@ -20,6 +22,10 @@ import {
 } from '../lib/excelParser';
 import { parseSCEExcel } from '../lib/sceParser';
 import { parseRCAExcel } from '../lib/rcaParser';
+import {
+  parseSCEV2ControlExcel,
+  parseSCEV2SAPExcel,
+} from '../lib/sceV2Parser';
 import { parseSATExcel } from '../lib/satParser';
 import { parseSATBudgetExcel } from '../lib/satBudgetParser';
 import {
@@ -48,6 +54,8 @@ interface DataState {
   scePetkimRows: SCERow[];
   sceStarRows: SCERow[];
   sceStadRows: SCERow[];
+  sceV2Rows: SCEV2Row[];
+  sceV2ControlRows: SCEV2ControlRow[];
   rcaRows: RCARow[];
   satRows: SATRow[];
   satExportRows: SATExportRow[];
@@ -60,6 +68,8 @@ interface DataState {
   sceFile: FileMeta | null;
   sceStarFile: FileMeta | null;
   sceStadFile: FileMeta | null;
+  sceV2File: FileMeta | null;
+  sceV2ControlFile: FileMeta | null;
   rcaFile: FileMeta | null;
   satFile: FileMeta | null;
   satBudgetFile: FileMeta | null;
@@ -72,6 +82,8 @@ interface DataState {
   sceLoading: boolean;
   sceStarLoading: boolean;
   sceStadLoading: boolean;
+  sceV2Loading: boolean;
+  sceV2ControlLoading: boolean;
   rcaLoading: boolean;
   satLoading: boolean;
   satBudgetLoading: boolean;
@@ -82,6 +94,8 @@ interface DataState {
   sceError: ParseError | null;
   sceStarError: ParseError | null;
   sceStadError: ParseError | null;
+  sceV2Error: ParseError | null;
+  sceV2ControlError: ParseError | null;
   rcaError: ParseError | null;
   satError: ParseError | null;
   satBudgetError: ParseError | null;
@@ -98,6 +112,8 @@ interface DataState {
   uploadSCE: (file: File) => Promise<void>;
   uploadSCEStar: (file: File) => Promise<void>;
   uploadSCEStad: (file: File) => Promise<void>;
+  uploadSCEV2: (file: File) => Promise<void>;
+  uploadSCEV2Control: (file: File) => Promise<void>;
   uploadRCA: (file: File) => Promise<void>;
   uploadSAT: (file: File) => Promise<void>;
   uploadSATBudget: (file: File) => Promise<void>;
@@ -108,6 +124,8 @@ interface DataState {
   clearSCE: () => void;
   clearSCEStar: () => void;
   clearSCEStad: () => void;
+  clearSCEV2: () => void;
+  clearSCEV2Control: () => void;
   clearRCA: () => void;
   clearSAT: () => void;
   clearSATBudget: () => void;
@@ -124,6 +142,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   scePetkimRows: [],
   sceStarRows: [],
   sceStadRows: [],
+  sceV2Rows: [],
+  sceV2ControlRows: [],
   rcaRows: [],
   satRows: [],
   satExportRows: [],
@@ -136,6 +156,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceFile: null,
   sceStarFile: null,
   sceStadFile: null,
+  sceV2File: null,
+  sceV2ControlFile: null,
   rcaFile: null,
   satFile: null,
   satBudgetFile: null,
@@ -146,6 +168,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceLoading: false,
   sceStarLoading: false,
   sceStadLoading: false,
+  sceV2Loading: false,
+  sceV2ControlLoading: false,
   rcaLoading: false,
   satLoading: false,
   satBudgetLoading: false,
@@ -156,6 +180,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceError: null,
   sceStarError: null,
   sceStadError: null,
+  sceV2Error: null,
+  sceV2ControlError: null,
   rcaError: null,
   satError: null,
   satBudgetError: null,
@@ -306,6 +332,50 @@ export const useDataStore = create<DataState>((set, get) => ({
         sceStadFile: { name: file.name, size: file.size, uploadedAt: new Date() },
         sceStadError: null,
       };
+    });
+  },
+
+  uploadSCEV2: async (file: File) => {
+    set({ sceV2Loading: true, sceV2Error: null });
+    const { data, error } = await parseSCEV2SAPExcel(file);
+    if (error) {
+      set({
+        sceV2Loading: false,
+        sceV2Error: error,
+        sceV2Rows: [],
+        sceV2File: null,
+      });
+      return;
+    }
+    set({
+      sceV2Loading: false,
+      sceV2Rows: data,
+      sceV2File: { name: file.name, size: file.size, uploadedAt: new Date() },
+      sceV2Error: null,
+    });
+  },
+
+  uploadSCEV2Control: async (file: File) => {
+    set({ sceV2ControlLoading: true, sceV2ControlError: null });
+    const { data, error } = await parseSCEV2ControlExcel(file);
+    if (error) {
+      set({
+        sceV2ControlLoading: false,
+        sceV2ControlError: error,
+        sceV2ControlRows: [],
+        sceV2ControlFile: null,
+      });
+      return;
+    }
+    set({
+      sceV2ControlLoading: false,
+      sceV2ControlRows: data,
+      sceV2ControlFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      sceV2ControlError: null,
     });
   },
 
@@ -461,6 +531,18 @@ export const useDataStore = create<DataState>((set, get) => ({
         sceStadFile: null,
         sceStadError: null,
       };
+    }),
+  clearSCEV2: () =>
+    set({
+      sceV2Rows: [],
+      sceV2File: null,
+      sceV2Error: null,
+    }),
+  clearSCEV2Control: () =>
+    set({
+      sceV2ControlRows: [],
+      sceV2ControlFile: null,
+      sceV2ControlError: null,
     }),
   clearRCA: () =>
     set({

@@ -9,6 +9,7 @@ import {
   Gauge,
   GitCompareArrows,
   KeyRound,
+  ListChecks,
   LockKeyhole,
   LogIn,
   LogOut,
@@ -31,12 +32,14 @@ import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
 import { SATExportDashboard } from './components/sat/SATExportDashboard';
 import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDashboard';
 import { RCADashboard } from './components/rca/RCADashboard';
+import { SCEV2Dashboard } from './components/sce-v2/SCEV2Dashboard';
 
 type AppMode =
   | 'select'
   | 'moc'
   | 'legal'
   | 'sce'
+  | 'sce-v2'
   | 'energy'
   | 'sat'
   | 'rca';
@@ -123,6 +126,16 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const sceStadError = useDataStore((s) => s.sceStadError);
   const uploadSCEStad = useDataStore((s) => s.uploadSCEStad);
   const clearSCEStad = useDataStore((s) => s.clearSCEStad);
+  const sceV2File = useDataStore((s) => s.sceV2File);
+  const sceV2Loading = useDataStore((s) => s.sceV2Loading);
+  const sceV2Error = useDataStore((s) => s.sceV2Error);
+  const uploadSCEV2 = useDataStore((s) => s.uploadSCEV2);
+  const clearSCEV2 = useDataStore((s) => s.clearSCEV2);
+  const sceV2ControlFile = useDataStore((s) => s.sceV2ControlFile);
+  const sceV2ControlLoading = useDataStore((s) => s.sceV2ControlLoading);
+  const sceV2ControlError = useDataStore((s) => s.sceV2ControlError);
+  const uploadSCEV2Control = useDataStore((s) => s.uploadSCEV2Control);
+  const clearSCEV2Control = useDataStore((s) => s.clearSCEV2Control);
   const rcaFile = useDataStore((s) => s.rcaFile);
   const rcaLoading = useDataStore((s) => s.rcaLoading);
   const rcaError = useDataStore((s) => s.rcaError);
@@ -148,6 +161,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [uploadsOpen, setUploadsOpen] = useState(false);
   const [sceUploadsOpen, setSceUploadsOpen] = useState(false);
+  const [sceV2UploadsOpen, setSceV2UploadsOpen] = useState(false);
   const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
     'overview',
   );
@@ -570,7 +584,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setAppMode('sce')}
@@ -584,6 +598,22 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 </div>
                 <div className="mt-3 text-sm text-white/50">
                   Safety Critical Element
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('sce-v2')}
+                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-cyan-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-700 text-white shadow-sm ring-1 ring-white/10">
+                  <ListChecks size={25} strokeWidth={1.8} />
+                </div>
+                <div className="mt-8 text-3xl font-semibold text-white">
+                  SCE V2 Dashboard
+                </div>
+                <div className="mt-3 text-sm text-white/50">
+                  SAP Sipariş ve Kalibrasyon Takibi
                 </div>
               </button>
 
@@ -605,6 +635,129 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
             </div>
           </section>
         </main>
+      </div>
+    );
+  }
+
+  if (appMode === 'sce-v2') {
+    const showSCEV2Uploads =
+      !sceV2File || !sceV2ControlFile || sceV2UploadsOpen;
+    const hasAnySCEV2File = !!sceV2File || !!sceV2ControlFile;
+
+    return (
+      <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-700 text-white shadow-sm ring-1 ring-white/10">
+                <ListChecks size={20} strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
+                <h1 className="text-base font-semibold leading-tight text-white">
+                  SCE V2 Dashboard
+                </h1>
+                <p className="text-xs text-white/50">
+                  SAP Sipariş, Deferral ve Kalibrasyon Raporu Takibi
+                </p>
+              </div>
+              {hasAnySCEV2File && (
+                <button
+                  type="button"
+                  onClick={() => setSceV2UploadsOpen((open) => !open)}
+                  aria-expanded={sceV2UploadsOpen}
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
+                >
+                  <FileSpreadsheet size={16} />
+                  SCE V2 Excel Dosyaları
+                  <ChevronDown
+                    size={16}
+                    className={`transition ${
+                      sceV2UploadsOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {hasAnySCEV2File && (
+                <button
+                  type="button"
+                  onClick={() => setSceV2UploadsOpen((open) => !open)}
+                  aria-expanded={sceV2UploadsOpen}
+                  aria-label="SCE V2 Excel dosyası panelini aç veya kapat"
+                  className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:hidden"
+                >
+                  <FileSpreadsheet size={18} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAppMode('legal')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+              >
+                <ArrowLeft size={16} />
+                Yasal Bakımlar
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          {showSCEV2Uploads && (
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <FileUpload
+                title="1. SAP SCE Sipariş Durumları Excel'i"
+                subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
+                hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
+                fileMeta={sceV2File}
+                loading={sceV2Loading}
+                error={sceV2Error}
+                onFile={uploadSCEV2}
+                onClear={clearSCEV2}
+                accentColorClass="from-cyan-400 to-sky-700"
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="2. Saha Kontrol ve Rapor Excel'i"
+                subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
+                hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
+                fileMeta={sceV2ControlFile}
+                loading={sceV2ControlLoading}
+                error={sceV2ControlError}
+                onFile={uploadSCEV2Control}
+                onClear={clearSCEV2Control}
+                accentColorClass="from-violet-500 to-fuchsia-700"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
+
+          {!sceV2File ? (
+            <div className="card mx-auto max-w-3xl p-10 text-center">
+              <ListChecks
+                size={36}
+                className="mx-auto mb-4 text-cyan-300"
+                strokeWidth={1.8}
+              />
+              <h2 className="text-lg font-semibold text-white">
+                Başlamak için SAP SCE Sipariş Durumları Excel dosyasını yükleyin
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                Saha kontrol dosyası daha sonra da yüklenebilir. SAP bakım
+                durumları ilk dosyadan hemen hesaplanır.
+              </p>
+            </div>
+          ) : (
+            <SCEV2Dashboard />
+          )}
+        </main>
+
+        <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
+          Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
+        </footer>
       </div>
     );
   }

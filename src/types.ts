@@ -132,6 +132,60 @@ export interface SCERow {
   raw: Record<string, string>;
 }
 
+export type SCEV2MaintenanceStatus =
+  | 'completed'
+  | 'shutdown_deferred'
+  | 'maintenance_not_completed';
+
+export type SCEV2DeferralStatus =
+  | 'not_applicable'
+  | 'started'
+  | 'required';
+
+export type SCEV2CalibrationStatus =
+  | 'shared'
+  | 'not_shared'
+  | 'unknown';
+
+export interface SCEV2Row {
+  rowId: string;
+  sourceRow: number;
+  equipmentNo: string;
+  tagNo: string;
+  equipmentDescription: string;
+  notificationNo: string;
+  orderNo: string;
+  userStatus: string;
+  maintenanceStartDate: Date | null;
+  maintenanceEndDate: Date | null;
+  maintenanceItemNo: string;
+  maintenancePlanNo: string;
+  maintenancePeriod: string;
+  maintenanceStatus: SCEV2MaintenanceStatus;
+  raw: Record<string, string>;
+}
+
+export interface SCEV2ControlRow {
+  rowId: string;
+  sourceRow: number;
+  equipmentNo: string;
+  calibrationStatus: SCEV2CalibrationStatus;
+  deferralStarted: boolean;
+  deferralRaw: string;
+  calibrationRaw: string;
+  note: string;
+  updatedBy: string;
+  updatedAt: Date | null;
+}
+
+export interface SCEV2DashboardRow extends SCEV2Row {
+  calibrationStatus: SCEV2CalibrationStatus;
+  deferralStatus: SCEV2DeferralStatus;
+  controlNote: string;
+  controlUpdatedBy: string;
+  controlUpdatedAt: Date | null;
+}
+
 export type RCACompany = 'PETKIM' | 'STAR' | 'STAD';
 
 export type RCAStatus = 'completed' | 'open';
