@@ -1,18 +1,27 @@
 import { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
-  AlertTriangle,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Download,
   FileCheck2,
-  FileQuestion,
   Search,
   ShieldAlert,
   Wrench,
 } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type {
   SCEV2CalibrationStatus,
   SCEV2DashboardRow,
@@ -33,7 +42,21 @@ type DashboardFilter =
   | 'calibration_not_shared'
   | 'calibration_unknown';
 
+interface ChartDatum {
+  name: string;
+  value: number;
+  color: string;
+  filter: DashboardFilter;
+}
+
 const PAGE_SIZE = 25;
+const tooltipStyle = {
+  background: '#111827',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '10px',
+  color: '#f8fafc',
+  boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
+};
 
 export function SCEV2Dashboard() {
   const sourceRows = useDataStore((state) => state.sceV2Rows);
@@ -50,6 +73,60 @@ export function SCEV2Dashboard() {
     [controlRows, sourceRows],
   );
   const metrics = useMemo(() => buildMetrics(rows), [rows]);
+  const maintenanceChartData: ChartDatum[] = [
+    {
+      name: 'Tamamlandı',
+      value: metrics.completed,
+      color: '#10b981',
+      filter: 'completed',
+    },
+    {
+      name: 'Duruşa Ertelendi',
+      value: metrics.shutdownDeferred,
+      color: '#f59e0b',
+      filter: 'shutdown_deferred',
+    },
+    {
+      name: 'Bakımı Yapılmadı',
+      value: metrics.notCompleted,
+      color: '#f43f5e',
+      filter: 'maintenance_not_completed',
+    },
+  ];
+  const deferralChartData: ChartDatum[] = [
+    {
+      name: 'Başlatıldı',
+      value: metrics.deferralStarted,
+      color: '#38bdf8',
+      filter: 'deferral_started',
+    },
+    {
+      name: 'Başlatılmalı',
+      value: metrics.deferralRequired,
+      color: '#ef4444',
+      filter: 'deferral_required',
+    },
+  ];
+  const calibrationChartData: ChartDatum[] = [
+    {
+      name: 'Paylaşıldı',
+      value: metrics.calibrationShared,
+      color: '#22c55e',
+      filter: 'calibration_shared',
+    },
+    {
+      name: 'Paylaşılmadı',
+      value: metrics.calibrationNotShared,
+      color: '#fb7185',
+      filter: 'calibration_not_shared',
+    },
+    {
+      name: 'Bilgi Bekleniyor',
+      value: metrics.calibrationUnknown,
+      color: '#64748b',
+      filter: 'calibration_unknown',
+    },
+  ];
   const filteredRows = useMemo(() => {
     const query = normalize(search);
     return rows
@@ -160,108 +237,161 @@ export function SCEV2Dashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <div className="card p-5">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-base font-semibold text-white">
-                Bakım Durumu Dağılımı
-              </h3>
-              <p className="mt-1 text-xs text-white/50">
-                Çubuğa veya satıra basarak ekipman listesini filtreleyin.
-              </p>
-            </div>
-            <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs text-white/45">
-              {rows.length} ekipman
-            </span>
-          </div>
-          <div className="mb-5 flex h-5 overflow-hidden rounded-full bg-white/[0.06] ring-1 ring-white/10">
-            <Segment
-              value={metrics.completed}
-              total={rows.length}
-              className="bg-emerald-500"
-              title="Bakımı tamamlanan"
-              onClick={() => setFilter('completed')}
-            />
-            <Segment
-              value={metrics.shutdownDeferred}
-              total={rows.length}
-              className="bg-amber-500"
-              title="Duruşa ertelenen"
-              onClick={() => setFilter('shutdown_deferred')}
-            />
-            <Segment
-              value={metrics.notCompleted}
-              total={rows.length}
-              className="bg-rose-500"
-              title="Bakımı yapılmadı"
-              onClick={() => setFilter('maintenance_not_completed')}
-            />
-          </div>
-          <div className="space-y-3">
-            <DistributionRow
-              label="Bakımı Tamamlanan"
-              value={metrics.completed}
-              total={rows.length}
-              colorClass="bg-emerald-500"
-              active={filter === 'completed'}
-              onClick={() => setFilter('completed')}
-            />
-            <DistributionRow
-              label="Duruşa Ertelenen"
-              value={metrics.shutdownDeferred}
-              total={rows.length}
-              colorClass="bg-amber-500"
-              active={filter === 'shutdown_deferred'}
-              onClick={() => setFilter('shutdown_deferred')}
-            />
-            <DistributionRow
-              label="Bakımı Yapılmadı"
-              value={metrics.notCompleted}
-              total={rows.length}
-              colorClass="bg-rose-500"
-              active={filter === 'maintenance_not_completed'}
-              onClick={() => setFilter('maintenance_not_completed')}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <ModernChartCard
+          title="Bakım Durumu"
+          subtitle="SAP kullanıcı durumlarının genel dağılımı"
+          accentClass="from-emerald-400/25 via-amber-400/10 to-rose-400/20"
+        >
+          <div className="relative h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={maintenanceChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={68}
+                  outerRadius={96}
+                  paddingAngle={3}
+                  stroke="transparent"
+                >
+                  {maintenanceChartData.map((item) => (
+                    <Cell
+                      key={item.name}
+                      fill={item.color}
+                      className="cursor-pointer outline-none"
+                      onClick={() => setFilter(item.filter)}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <ChartCenterLabel
+              value={`%${percent(metrics.completed, rows.length)}`}
+              label="Tamamlanma"
             />
           </div>
-        </div>
+          <ChartLegend
+            data={maintenanceChartData}
+            total={rows.length}
+            activeFilter={filter}
+            onSelect={setFilter}
+          />
+        </ModernChartCard>
 
-        <div className="card p-5">
-          <div className="mb-5">
-            <h3 className="text-base font-semibold text-white">
-              Kalibrasyon Raporu Kontrolü
-            </h3>
-            <p className="mt-1 text-xs text-white/50">
-              İkinci Excel'deki ekipman eşleşmelerinden hesaplanır.
-            </p>
+        <ModernChartCard
+          title="Deferral Aksiyonları"
+          subtitle="Duruşa ertelenen ekipmanların takip durumu"
+          accentClass="from-sky-400/25 via-red-400/10 to-transparent"
+        >
+          <div className="mb-2 flex items-end justify-between rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
+            <div>
+              <div className="text-xs text-white/40">Deferral kapsama oranı</div>
+              <div className="mt-1 text-2xl font-semibold text-white">
+                {metrics.deferralStarted + metrics.deferralRequired}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-white/40">Başlatılma oranı</div>
+              <div className="mt-1 text-2xl font-semibold text-sky-300">
+                %
+                {percent(
+                  metrics.deferralStarted,
+                  metrics.deferralStarted + metrics.deferralRequired,
+                )}
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <ControlStatusButton
-              label="Rapor Paylaşıldı"
-              value={metrics.calibrationShared}
-              icon={<FileCheck2 size={19} />}
-              className="border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
-              active={filter === 'calibration_shared'}
-              onClick={() => setFilter('calibration_shared')}
-            />
-            <ControlStatusButton
-              label="Rapor Paylaşılmadı"
-              value={metrics.calibrationNotShared}
-              icon={<AlertTriangle size={19} />}
-              className="border-rose-400/25 bg-rose-500/10 text-rose-200"
-              active={filter === 'calibration_not_shared'}
-              onClick={() => setFilter('calibration_not_shared')}
-            />
-            <ControlStatusButton
-              label="Kontrol Bilgisi Bekleniyor"
-              value={metrics.calibrationUnknown}
-              icon={<FileQuestion size={19} />}
-              className="border-white/10 bg-white/[0.04] text-white/60"
-              active={filter === 'calibration_unknown'}
-              onClick={() => setFilter('calibration_unknown')}
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={deferralChartData}
+                layout="vertical"
+                margin={{ top: 12, right: 20, bottom: 12, left: 10 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
+                  width={94}
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  contentStyle={tooltipStyle}
+                />
+                <Bar dataKey="value" barSize={25} radius={[0, 8, 8, 0]}>
+                  {deferralChartData.map((item) => (
+                    <Cell
+                      key={item.name}
+                      fill={item.color}
+                      className="cursor-pointer"
+                      onClick={() => setFilter(item.filter)}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <ChartLegend
+            data={deferralChartData}
+            total={metrics.deferralStarted + metrics.deferralRequired}
+            activeFilter={filter}
+            onSelect={setFilter}
+          />
+        </ModernChartCard>
+
+        <ModernChartCard
+          title="Kalibrasyon Raporları"
+          subtitle="Saha kontrol Excel'indeki paylaşım durumu"
+          accentClass="from-emerald-400/20 via-slate-400/10 to-rose-400/15"
+        >
+          <div className="relative h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={calibrationChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={68}
+                  outerRadius={96}
+                  paddingAngle={3}
+                  stroke="transparent"
+                >
+                  {calibrationChartData.map((item) => (
+                    <Cell
+                      key={item.name}
+                      fill={item.color}
+                      className="cursor-pointer outline-none"
+                      onClick={() => setFilter(item.filter)}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <ChartCenterLabel
+              value={`%${percent(
+                metrics.calibrationShared + metrics.calibrationNotShared,
+                rows.length,
+              )}`}
+              label="Kontrol Edilen"
             />
           </div>
-        </div>
+          <ChartLegend
+            data={calibrationChartData}
+            total={rows.length}
+            activeFilter={filter}
+            onSelect={setFilter}
+          />
+        </ModernChartCard>
       </section>
 
       <section className="card overflow-hidden">
@@ -440,103 +570,88 @@ function MetricButton({
   );
 }
 
-function Segment({
-  value,
-  total,
-  className,
+function ModernChartCard({
   title,
-  onClick,
+  subtitle,
+  accentClass,
+  children,
 }: {
-  value: number;
-  total: number;
-  className: string;
   title: string;
-  onClick: () => void;
+  subtitle: string;
+  accentClass: string;
+  children: React.ReactNode;
 }) {
-  const width = total > 0 ? (value / total) * 100 : 0;
   return (
-    <button
-      type="button"
-      className={`${className} h-full min-w-0 transition hover:brightness-125`}
-      style={{ width: `${width}%` }}
-      title={`${title}: ${value} (%${Math.round(width)})`}
-      onClick={onClick}
-      aria-label={`${title}: ${value}`}
-    />
+    <div className="card relative overflow-hidden p-5">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r ${accentClass}`}
+      />
+      <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-sky-400/[0.04] blur-3xl" />
+      <div className="relative">
+        <h3 className="text-base font-semibold text-white">{title}</h3>
+        <p className="mt-1 text-xs text-white/45">{subtitle}</p>
+        {children}
+      </div>
+    </div>
   );
 }
 
-function DistributionRow({
-  label,
-  value,
+function ChartCenterLabel({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+      <span className="text-3xl font-semibold tracking-tight text-white">
+        {value}
+      </span>
+      <span className="mt-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white/35">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function ChartLegend({
+  data,
   total,
-  colorClass,
-  active,
-  onClick,
+  activeFilter,
+  onSelect,
 }: {
-  label: string;
-  value: number;
+  data: ChartDatum[];
   total: number;
-  colorClass: string;
-  active: boolean;
-  onClick: () => void;
+  activeFilter: DashboardFilter;
+  onSelect: (filter: DashboardFilter) => void;
 }) {
-  const percent = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`grid w-full grid-cols-[minmax(140px,1fr)_2fr_auto] items-center gap-3 rounded-lg border px-3 py-2 text-left transition ${
-        active
-          ? 'border-sky-400/45 bg-sky-500/10'
-          : 'border-transparent hover:border-white/10 hover:bg-white/[0.04]'
-      }`}
-    >
-      <span className="text-sm text-white/70">{label}</span>
-      <span className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
-        <span
-          className={`block h-full rounded-full ${colorClass}`}
-          style={{ width: `${percent}%` }}
-        />
-      </span>
-      <span className="min-w-20 text-right text-sm font-semibold text-white">
-        {value}{' '}
-        <span className="text-xs font-normal text-white/35">%{percent}</span>
-      </span>
-    </button>
+    <div className="space-y-1.5">
+      {data.map((item) => (
+        <button
+          key={item.name}
+          type="button"
+          onClick={() => onSelect(item.filter)}
+          className={`grid w-full grid-cols-[auto_1fr_auto_auto] items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition ${
+            activeFilter === item.filter
+              ? 'border-sky-400/35 bg-sky-500/10'
+              : 'border-transparent hover:border-white/10 hover:bg-white/[0.04]'
+          }`}
+        >
+          <span
+            className="h-2.5 w-2.5 rounded-full shadow-sm"
+            style={{ backgroundColor: item.color }}
+          />
+          <span className="text-xs text-white/60">{item.name}</span>
+          <span className="rounded-md bg-white/[0.05] px-1.5 py-0.5 text-[11px] text-white/40">
+            %{percent(item.value, total)}
+          </span>
+          <span className="min-w-8 text-right text-sm font-semibold text-white">
+            {item.value}
+          </span>
+        </button>
+      ))}
+    </div>
   );
 }
 
-function ControlStatusButton({
-  label,
-  value,
-  icon,
-  className,
-  active,
-  onClick,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  className: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center justify-between rounded-lg border p-4 text-left transition hover:brightness-125 ${className} ${
-        active ? 'ring-2 ring-sky-400/40' : ''
-      }`}
-    >
-      <span className="flex items-center gap-3">
-        {icon}
-        <span className="text-sm font-medium">{label}</span>
-      </span>
-      <span className="text-2xl font-semibold">{value}</span>
-    </button>
-  );
+function ChartTooltip() {
+  return <Tooltip contentStyle={tooltipStyle} />;
 }
 
 function MaintenanceBadge({ status }: { status: SCEV2MaintenanceStatus }) {
@@ -748,6 +863,10 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
       (row) => row.calibrationStatus === 'unknown',
     ).length,
   };
+}
+
+function percent(value: number, total: number) {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
 }
 
 function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
