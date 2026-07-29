@@ -15,7 +15,7 @@ interface Props {
   surfaceClassName?: string;
 }
 
-const VALID_EXT = ['.xlsx', '.xls'];
+const VALID_EXT = ['.xlsx', '.xlsm', '.xls'];
 
 export function FileUpload({
   title,
@@ -38,7 +38,9 @@ export function FileUpload({
       const file = files[0];
       const lower = file.name.toLowerCase();
       if (!VALID_EXT.some((ext) => lower.endsWith(ext))) {
-        alert('Lütfen geçerli bir Excel dosyası seçin (.xlsx veya .xls).');
+        alert(
+          'Lütfen geçerli bir Excel dosyası seçin (.xlsx, .xlsm veya .xls).',
+        );
         return;
       }
       onFile(file);
@@ -102,7 +104,7 @@ export function FileUpload({
           <input
             ref={inputRef}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xlsm,.xls"
             className="sr-only"
             onChange={(e) => handleFiles(e.target.files)}
           />

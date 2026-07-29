@@ -62,8 +62,19 @@ const CONTROL_ALIASES: Record<ControlField, string[]> = {
     'deferral sureci',
   ],
   note: ['aciklama', 'not', 'yorum'],
-  updatedBy: ['guncelleyen', 'kullanici', 'sorumlu'],
-  updatedAt: ['guncelleme tarihi', 'kontrol tarihi', 'tarih'],
+  updatedBy: [
+    'guncelleyen',
+    'kaydeden windows',
+    'kaydeden',
+    'kullanici',
+    'sorumlu',
+  ],
+  updatedAt: [
+    'guncelleme tarihi',
+    'kayit tarihi',
+    'kontrol tarihi',
+    'tarih',
+  ],
 };
 
 interface SheetCandidate<Field extends string> {
