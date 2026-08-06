@@ -32,7 +32,21 @@ import { SCEOverviewDashboard } from './components/sce/SCEOverviewDashboard';
 import { SATExportDashboard } from './components/sat/SATExportDashboard';
 import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDashboard';
 import { RCADashboard } from './components/rca/RCADashboard';
-import { SCEV2Dashboard } from './components/sce-v2/SCEV2Dashboard';
+import {
+  SCEV2Dashboard,
+  SCEV2ScopeSelector,
+} from './components/sce-v2/SCEV2Dashboard';
+
+const SCE_V2_FACTORY_OPTIONS = [
+  'ISKELE',
+  'ETILEN',
+  'AROMATIKLER',
+  'AYPE',
+  'AYPE-T',
+  'YYPE',
+  'PP',
+  'PA',
+];
 
 type AppMode =
   | 'select'
@@ -162,6 +176,12 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [uploadsOpen, setUploadsOpen] = useState(false);
   const [sceUploadsOpen, setSceUploadsOpen] = useState(false);
   const [sceV2UploadsOpen, setSceV2UploadsOpen] = useState(false);
+  const [sceV2SelectedCompany, setSceV2SelectedCompany] = useState<
+    'PETKIM' | 'STAR'
+  >('PETKIM');
+  const [sceV2SelectedFactories, setSceV2SelectedFactories] = useState<
+    string[]
+  >([]);
   const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
     'overview',
   );
@@ -173,6 +193,21 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
   const allLoaded = !!technicalFile && !!actionsFile && !!mocTakipFile;
   const showUploadPanel = !allLoaded || uploadsOpen;
+
+  function selectSCEV2Company(company: 'PETKIM' | 'STAR') {
+    setSceV2SelectedCompany(company);
+    setSceV2SelectedFactories([]);
+  }
+
+  function toggleSCEV2Factory(factory: string) {
+    setSceV2SelectedFactories((current) =>
+      current.length === 0
+        ? [factory]
+        : current.includes(factory)
+          ? current.filter((item) => item !== factory)
+          : [...current, factory],
+    );
+  }
 
   if (appMode === 'select') {
     return (
@@ -706,52 +741,85 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-          {showSCEV2Uploads && (
-            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <FileUpload
-                title="1. SAP SCE Sipariş Durumları Excel'i"
-                subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
-                fileMeta={sceV2File}
-                loading={sceV2Loading}
-                error={sceV2Error}
-                onFile={uploadSCEV2}
-                onClear={clearSCEV2}
-                accentColorClass="from-cyan-400 to-sky-700"
-                surfaceClassName="upload-panel-dark"
-              />
-              <FileUpload
-                title="2. Saha Kontrol ve Rapor Excel'i"
-                subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
-                hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
-                fileMeta={sceV2ControlFile}
-                loading={sceV2ControlLoading}
-                error={sceV2ControlError}
-                onFile={uploadSCEV2Control}
-                onClear={clearSCEV2Control}
-                accentColorClass="from-violet-500 to-fuchsia-700"
-                surfaceClassName="upload-panel-dark"
-              />
-            </section>
-          )}
+          <div className="mb-6">
+            <SCEV2ScopeSelector
+              selectedCompany={sceV2SelectedCompany}
+              onCompanyChange={selectSCEV2Company}
+              factoryOptions={SCE_V2_FACTORY_OPTIONS}
+              selectedFactories={sceV2SelectedFactories}
+              onFactoryToggle={toggleSCEV2Factory}
+              onAllFactories={() => setSceV2SelectedFactories([])}
+            />
+          </div>
 
-          {!sceV2File ? (
-            <div className="card mx-auto max-w-3xl p-10 text-center">
-              <ListChecks
-                size={36}
-                className="mx-auto mb-4 text-cyan-300"
-                strokeWidth={1.8}
-              />
-              <h2 className="text-lg font-semibold text-white">
-                Başlamak için SAP SCE Sipariş Durumları Excel dosyasını yükleyin
-              </h2>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
-                Saha kontrol dosyası daha sonra da yüklenebilir. SAP bakım
-                durumları ilk dosyadan hemen hesaplanır.
-              </p>
-            </div>
+          {sceV2SelectedCompany === 'STAR' ? (
+            <section className="card flex min-h-80 items-center justify-center p-10 text-center">
+              <div>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300">
+                  <ShieldAlert size={27} strokeWidth={1.7} />
+                </div>
+                <h2 className="mt-5 text-xl font-semibold text-white">
+                  Star SCE V2
+                </h2>
+                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/45">
+                  Star için veri kaynağı ve dashboard kuralları daha sonra
+                  tanımlanacak.
+                </p>
+              </div>
+            </section>
           ) : (
-            <SCEV2Dashboard />
+            <>
+              {showSCEV2Uploads && (
+                <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <FileUpload
+                    title="1. SAP SCE Sipariş Durumları Excel'i"
+                    subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
+                    hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
+                    fileMeta={sceV2File}
+                    loading={sceV2Loading}
+                    error={sceV2Error}
+                    onFile={uploadSCEV2}
+                    onClear={clearSCEV2}
+                    accentColorClass="from-cyan-400 to-sky-700"
+                    surfaceClassName="upload-panel-dark"
+                  />
+                  <FileUpload
+                    title="2. Saha Kontrol ve Rapor Excel'i"
+                    subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
+                    hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
+                    fileMeta={sceV2ControlFile}
+                    loading={sceV2ControlLoading}
+                    error={sceV2ControlError}
+                    onFile={uploadSCEV2Control}
+                    onClear={clearSCEV2Control}
+                    accentColorClass="from-violet-500 to-fuchsia-700"
+                    surfaceClassName="upload-panel-dark"
+                  />
+                </section>
+              )}
+
+              {!sceV2File ? (
+                <div className="card mx-auto max-w-3xl p-10 text-center">
+                  <ListChecks
+                    size={36}
+                    className="mx-auto mb-4 text-cyan-300"
+                    strokeWidth={1.8}
+                  />
+                  <h2 className="text-lg font-semibold text-white">
+                    Başlamak için SAP SCE Sipariş Durumları Excel dosyasını yükleyin
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                    Saha kontrol dosyası daha sonra da yüklenebilir. SAP bakım
+                    durumları ilk dosyadan hemen hesaplanır.
+                  </p>
+                </div>
+              ) : (
+                <SCEV2Dashboard
+                  key={sceV2SelectedFactories.join('|') || 'all'}
+                  selectedFactories={sceV2SelectedFactories}
+                />
+              )}
+            </>
           )}
         </main>
 

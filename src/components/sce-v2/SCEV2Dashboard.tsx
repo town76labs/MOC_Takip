@@ -50,17 +50,6 @@ interface ChartDatum {
 }
 
 const PAGE_SIZE = 25;
-const FACTORY_ORDER = [
-  'ISKELE',
-  'ETILEN',
-  'AROMATIKLER',
-  'AYPE',
-  'AYPE-T',
-  'YYPE',
-  'PP',
-  'PA',
-  'DIGER',
-];
 const FACTORY_LABELS: Record<string, string> = {
   ISKELE: 'İskele',
   ETILEN: 'Etilen',
@@ -80,13 +69,13 @@ const tooltipStyle = {
   boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
 };
 
-export function SCEV2Dashboard() {
+export function SCEV2Dashboard({
+  selectedFactories,
+}: {
+  selectedFactories: string[];
+}) {
   const sourceRows = useDataStore((state) => state.sceV2Rows);
   const controlRows = useDataStore((state) => state.sceV2ControlRows);
-  const [selectedCompany, setSelectedCompany] = useState<'PETKIM' | 'STAR'>(
-    'PETKIM',
-  );
-  const [selectedFactories, setSelectedFactories] = useState<string[]>([]);
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -98,25 +87,14 @@ export function SCEV2Dashboard() {
     () => buildSCEV2DashboardRows(sourceRows, controlRows),
     [controlRows, sourceRows],
   );
-  const factoryOptions = useMemo(
-    () =>
-      [...new Set(allRows.map((row) => row.factory))].sort(
-        (a, b) =>
-          FACTORY_ORDER.indexOf(a) - FACTORY_ORDER.indexOf(b) ||
-          a.localeCompare(b, 'tr'),
-      ),
-    [allRows],
-  );
   const rows = useMemo(
     () =>
-      selectedCompany === 'PETKIM'
-        ? allRows.filter(
-            (row) =>
-              selectedFactories.length === 0 ||
-              selectedFactories.includes(row.factory),
-          )
-        : [],
-    [allRows, selectedCompany, selectedFactories],
+      allRows.filter(
+        (row) =>
+          selectedFactories.length === 0 ||
+          selectedFactories.includes(row.factory),
+      ),
+    [allRows, selectedFactories],
   );
   const metrics = useMemo(() => buildMetrics(rows), [rows]);
   const maintenanceChartData: ChartDatum[] = [
@@ -201,72 +179,8 @@ export function SCEV2Dashboard() {
     currentPage * PAGE_SIZE,
   );
 
-  function selectCompany(company: 'PETKIM' | 'STAR') {
-    setSelectedCompany(company);
-    setSelectedFactories([]);
-    setFilter('all');
-    setSearch('');
-    setPage(1);
-  }
-
-  function toggleFactory(factory: string) {
-    setSelectedFactories((current) =>
-      current.length === 0
-        ? [factory]
-        : current.includes(factory)
-          ? current.filter((item) => item !== factory)
-          : [...current, factory],
-    );
-    setFilter('all');
-    setSearch('');
-    setPage(1);
-  }
-
-  if (selectedCompany === 'STAR') {
-    return (
-      <div className="space-y-6">
-        <SCEV2ScopeSelector
-          selectedCompany={selectedCompany}
-          onCompanyChange={selectCompany}
-          factoryOptions={factoryOptions}
-          selectedFactories={selectedFactories}
-          onFactoryToggle={toggleFactory}
-          onAllFactories={() => setSelectedFactories([])}
-        />
-        <section className="card flex min-h-80 items-center justify-center p-10 text-center">
-          <div>
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300">
-              <ShieldAlert size={27} strokeWidth={1.7} />
-            </div>
-            <h2 className="mt-5 text-xl font-semibold text-white">
-              Star SCE V2
-            </h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/45">
-              Star için dashboard yapısı hazır. Veri kaynağı ve takip kuralları
-              tanımlandığında bu alan doldurulacak.
-            </p>
-          </div>
-        </section>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <SCEV2ScopeSelector
-        selectedCompany={selectedCompany}
-        onCompanyChange={selectCompany}
-        factoryOptions={factoryOptions}
-        selectedFactories={selectedFactories}
-        onFactoryToggle={toggleFactory}
-        onAllFactories={() => {
-          setSelectedFactories([]);
-          setFilter('all');
-          setSearch('');
-          setPage(1);
-        }}
-      />
-
       <section className="card overflow-hidden">
         <div className="border-b border-white/10 p-5 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div>
@@ -640,7 +554,7 @@ export function SCEV2Dashboard() {
   );
 }
 
-function SCEV2ScopeSelector({
+export function SCEV2ScopeSelector({
   selectedCompany,
   onCompanyChange,
   factoryOptions,
