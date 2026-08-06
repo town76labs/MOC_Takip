@@ -50,6 +50,28 @@ interface ChartDatum {
 }
 
 const PAGE_SIZE = 25;
+const FACTORY_ORDER = [
+  'ISKELE',
+  'ETILEN',
+  'AROMATIKLER',
+  'AYPE',
+  'AYPE-T',
+  'YYPE',
+  'PP',
+  'PA',
+  'DIGER',
+];
+const FACTORY_LABELS: Record<string, string> = {
+  ISKELE: 'İskele',
+  ETILEN: 'Etilen',
+  AROMATIKLER: 'Aromatikler',
+  AYPE: 'AYPE',
+  'AYPE-T': 'AYPE-T',
+  YYPE: 'YYPE',
+  PP: 'PP',
+  PA: 'PA',
+  DIGER: 'Diğer',
+};
 const tooltipStyle = {
   background: '#111827',
   border: '1px solid rgba(255,255,255,0.12)',
@@ -61,6 +83,10 @@ const tooltipStyle = {
 export function SCEV2Dashboard() {
   const sourceRows = useDataStore((state) => state.sceV2Rows);
   const controlRows = useDataStore((state) => state.sceV2ControlRows);
+  const [selectedCompany, setSelectedCompany] = useState<'PETKIM' | 'STAR'>(
+    'PETKIM',
+  );
+  const [selectedFactories, setSelectedFactories] = useState<string[]>([]);
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -68,9 +94,29 @@ export function SCEV2Dashboard() {
     null,
   );
 
-  const rows = useMemo(
+  const allRows = useMemo(
     () => buildSCEV2DashboardRows(sourceRows, controlRows),
     [controlRows, sourceRows],
+  );
+  const factoryOptions = useMemo(
+    () =>
+      [...new Set(allRows.map((row) => row.factory))].sort(
+        (a, b) =>
+          FACTORY_ORDER.indexOf(a) - FACTORY_ORDER.indexOf(b) ||
+          a.localeCompare(b, 'tr'),
+      ),
+    [allRows],
+  );
+  const rows = useMemo(
+    () =>
+      selectedCompany === 'PETKIM'
+        ? allRows.filter(
+            (row) =>
+              selectedFactories.length === 0 ||
+              selectedFactories.includes(row.factory),
+          )
+        : [],
+    [allRows, selectedCompany, selectedFactories],
   );
   const metrics = useMemo(() => buildMetrics(rows), [rows]);
   const maintenanceChartData: ChartDatum[] = [
@@ -155,8 +201,72 @@ export function SCEV2Dashboard() {
     currentPage * PAGE_SIZE,
   );
 
+  function selectCompany(company: 'PETKIM' | 'STAR') {
+    setSelectedCompany(company);
+    setSelectedFactories([]);
+    setFilter('all');
+    setSearch('');
+    setPage(1);
+  }
+
+  function toggleFactory(factory: string) {
+    setSelectedFactories((current) =>
+      current.length === 0
+        ? [factory]
+        : current.includes(factory)
+          ? current.filter((item) => item !== factory)
+          : [...current, factory],
+    );
+    setFilter('all');
+    setSearch('');
+    setPage(1);
+  }
+
+  if (selectedCompany === 'STAR') {
+    return (
+      <div className="space-y-6">
+        <SCEV2ScopeSelector
+          selectedCompany={selectedCompany}
+          onCompanyChange={selectCompany}
+          factoryOptions={factoryOptions}
+          selectedFactories={selectedFactories}
+          onFactoryToggle={toggleFactory}
+          onAllFactories={() => setSelectedFactories([])}
+        />
+        <section className="card flex min-h-80 items-center justify-center p-10 text-center">
+          <div>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300">
+              <ShieldAlert size={27} strokeWidth={1.7} />
+            </div>
+            <h2 className="mt-5 text-xl font-semibold text-white">
+              Star SCE V2
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/45">
+              Star için dashboard yapısı hazır. Veri kaynağı ve takip kuralları
+              tanımlandığında bu alan doldurulacak.
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <SCEV2ScopeSelector
+        selectedCompany={selectedCompany}
+        onCompanyChange={selectCompany}
+        factoryOptions={factoryOptions}
+        selectedFactories={selectedFactories}
+        onFactoryToggle={toggleFactory}
+        onAllFactories={() => {
+          setSelectedFactories([]);
+          setFilter('all');
+          setSearch('');
+          setPage(1);
+        }}
+      />
+
       <section className="card overflow-hidden">
         <div className="border-b border-white/10 p-5 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div>
@@ -177,7 +287,7 @@ export function SCEV2Dashboard() {
           </div>
           <button
             type="button"
-            onClick={() => downloadControlTemplate(rows)}
+            onClick={() => downloadControlTemplate(allRows)}
             className="mt-4 inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:mt-0"
           >
             <Download size={16} />
@@ -527,6 +637,125 @@ export function SCEV2Dashboard() {
         onClose={() => setSelectedRow(null)}
       />
     </div>
+  );
+}
+
+function SCEV2ScopeSelector({
+  selectedCompany,
+  onCompanyChange,
+  factoryOptions,
+  selectedFactories,
+  onFactoryToggle,
+  onAllFactories,
+}: {
+  selectedCompany: 'PETKIM' | 'STAR';
+  onCompanyChange: (company: 'PETKIM' | 'STAR') => void;
+  factoryOptions: string[];
+  selectedFactories: string[];
+  onFactoryToggle: (factory: string) => void;
+  onAllFactories: () => void;
+}) {
+  return (
+    <section className="card overflow-hidden">
+      <div className="grid grid-cols-2 gap-px bg-white/10">
+        <button
+          type="button"
+          aria-pressed={selectedCompany === 'PETKIM'}
+          onClick={() => onCompanyChange('PETKIM')}
+          className={`relative min-h-24 p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-400/40 ${
+            selectedCompany === 'PETKIM'
+              ? 'bg-sky-500/10'
+              : 'bg-[#0d0d0d] hover:bg-white/[0.04]'
+          }`}
+        >
+          <span
+            className={`absolute inset-y-0 left-0 w-1 ${
+              selectedCompany === 'PETKIM' ? 'bg-sky-400' : 'bg-transparent'
+            }`}
+          />
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">
+            Şirket
+          </span>
+          <span className="mt-1 block text-2xl font-semibold text-white">
+            Petkim
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={selectedCompany === 'STAR'}
+          onClick={() => onCompanyChange('STAR')}
+          className={`relative min-h-24 p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-400/40 ${
+            selectedCompany === 'STAR'
+              ? 'bg-red-500/10'
+              : 'bg-[#0d0d0d] hover:bg-white/[0.04]'
+          }`}
+        >
+          <span
+            className={`absolute inset-y-0 left-0 w-1 ${
+              selectedCompany === 'STAR' ? 'bg-red-500' : 'bg-transparent'
+            }`}
+          />
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-red-300">
+            Şirket
+          </span>
+          <span className="mt-1 block text-2xl font-semibold text-white">
+            Star
+          </span>
+        </button>
+      </div>
+
+      {selectedCompany === 'PETKIM' && (
+        <div className="border-t border-white/10 bg-black/20 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                Petkim Fabrikaları
+              </h3>
+              <p className="mt-0.5 text-xs text-white/40">
+                Bir veya birden fazla fabrika seçebilirsiniz.
+              </p>
+            </div>
+            <span className="hidden rounded-md bg-sky-500/10 px-2 py-1 text-xs text-sky-300 sm:inline">
+              {selectedFactories.length === 0
+                ? 'Tüm fabrikalar'
+                : `${selectedFactories.length} fabrika seçili`}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={selectedFactories.length === 0}
+              onClick={onAllFactories}
+              className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+                selectedFactories.length === 0
+                  ? 'border-sky-400/60 bg-sky-500 text-white shadow-lg shadow-sky-950/30'
+                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+              }`}
+            >
+              Tümü
+            </button>
+            {factoryOptions.map((factory) => {
+              const active = selectedFactories.includes(factory);
+              return (
+                <button
+                  key={factory}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onFactoryToggle(factory)}
+                  className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+                    active
+                      ? 'border-sky-400/60 bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/20'
+                      : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+                  }`}
+                >
+                  {FACTORY_LABELS[factory] ?? factory}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

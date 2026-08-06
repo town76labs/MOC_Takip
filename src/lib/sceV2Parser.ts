@@ -9,6 +9,7 @@ import type {
 import { normalize, parseDate, toDisplayString } from './normalize';
 
 type SAPField =
+  | 'businessArea'
   | 'notificationNo'
   | 'orderNo'
   | 'equipmentNo'
@@ -29,6 +30,7 @@ type ControlField =
   | 'updatedAt';
 
 const SAP_ALIASES: Record<SAPField, string[]> = {
+  businessArea: ['isletme alani', 'işletme alanı'],
   notificationNo: ['bildirim'],
   orderNo: ['siparis', 'sipariş'],
   equipmentNo: ['ekipman'],
@@ -107,6 +109,7 @@ export async function parseSCEV2SAPExcel(
     }
 
     const required: SAPField[] = [
+      'businessArea',
       'orderNo',
       'equipmentNo',
       'userStatus',
@@ -227,12 +230,16 @@ function parseSAPRow(
   const equipmentNo = text('equipmentNo');
   const orderNo = text('orderNo');
   const tagNo = text('tagNo');
+  const businessArea = text('businessArea');
   if (!equipmentNo && !orderNo && !tagNo) return null;
 
   const userStatus = text('userStatus');
   return {
     rowId: `sce-v2-${sourceRow}-${equipmentNo || tagNo || orderNo}`,
     sourceRow,
+    company: 'PETKIM',
+    factory: resolveFactory(businessArea),
+    businessArea,
     equipmentNo,
     tagNo,
     equipmentDescription: text('equipmentDescription'),
@@ -279,6 +286,21 @@ function parseControlRow(
     updatedBy: text('updatedBy'),
     updatedAt: parseDate(value('updatedAt')),
   };
+}
+
+const FACTORY_BY_BUSINESS_AREA: Record<string, string> = {
+  '100': 'ISKELE',
+  '205': 'YYPE',
+  '206': 'AYPE',
+  '207': 'PP',
+  '212': 'PA',
+  '214': 'ETILEN',
+  '215': 'AROMATIKLER',
+  '219': 'AYPE-T',
+};
+
+function resolveFactory(value: string) {
+  return FACTORY_BY_BUSINESS_AREA[value.trim()] ?? 'DIGER';
 }
 
 function resolveMaintenanceStatus(value: string): SCEV2MaintenanceStatus {
