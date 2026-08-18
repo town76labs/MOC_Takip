@@ -145,6 +145,12 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const sceV2Error = useDataStore((s) => s.sceV2Error);
   const uploadSCEV2 = useDataStore((s) => s.uploadSCEV2);
   const clearSCEV2 = useDataStore((s) => s.clearSCEV2);
+  const sceV2StarRows = useDataStore((s) => s.sceV2StarRows);
+  const sceV2StarFile = useDataStore((s) => s.sceV2StarFile);
+  const sceV2StarLoading = useDataStore((s) => s.sceV2StarLoading);
+  const sceV2StarError = useDataStore((s) => s.sceV2StarError);
+  const uploadSCEV2Star = useDataStore((s) => s.uploadSCEV2Star);
+  const clearSCEV2Star = useDataStore((s) => s.clearSCEV2Star);
   const sceV2ControlFile = useDataStore((s) => s.sceV2ControlFile);
   const sceV2ControlLoading = useDataStore((s) => s.sceV2ControlLoading);
   const sceV2ControlError = useDataStore((s) => s.sceV2ControlError);
@@ -675,9 +681,17 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   }
 
   if (appMode === 'sce-v2') {
+    const isSCEV2Star = sceV2SelectedCompany === 'STAR';
+    const starUnitOptions = [
+      ...new Set(sceV2StarRows.map((row) => row.unit).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
     const showSCEV2Uploads =
-      !sceV2File || !sceV2ControlFile || sceV2UploadsOpen;
-    const hasAnySCEV2File = !!sceV2File || !!sceV2ControlFile;
+      (isSCEV2Star
+        ? !sceV2StarFile
+        : !sceV2File || !sceV2ControlFile) || sceV2UploadsOpen;
+    const hasAnySCEV2File = isSCEV2Star
+      ? !!sceV2StarFile
+      : !!sceV2File || !!sceV2ControlFile;
 
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
@@ -745,28 +759,57 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
             <SCEV2ScopeSelector
               selectedCompany={sceV2SelectedCompany}
               onCompanyChange={selectSCEV2Company}
-              factoryOptions={SCE_V2_FACTORY_OPTIONS}
+              factoryOptions={
+                isSCEV2Star ? starUnitOptions : SCE_V2_FACTORY_OPTIONS
+              }
               selectedFactories={sceV2SelectedFactories}
               onFactoryToggle={toggleSCEV2Factory}
               onAllFactories={() => setSceV2SelectedFactories([])}
             />
           </div>
 
-          {sceV2SelectedCompany === 'STAR' ? (
-            <section className="card flex min-h-80 items-center justify-center p-10 text-center">
-              <div>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300">
-                  <ShieldAlert size={27} strokeWidth={1.7} />
+          {isSCEV2Star ? (
+            <>
+              {showSCEV2Uploads && (
+                <section className="mb-6 grid grid-cols-1 gap-4">
+                  <FileUpload
+                    title="Star SCE Sipariş Son Durum Excel'i"
+                    subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
+                    hint="A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür. Ekipman kategorisi, tipi ve konsolu kalıcı eşleştirme tablosundan alınır."
+                    fileMeta={sceV2StarFile}
+                    loading={sceV2StarLoading}
+                    error={sceV2StarError}
+                    onFile={uploadSCEV2Star}
+                    onClear={clearSCEV2Star}
+                    accentColorClass="from-red-500 to-red-800"
+                    surfaceClassName="upload-panel-dark"
+                  />
+                </section>
+              )}
+              {!sceV2StarFile ? (
+                <div className="card mx-auto max-w-3xl p-10 text-center">
+                  <ListChecks
+                    size={36}
+                    className="mx-auto mb-4 text-red-300"
+                    strokeWidth={1.8}
+                  />
+                  <h2 className="text-lg font-semibold text-white">
+                    Başlamak için Star SCE Sipariş Son Durum Excel dosyasını
+                    yükleyin
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                    Ünite, konsol, kategori tipi ve ekipman tipi filtreleri dosya
+                    yüklendikten sonra otomatik hazırlanır.
+                  </p>
                 </div>
-                <h2 className="mt-5 text-xl font-semibold text-white">
-                  Star SCE V2
-                </h2>
-                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/45">
-                  Star için veri kaynağı ve dashboard kuralları daha sonra
-                  tanımlanacak.
-                </p>
-              </div>
-            </section>
+              ) : (
+                <SCEV2Dashboard
+                  key={`star-${sceV2SelectedFactories.join('|') || 'all'}`}
+                  company="STAR"
+                  selectedFactories={sceV2SelectedFactories}
+                />
+              )}
+            </>
           ) : (
             <>
               {showSCEV2Uploads && (
@@ -816,6 +859,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               ) : (
                 <SCEV2Dashboard
                   key={sceV2SelectedFactories.join('|') || 'all'}
+                  company="PETKIM"
                   selectedFactories={sceV2SelectedFactories}
                 />
               )}

@@ -70,12 +70,18 @@ const tooltipStyle = {
 };
 
 export function SCEV2Dashboard({
+  company,
   selectedFactories,
 }: {
+  company: 'PETKIM' | 'STAR';
   selectedFactories: string[];
 }) {
-  const sourceRows = useDataStore((state) => state.sceV2Rows);
+  const petkimRows = useDataStore((state) => state.sceV2Rows);
+  const starRows = useDataStore((state) => state.sceV2StarRows);
   const controlRows = useDataStore((state) => state.sceV2ControlRows);
+  const [selectedConsole, setSelectedConsole] = useState('');
+  const [selectedCategoryType, setSelectedCategoryType] = useState('');
+  const [selectedEquipmentType, setSelectedEquipmentType] = useState('');
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -84,10 +90,14 @@ export function SCEV2Dashboard({
   );
 
   const allRows = useMemo(
-    () => buildSCEV2DashboardRows(sourceRows, controlRows),
-    [controlRows, sourceRows],
+    () =>
+      buildSCEV2DashboardRows(
+        company === 'STAR' ? starRows : petkimRows,
+        company === 'STAR' ? [] : controlRows,
+      ),
+    [company, controlRows, petkimRows, starRows],
   );
-  const rows = useMemo(
+  const scopeRows = useMemo(
     () =>
       allRows.filter(
         (row) =>
@@ -95,6 +105,31 @@ export function SCEV2Dashboard({
           selectedFactories.includes(row.factory),
       ),
     [allRows, selectedFactories],
+  );
+  const metadataOptions = useMemo(
+    () => ({
+      consoles: sortedUnique(scopeRows.map((row) => row.consoleName)),
+      categories: sortedUnique(scopeRows.map((row) => row.categoryType)),
+      equipmentTypes: sortedUnique(scopeRows.map((row) => row.equipmentType)),
+    }),
+    [scopeRows],
+  );
+  const rows = useMemo(
+    () =>
+      scopeRows.filter(
+        (row) =>
+          (!selectedConsole || row.consoleName === selectedConsole) &&
+          (!selectedCategoryType ||
+            row.categoryType === selectedCategoryType) &&
+          (!selectedEquipmentType ||
+            row.equipmentType === selectedEquipmentType),
+      ),
+    [
+      scopeRows,
+      selectedCategoryType,
+      selectedConsole,
+      selectedEquipmentType,
+    ],
   );
   const metrics = useMemo(() => buildMetrics(rows), [rows]);
   const maintenanceChartData: ChartDatum[] = [
@@ -167,6 +202,10 @@ export function SCEV2Dashboard({
             row.userStatus,
             row.maintenancePlanNo,
             row.maintenanceItemNo,
+            row.unit,
+            row.consoleName,
+            row.categoryType,
+            row.equipmentType,
           ].join(' '),
         ).includes(query);
       })
@@ -190,7 +229,8 @@ export function SCEV2Dashboard({
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">
-                  SCE V2 Periyodik Bakım Takibi
+                  {company === 'STAR' ? 'Star' : 'Petkim'} SCE V2 Periyodik
+                  Bakım Takibi
                 </h2>
                 <p className="mt-1 text-sm text-white/50">
                   SAP sipariş durumları ile saha kontrol kayıtları ekipman
@@ -199,14 +239,16 @@ export function SCEV2Dashboard({
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => downloadControlTemplate(allRows)}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:mt-0"
-          >
-            <Download size={16} />
-            Kontrol Excel Şablonunu İndir
-          </button>
+          {company === 'PETKIM' && (
+            <button
+              type="button"
+              onClick={() => downloadControlTemplate(allRows)}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:mt-0"
+            >
+              <Download size={16} />
+              Kontrol Excel Şablonunu İndir
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-3 xl:grid-cols-6">
@@ -260,6 +302,28 @@ export function SCEV2Dashboard({
           />
         </div>
       </section>
+
+      {company === 'STAR' && (
+        <StarMetadataFilters
+          consoles={metadataOptions.consoles}
+          categories={metadataOptions.categories}
+          equipmentTypes={metadataOptions.equipmentTypes}
+          selectedConsole={selectedConsole}
+          selectedCategory={selectedCategoryType}
+          selectedEquipmentType={selectedEquipmentType}
+          onConsoleChange={setSelectedConsole}
+          onCategoryChange={setSelectedCategoryType}
+          onEquipmentTypeChange={setSelectedEquipmentType}
+          onClear={() => {
+            setSelectedConsole('');
+            setSelectedCategoryType('');
+            setSelectedEquipmentType('');
+            setFilter('all');
+            setSearch('');
+            setPage(1);
+          }}
+        />
+      )}
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <ModernChartCard
@@ -463,6 +527,9 @@ export function SCEV2Dashboard({
             <thead className="border-b border-white/10 bg-white/[0.05] text-xs uppercase tracking-wide text-white/45">
               <tr>
                 <th className="px-5 py-3 font-medium">Ekipman / Tag</th>
+                {company === 'STAR' && (
+                  <th className="px-4 py-3 font-medium">Ünite / Konsol</th>
+                )}
                 <th className="px-4 py-3 font-medium">Sipariş</th>
                 <th className="px-4 py-3 font-medium">Kullanıcı Durumu</th>
                 <th className="px-4 py-3 font-medium">Bakım Durumu</th>
@@ -484,6 +551,14 @@ export function SCEV2Dashboard({
                       {row.tagNo || 'Tag yok'}
                     </div>
                   </td>
+                  {company === 'STAR' && (
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-white/75">{row.unit}</div>
+                      <div className="mt-0.5 text-xs text-red-300/70">
+                        {row.consoleName || 'Konsol bilgisi yok'}
+                      </div>
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-white/70">{row.orderNo || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-medium text-white/65">
@@ -618,32 +693,52 @@ export function SCEV2ScopeSelector({
         </button>
       </div>
 
-      {selectedCompany === 'PETKIM' && (
-        <div className="border-t border-white/10 bg-black/20 p-4">
+      <div className="border-t border-white/10 bg-black/20 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-white">
-                Petkim Fabrikaları
+                {selectedCompany === 'PETKIM'
+                  ? 'Petkim Fabrikaları'
+                  : 'Star Üniteleri'}
               </h3>
               <p className="mt-0.5 text-xs text-white/40">
-                Bir veya birden fazla fabrika seçebilirsiniz.
+                {selectedCompany === 'PETKIM'
+                  ? 'Bir veya birden fazla fabrika seçebilirsiniz.'
+                  : factoryOptions.length > 0
+                    ? 'A sütunundaki işletme alanları U-xxx olarak gösterilir.'
+                    : 'Üniteler Star Excel dosyası yüklendikten sonra gösterilir.'}
               </p>
             </div>
-            <span className="hidden rounded-md bg-sky-500/10 px-2 py-1 text-xs text-sky-300 sm:inline">
+            <span
+              className={`hidden rounded-md px-2 py-1 text-xs sm:inline ${
+                selectedCompany === 'PETKIM'
+                  ? 'bg-sky-500/10 text-sky-300'
+                  : 'bg-red-500/10 text-red-300'
+              }`}
+            >
               {selectedFactories.length === 0
-                ? 'Tüm fabrikalar'
-                : `${selectedFactories.length} fabrika seçili`}
+                ? selectedCompany === 'PETKIM'
+                  ? 'Tüm fabrikalar'
+                  : 'Tüm üniteler'
+                : `${selectedFactories.length} ${
+                    selectedCompany === 'PETKIM' ? 'fabrika' : 'ünite'
+                  } seçili`}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {factoryOptions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
             <button
               type="button"
               aria-pressed={selectedFactories.length === 0}
               onClick={onAllFactories}
               className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
                 selectedFactories.length === 0
-                  ? 'border-sky-400/60 bg-sky-500 text-white shadow-lg shadow-sky-950/30'
-                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+                  ? selectedCompany === 'PETKIM'
+                    ? 'border-sky-400/60 bg-sky-500 text-white shadow-lg shadow-sky-950/30'
+                    : 'border-red-400/60 bg-red-500 text-white shadow-lg shadow-red-950/30'
+                  : selectedCompany === 'PETKIM'
+                    ? 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+                    : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
               }`}
             >
               Tümü
@@ -658,18 +753,127 @@ export function SCEV2ScopeSelector({
                   onClick={() => onFactoryToggle(factory)}
                   className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
                     active
-                      ? 'border-sky-400/60 bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/20'
-                      : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+                      ? selectedCompany === 'PETKIM'
+                        ? 'border-sky-400/60 bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/20'
+                        : 'border-red-400/60 bg-red-500/20 text-red-100 ring-1 ring-red-400/20'
+                      : selectedCompany === 'PETKIM'
+                        ? 'border-white/10 bg-white/[0.04] text-white/55 hover:border-sky-400/30 hover:text-white'
+                        : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
                   }`}
                 >
-                  {FACTORY_LABELS[factory] ?? factory}
+                  {selectedCompany === 'PETKIM'
+                    ? FACTORY_LABELS[factory] ?? factory
+                    : factory}
                 </button>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
-      )}
     </section>
+  );
+}
+
+function StarMetadataFilters({
+  consoles,
+  categories,
+  equipmentTypes,
+  selectedConsole,
+  selectedCategory,
+  selectedEquipmentType,
+  onConsoleChange,
+  onCategoryChange,
+  onEquipmentTypeChange,
+  onClear,
+}: {
+  consoles: string[];
+  categories: string[];
+  equipmentTypes: string[];
+  selectedConsole: string;
+  selectedCategory: string;
+  selectedEquipmentType: string;
+  onConsoleChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onEquipmentTypeChange: (value: string) => void;
+  onClear: () => void;
+}) {
+  const hasFilter = Boolean(
+    selectedConsole || selectedCategory || selectedEquipmentType,
+  );
+  return (
+    <section className="card p-5">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-semibold text-white">
+            Star Ekipman Filtreleri
+          </h3>
+          <p className="mt-1 text-xs text-white/45">
+            Konsol, kategori tipi ve ekipman tipi kalıcı ekipman tablosundan
+            alınır.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={!hasFilter}
+          onClick={onClear}
+          className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white/55 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          Filtreleri Temizle
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <MetadataSelect
+          label="Konsol"
+          value={selectedConsole}
+          options={consoles}
+          onChange={onConsoleChange}
+        />
+        <MetadataSelect
+          label="Kategori Tipi"
+          value={selectedCategory}
+          options={categories}
+          onChange={onCategoryChange}
+        />
+        <MetadataSelect
+          label="Ekipman Tipi"
+          value={selectedEquipmentType}
+          options={equipmentTypes}
+          onChange={onEquipmentTypeChange}
+        />
+      </div>
+    </section>
+  );
+}
+
+function MetadataSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-white/45">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="input appearance-none"
+      >
+        <option value="">Tümü</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -903,6 +1107,14 @@ function EquipmentDetailModal({
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
             <DetailItem label="Ekipman Numarası" value={row.equipmentNo} />
             <DetailItem label="Tag Numarası / Teknik Birim" value={row.tagNo} />
+            {row.company === 'STAR' && (
+              <>
+                <DetailItem label="Ünite" value={row.unit} />
+                <DetailItem label="Konsol" value={row.consoleName} />
+                <DetailItem label="Kategori Tipi" value={row.categoryType} />
+                <DetailItem label="Ekipman Tipi" value={row.equipmentType} />
+              </>
+            )}
             <DetailItem label="Bakım Planı" value={row.maintenancePlanNo} />
             <DetailItem label="Bakım Kalemi" value={row.maintenanceItemNo} />
             <DetailItem label="Sipariş Numarası" value={row.orderNo} />
@@ -1010,6 +1222,12 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
 
 function percent(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+function sortedUnique(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, 'tr', { numeric: true }),
+  );
 }
 
 function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {

@@ -7,6 +7,10 @@ import type {
   SCEV2Row,
 } from '../types';
 import { normalize, parseDate, toDisplayString } from './normalize';
+import {
+  getSCEStarConsoleByUnit,
+  getSCEStarEquipmentInfo,
+} from './sceStarLookup';
 
 type SAPField =
   | 'businessArea'
@@ -40,10 +44,12 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
     'yurutme bsl tarihi',
     'yürütme bşl tarihi',
     'yurutme baslangic tarihi',
+    'fiili yurutme baslangic tarihi',
   ],
   maintenanceEndDate: [
     'yurutme bitis tarihi',
     'yürütme bitiş tarihi',
+    'fiili yurutme bitis tarihi',
   ],
   tagNo: ['teknik birim'],
   maintenanceItemNo: ['bakim kalemi', 'bakım kalemi'],
@@ -90,6 +96,7 @@ interface SheetCandidate<Field extends string> {
 
 export async function parseSCEV2SAPExcel(
   file: File,
+  company: 'PETKIM' | 'STAR' = 'PETKIM',
 ): Promise<{ data: SCEV2Row[]; error?: ParseError }> {
   try {
     if (file.size === 0) {
@@ -134,7 +141,12 @@ export async function parseSCEV2SAPExcel(
 
     const parsed = sheet.rows
       .map((cells, index) =>
-        parseSAPRow(cells, sheet.fieldMap, index + sheet.headerIndex + 2),
+        parseSAPRow(
+          cells,
+          sheet.fieldMap,
+          index + sheet.headerIndex + 2,
+          company,
+        ),
       )
       .filter((row): row is SCEV2Row => row !== null);
     const data = deduplicateSAPRows(parsed);
@@ -223,6 +235,7 @@ function parseSAPRow(
   cells: unknown[],
   fieldMap: Partial<Record<SAPField, number>>,
   sourceRow: number,
+  company: 'PETKIM' | 'STAR',
 ): SCEV2Row | null {
   const value = (field: SAPField) =>
     fieldMap[field] === undefined ? '' : cells[fieldMap[field] ?? -1];
@@ -234,12 +247,27 @@ function parseSAPRow(
   if (!equipmentNo && !orderNo && !tagNo) return null;
 
   const userStatus = text('userStatus');
+  const starInfo =
+    company === 'STAR' ? getSCEStarEquipmentInfo(equipmentNo) : undefined;
+  const unit =
+    company === 'STAR'
+      ? businessArea
+        ? `U-${businessArea}`
+        : 'U-BELIRSIZ'
+      : resolveFactory(businessArea);
   return {
-    rowId: `sce-v2-${sourceRow}-${equipmentNo || tagNo || orderNo}`,
+    rowId: `sce-v2-${company}-${sourceRow}-${equipmentNo || tagNo || orderNo}`,
     sourceRow,
-    company: 'PETKIM',
-    factory: resolveFactory(businessArea),
+    company,
+    factory: unit,
     businessArea,
+    unit,
+    consoleName:
+      company === 'STAR'
+        ? getSCEStarConsoleByUnit(businessArea) ?? starInfo?.consoleName ?? ''
+        : '',
+    categoryType: starInfo?.categoryType ?? '',
+    equipmentType: starInfo?.equipmentType ?? '',
     equipmentNo,
     tagNo,
     equipmentDescription: text('equipmentDescription'),

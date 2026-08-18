@@ -150,9 +150,13 @@ export type SCEV2CalibrationStatus =
 export interface SCEV2Row {
   rowId: string;
   sourceRow: number;
-  company: 'PETKIM';
+  company: 'PETKIM' | 'STAR';
   factory: string;
   businessArea: string;
+  unit: string;
+  consoleName: string;
+  categoryType: string;
+  equipmentType: string;
   equipmentNo: string;
   tagNo: string;
   equipmentDescription: string;
