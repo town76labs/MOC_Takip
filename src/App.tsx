@@ -141,6 +141,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const uploadSCEStad = useDataStore((s) => s.uploadSCEStad);
   const clearSCEStad = useDataStore((s) => s.clearSCEStad);
   const sceV2File = useDataStore((s) => s.sceV2File);
+  const sceV2Rows = useDataStore((s) => s.sceV2Rows);
   const sceV2Loading = useDataStore((s) => s.sceV2Loading);
   const sceV2Error = useDataStore((s) => s.sceV2Error);
   const uploadSCEV2 = useDataStore((s) => s.uploadSCEV2);
@@ -188,6 +189,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [sceV2SelectedFactories, setSceV2SelectedFactories] = useState<
     string[]
   >([]);
+  const [sceV2SelectedConsole, setSceV2SelectedConsole] = useState('');
   const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
     'overview',
   );
@@ -203,6 +205,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   function selectSCEV2Company(company: 'PETKIM' | 'STAR') {
     setSceV2SelectedCompany(company);
     setSceV2SelectedFactories([]);
+    setSceV2SelectedConsole('');
   }
 
   function toggleSCEV2Factory(factory: string) {
@@ -685,13 +688,35 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
     const starUnitOptions = [
       ...new Set(sceV2StarRows.map((row) => row.unit).filter(Boolean)),
     ].sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
-    const showSCEV2Uploads =
-      (isSCEV2Star
-        ? !sceV2StarFile
-        : !sceV2File || !sceV2ControlFile) || sceV2UploadsOpen;
-    const hasAnySCEV2File = isSCEV2Star
-      ? !!sceV2StarFile
-      : !!sceV2File || !!sceV2ControlFile;
+    const unitsByConsole = new Map<string, Set<string>>();
+    for (const row of sceV2StarRows) {
+      if (!row.consoleName || !row.unit) continue;
+      const units = unitsByConsole.get(row.consoleName) ?? new Set<string>();
+      units.add(row.unit);
+      unitsByConsole.set(row.consoleName, units);
+    }
+    const starConsoleGroups = [...unitsByConsole.entries()]
+      .sort(([left], [right]) => {
+        if (left === 'JETTY') return 1;
+        if (right === 'JETTY') return -1;
+        return left.localeCompare(right, 'tr', { numeric: true });
+      })
+      .map(([name, units]) => ({
+        name,
+        options: [...units].sort((a, b) =>
+          a.localeCompare(b, 'tr', { numeric: true }),
+        ),
+      }));
+    const petkimFactories = new Set(
+      sceV2Rows.map((row) => row.factory).filter(Boolean),
+    );
+    const petkimFactoryOptions = [
+      ...SCE_V2_FACTORY_OPTIONS.filter((factory) => petkimFactories.has(factory)),
+      ...[...petkimFactories]
+        .filter((factory) => !SCE_V2_FACTORY_OPTIONS.includes(factory))
+        .sort((a, b) => a.localeCompare(b, 'tr', { numeric: true })),
+    ];
+    const showSCEV2Uploads = sceV2UploadsOpen;
 
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
@@ -712,36 +737,32 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   SAP Sipariş, Deferral ve Kalibrasyon Raporu Takibi
                 </p>
               </div>
-              {hasAnySCEV2File && (
-                <button
-                  type="button"
-                  onClick={() => setSceV2UploadsOpen((open) => !open)}
-                  aria-expanded={sceV2UploadsOpen}
-                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
-                >
-                  <FileSpreadsheet size={16} />
-                  SCE V2 Excel Dosyaları
-                  <ChevronDown
-                    size={16}
-                    className={`transition ${
-                      sceV2UploadsOpen ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setSceV2UploadsOpen((open) => !open)}
+                aria-expanded={sceV2UploadsOpen}
+                className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
+              >
+                <FileSpreadsheet size={16} />
+                SCE V2 Excel Dosyaları
+                <ChevronDown
+                  size={16}
+                  className={`transition ${
+                    sceV2UploadsOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
             </div>
             <div className="flex items-center gap-2">
-              {hasAnySCEV2File && (
-                <button
-                  type="button"
-                  onClick={() => setSceV2UploadsOpen((open) => !open)}
-                  aria-expanded={sceV2UploadsOpen}
-                  aria-label="SCE V2 Excel dosyası panelini aç veya kapat"
-                  className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:hidden"
-                >
-                  <FileSpreadsheet size={18} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setSceV2UploadsOpen((open) => !open)}
+                aria-expanded={sceV2UploadsOpen}
+                aria-label="SCE V2 Excel dosyası panelini aç veya kapat"
+                className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:hidden"
+              >
+                <FileSpreadsheet size={18} />
+              </button>
               <button
                 type="button"
                 onClick={() => setAppMode('legal')}
@@ -755,13 +776,78 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          {showSCEV2Uploads &&
+            (isSCEV2Star ? (
+              <section className="mb-6 grid grid-cols-1 gap-4">
+                <FileUpload
+                  title="Star SCE Sipariş Son Durum Excel'i"
+                  subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
+                  hint="A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür. Ekipman kategorisi, tipi ve konsolu kalıcı eşleştirme tablosundan alınır."
+                  fileMeta={sceV2StarFile}
+                  loading={sceV2StarLoading}
+                  error={sceV2StarError}
+                  onFile={(file) => {
+                    setSceV2SelectedConsole('');
+                    setSceV2SelectedFactories([]);
+                    return uploadSCEV2Star(file);
+                  }}
+                  onClear={() => {
+                    clearSCEV2Star();
+                    setSceV2SelectedConsole('');
+                    setSceV2SelectedFactories([]);
+                  }}
+                  accentColorClass="from-red-500 to-red-800"
+                  surfaceClassName="upload-panel-dark"
+                />
+              </section>
+            ) : (
+              <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <FileUpload
+                  title="1. SAP SCE Sipariş Durumları Excel'i"
+                  subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
+                  hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
+                  fileMeta={sceV2File}
+                  loading={sceV2Loading}
+                  error={sceV2Error}
+                  onFile={(file) => {
+                    setSceV2SelectedFactories([]);
+                    return uploadSCEV2(file);
+                  }}
+                  onClear={() => {
+                    clearSCEV2();
+                    setSceV2SelectedFactories([]);
+                  }}
+                  accentColorClass="from-cyan-400 to-sky-700"
+                  surfaceClassName="upload-panel-dark"
+                />
+                <FileUpload
+                  title="2. Saha Kontrol ve Rapor Excel'i"
+                  subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
+                  hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
+                  fileMeta={sceV2ControlFile}
+                  loading={sceV2ControlLoading}
+                  error={sceV2ControlError}
+                  onFile={uploadSCEV2Control}
+                  onClear={clearSCEV2Control}
+                  accentColorClass="from-violet-500 to-fuchsia-700"
+                  surfaceClassName="upload-panel-dark"
+                />
+              </section>
+            ))}
+
           <div className="mb-6">
             <SCEV2ScopeSelector
               selectedCompany={sceV2SelectedCompany}
               onCompanyChange={selectSCEV2Company}
               factoryOptions={
-                isSCEV2Star ? starUnitOptions : SCE_V2_FACTORY_OPTIONS
+                isSCEV2Star ? starUnitOptions : petkimFactoryOptions
               }
+              factoryGroups={isSCEV2Star ? starConsoleGroups : undefined}
+              selectedGroup={isSCEV2Star ? sceV2SelectedConsole : ''}
+              onGroupChange={(group) => {
+                setSceV2SelectedConsole(group);
+                setSceV2SelectedFactories([]);
+              }}
               selectedFactories={sceV2SelectedFactories}
               onFactoryToggle={toggleSCEV2Factory}
               onAllFactories={() => setSceV2SelectedFactories([])}
@@ -770,22 +856,6 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
           {isSCEV2Star ? (
             <>
-              {showSCEV2Uploads && (
-                <section className="mb-6 grid grid-cols-1 gap-4">
-                  <FileUpload
-                    title="Star SCE Sipariş Son Durum Excel'i"
-                    subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
-                    hint="A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür. Ekipman kategorisi, tipi ve konsolu kalıcı eşleştirme tablosundan alınır."
-                    fileMeta={sceV2StarFile}
-                    loading={sceV2StarLoading}
-                    error={sceV2StarError}
-                    onFile={uploadSCEV2Star}
-                    onClear={clearSCEV2Star}
-                    accentColorClass="from-red-500 to-red-800"
-                    surfaceClassName="upload-panel-dark"
-                  />
-                </section>
-              )}
               {!sceV2StarFile ? (
                 <div className="card mx-auto max-w-3xl p-10 text-center">
                   <ListChecks
@@ -798,49 +868,23 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                     yükleyin
                   </h2>
                   <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
-                    Ünite, konsol, kategori tipi ve ekipman tipi filtreleri dosya
-                    yüklendikten sonra otomatik hazırlanır.
+                    Konsol, ünite ve ekipman tipi filtreleri dosya yüklendikten
+                    sonra otomatik hazırlanır.
                   </p>
                 </div>
               ) : (
                 <SCEV2Dashboard
-                  key={`star-${sceV2SelectedFactories.join('|') || 'all'}`}
+                  key={`star-${sceV2SelectedConsole || 'all'}-${
+                    sceV2SelectedFactories.join('|') || 'all'
+                  }`}
                   company="STAR"
                   selectedFactories={sceV2SelectedFactories}
+                  selectedConsoleScope={sceV2SelectedConsole}
                 />
               )}
             </>
           ) : (
             <>
-              {showSCEV2Uploads && (
-                <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  <FileUpload
-                    title="1. SAP SCE Sipariş Durumları Excel'i"
-                    subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                    hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
-                    fileMeta={sceV2File}
-                    loading={sceV2Loading}
-                    error={sceV2Error}
-                    onFile={uploadSCEV2}
-                    onClear={clearSCEV2}
-                    accentColorClass="from-cyan-400 to-sky-700"
-                    surfaceClassName="upload-panel-dark"
-                  />
-                  <FileUpload
-                    title="2. Saha Kontrol ve Rapor Excel'i"
-                    subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
-                    hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
-                    fileMeta={sceV2ControlFile}
-                    loading={sceV2ControlLoading}
-                    error={sceV2ControlError}
-                    onFile={uploadSCEV2Control}
-                    onClear={clearSCEV2Control}
-                    accentColorClass="from-violet-500 to-fuchsia-700"
-                    surfaceClassName="upload-panel-dark"
-                  />
-                </section>
-              )}
-
               {!sceV2File ? (
                 <div className="card mx-auto max-w-3xl p-10 text-center">
                   <ListChecks
@@ -861,6 +905,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   key={sceV2SelectedFactories.join('|') || 'all'}
                   company="PETKIM"
                   selectedFactories={sceV2SelectedFactories}
+                  selectedConsoleScope=""
                 />
               )}
             </>

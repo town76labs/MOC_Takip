@@ -267,7 +267,9 @@ function parseSAPRow(
         ? getSCEStarConsoleByUnit(businessArea) ?? starInfo?.consoleName ?? ''
         : '',
     categoryType: starInfo?.categoryType ?? '',
-    equipmentType: starInfo?.equipmentType ?? '',
+    equipmentType: starInfo
+      ? [starInfo.categoryType, starInfo.equipmentType].filter(Boolean).join(' - ')
+      : '',
     equipmentNo,
     tagNo,
     equipmentDescription: text('equipmentDescription'),
