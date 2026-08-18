@@ -189,7 +189,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [sceV2SelectedFactories, setSceV2SelectedFactories] = useState<
     string[]
   >([]);
-  const [sceV2SelectedConsole, setSceV2SelectedConsole] = useState('');
+  const [sceV2SelectedConsoles, setSceV2SelectedConsoles] = useState<string[]>(
+    [],
+  );
   const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
     'overview',
   );
@@ -205,7 +207,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   function selectSCEV2Company(company: 'PETKIM' | 'STAR') {
     setSceV2SelectedCompany(company);
     setSceV2SelectedFactories([]);
-    setSceV2SelectedConsole('');
+    setSceV2SelectedConsoles([]);
   }
 
   function toggleSCEV2Factory(factory: string) {
@@ -787,13 +789,13 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   loading={sceV2StarLoading}
                   error={sceV2StarError}
                   onFile={(file) => {
-                    setSceV2SelectedConsole('');
+                    setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
                     return uploadSCEV2Star(file);
                   }}
                   onClear={() => {
                     clearSCEV2Star();
-                    setSceV2SelectedConsole('');
+                    setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
                   }}
                   accentColorClass="from-red-500 to-red-800"
@@ -843,9 +845,17 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 isSCEV2Star ? starUnitOptions : petkimFactoryOptions
               }
               factoryGroups={isSCEV2Star ? starConsoleGroups : undefined}
-              selectedGroup={isSCEV2Star ? sceV2SelectedConsole : ''}
-              onGroupChange={(group) => {
-                setSceV2SelectedConsole(group);
+              selectedGroups={isSCEV2Star ? sceV2SelectedConsoles : []}
+              onGroupToggle={(group) => {
+                setSceV2SelectedConsoles((current) =>
+                  current.includes(group)
+                    ? current.filter((item) => item !== group)
+                    : [...current, group],
+                );
+                setSceV2SelectedFactories([]);
+              }}
+              onAllGroups={() => {
+                setSceV2SelectedConsoles([]);
                 setSceV2SelectedFactories([]);
               }}
               selectedFactories={sceV2SelectedFactories}
@@ -874,12 +884,12 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 </div>
               ) : (
                 <SCEV2Dashboard
-                  key={`star-${sceV2SelectedConsole || 'all'}-${
+                  key={`star-${sceV2SelectedConsoles.join('|') || 'all'}-${
                     sceV2SelectedFactories.join('|') || 'all'
                   }`}
                   company="STAR"
                   selectedFactories={sceV2SelectedFactories}
-                  selectedConsoleScope={sceV2SelectedConsole}
+                  selectedConsoleScopes={sceV2SelectedConsoles}
                 />
               )}
             </>
@@ -905,7 +915,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   key={sceV2SelectedFactories.join('|') || 'all'}
                   company="PETKIM"
                   selectedFactories={sceV2SelectedFactories}
-                  selectedConsoleScope=""
+                  selectedConsoleScopes={[]}
                 />
               )}
             </>

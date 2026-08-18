@@ -11,6 +11,7 @@ import {
   getSCEStarConsoleByUnit,
   getSCEStarEquipmentInfo,
 } from './sceStarLookup';
+import { getSCEPetkimEquipmentType } from './scePetkimLookup';
 
 type SAPField =
   | 'businessArea'
@@ -267,9 +268,14 @@ function parseSAPRow(
         ? getSCEStarConsoleByUnit(businessArea) ?? starInfo?.consoleName ?? ''
         : '',
     categoryType: starInfo?.categoryType ?? '',
-    equipmentType: starInfo
-      ? [starInfo.categoryType, starInfo.equipmentType].filter(Boolean).join(' - ')
-      : '',
+    equipmentType:
+      company === 'STAR'
+        ? starInfo
+          ? [starInfo.categoryType, starInfo.equipmentType]
+              .filter(Boolean)
+              .join(' - ')
+          : ''
+        : getSCEPetkimEquipmentType(equipmentNo),
     equipmentNo,
     tagNo,
     equipmentDescription: text('equipmentDescription'),

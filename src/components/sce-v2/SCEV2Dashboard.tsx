@@ -32,6 +32,7 @@ import { useDataStore } from '../../store/dataStore';
 import { buildSCEV2DashboardRows } from '../../lib/sceV2Logic';
 import { formatDate, normalize } from '../../lib/normalize';
 import { Modal } from '../common/Modal';
+import { SCEV2ReportControl } from './SCEV2ReportControl';
 
 type DashboardFilter =
   | 'all'
@@ -72,11 +73,11 @@ const tooltipStyle = {
 export function SCEV2Dashboard({
   company,
   selectedFactories,
-  selectedConsoleScope,
+  selectedConsoleScopes,
 }: {
   company: 'PETKIM' | 'STAR';
   selectedFactories: string[];
-  selectedConsoleScope: string;
+  selectedConsoleScopes: string[];
 }) {
   const petkimRows = useDataStore((state) => state.sceV2Rows);
   const starRows = useDataStore((state) => state.sceV2StarRows);
@@ -101,11 +102,12 @@ export function SCEV2Dashboard({
     () =>
       allRows.filter(
         (row) =>
-          (!selectedConsoleScope || row.consoleName === selectedConsoleScope) &&
+          (selectedConsoleScopes.length === 0 ||
+            selectedConsoleScopes.includes(row.consoleName)) &&
           (selectedFactories.length === 0 ||
             selectedFactories.includes(row.factory)),
       ),
-    [allRows, selectedConsoleScope, selectedFactories],
+    [allRows, selectedConsoleScopes, selectedFactories],
   );
   const rows = useMemo(
     () =>
@@ -212,6 +214,11 @@ export function SCEV2Dashboard({
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
+  const reportScopeLabel = buildReportScopeLabel(
+    company,
+    selectedConsoleScopes,
+    selectedFactories,
+  );
 
   function selectDashboardFilter(nextFilter: DashboardFilter) {
     const resolvedFilter =
@@ -243,16 +250,23 @@ export function SCEV2Dashboard({
               </div>
             </div>
           </div>
-          {company === 'PETKIM' && (
-            <button
-              type="button"
-              onClick={() => downloadControlTemplate(allRows)}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30 sm:mt-0"
-            >
-              <Download size={16} />
-              Kontrol Excel Şablonunu İndir
-            </button>
-          )}
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-0 sm:justify-end">
+            <SCEV2ReportControl
+              rows={scopeRows}
+              company={company}
+              scopeLabel={reportScopeLabel}
+            />
+            {company === 'PETKIM' && (
+              <button
+                type="button"
+                onClick={() => downloadControlTemplate(allRows)}
+                className="inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+              >
+                <Download size={16} />
+                Kontrol Excel Şablonunu İndir
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-3 xl:grid-cols-6">
@@ -464,7 +478,7 @@ export function SCEV2Dashboard({
         </ModernChartCard>
       </section>
 
-      {company === 'STAR' && filter !== 'all' && (
+      {filter !== 'all' && (
         <section className="card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -472,7 +486,13 @@ export function SCEV2Dashboard({
                 <h3 className="text-base font-semibold text-white">
                   Ekipman Tipi Dağılımı
                 </h3>
-                <span className="rounded-md bg-red-500/10 px-2 py-1 text-xs font-medium text-red-300 ring-1 ring-red-400/20">
+                <span
+                  className={`rounded-md px-2 py-1 text-xs font-medium ring-1 ${
+                    company === 'STAR'
+                      ? 'bg-red-500/10 text-red-300 ring-red-400/20'
+                      : 'bg-sky-500/10 text-sky-300 ring-sky-400/20'
+                  }`}
+                >
                   {filterLabel(filter)}
                 </span>
               </div>
@@ -530,8 +550,12 @@ export function SCEV2Dashboard({
                           key={item.name}
                           fill={
                             selectedEquipmentType === item.name
-                              ? '#f43f5e'
-                              : '#ef4444'
+                              ? company === 'STAR'
+                                ? '#f43f5e'
+                                : '#38bdf8'
+                              : company === 'STAR'
+                                ? '#ef4444'
+                                : '#0ea5e9'
                           }
                           fillOpacity={
                             selectedEquipmentType &&
@@ -611,11 +635,9 @@ export function SCEV2Dashboard({
               <tr>
                 <th className="px-5 py-3 font-medium">Ekipman / Tag</th>
                 {company === 'STAR' && (
-                  <>
-                    <th className="px-4 py-3 font-medium">Ünite / Konsol</th>
-                    <th className="px-4 py-3 font-medium">Ekipman Tipi</th>
-                  </>
+                  <th className="px-4 py-3 font-medium">Ünite / Konsol</th>
                 )}
+                <th className="px-4 py-3 font-medium">Ekipman Tipi</th>
                 <th className="px-4 py-3 font-medium">Sipariş</th>
                 <th className="px-4 py-3 font-medium">Kullanıcı Durumu</th>
                 <th className="px-4 py-3 font-medium">Bakım Durumu</th>
@@ -638,18 +660,16 @@ export function SCEV2Dashboard({
                     </div>
                   </td>
                   {company === 'STAR' && (
-                    <>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-white/75">{row.unit}</div>
-                        <div className="mt-0.5 text-xs text-red-300/70">
-                          {row.consoleName || 'Konsol bilgisi yok'}
-                        </div>
-                      </td>
-                      <td className="max-w-64 px-4 py-3 text-xs text-white/60">
-                        {row.equipmentType || '—'}
-                      </td>
-                    </>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-white/75">{row.unit}</div>
+                      <div className="mt-0.5 text-xs text-red-300/70">
+                        {row.consoleName || 'Konsol bilgisi yok'}
+                      </div>
+                    </td>
                   )}
+                  <td className="max-w-64 px-4 py-3 text-xs text-white/60">
+                    {row.equipmentType || '—'}
+                  </td>
                   <td className="px-4 py-3 text-white/70">{row.orderNo || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs font-medium text-white/65">
@@ -725,8 +745,9 @@ export function SCEV2ScopeSelector({
   onCompanyChange,
   factoryOptions,
   factoryGroups,
-  selectedGroup,
-  onGroupChange,
+  selectedGroups,
+  onGroupToggle,
+  onAllGroups,
   selectedFactories,
   onFactoryToggle,
   onAllFactories,
@@ -735,8 +756,9 @@ export function SCEV2ScopeSelector({
   onCompanyChange: (company: 'PETKIM' | 'STAR') => void;
   factoryOptions: string[];
   factoryGroups?: Array<{ name: string; options: string[] }>;
-  selectedGroup: string;
-  onGroupChange: (group: string) => void;
+  selectedGroups: string[];
+  onGroupToggle: (group: string) => void;
+  onAllGroups: () => void;
   selectedFactories: string[];
   onFactoryToggle: (factory: string) => void;
   onAllFactories: () => void;
@@ -746,7 +768,7 @@ export function SCEV2ScopeSelector({
       ? Boolean(factoryGroups?.length)
       : factoryOptions.length > 0;
   const selectedGroupOptions =
-    factoryGroups?.find((group) => group.name === selectedGroup)?.options ?? [];
+    factoryGroups?.filter((group) => selectedGroups.includes(group.name)) ?? [];
 
   return (
     <section className="card overflow-hidden">
@@ -822,7 +844,9 @@ export function SCEV2ScopeSelector({
               {selectedFactories.length === 0
                 ? selectedCompany === 'PETKIM'
                   ? 'Tüm fabrikalar'
-                  : selectedGroup || 'Tüm konsollar'
+                  : selectedGroups.length === 0
+                    ? 'Tüm konsollar'
+                    : `${selectedGroups.length} konsol seçili`
                 : `${selectedFactories.length} ${
                     selectedCompany === 'PETKIM' ? 'fabrika' : 'ünite'
                   } seçili`}
@@ -833,10 +857,10 @@ export function SCEV2ScopeSelector({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  aria-pressed={!selectedGroup}
-                  onClick={() => onGroupChange('')}
+                  aria-pressed={selectedGroups.length === 0}
+                  onClick={onAllGroups}
                   className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
-                    !selectedGroup
+                    selectedGroups.length === 0
                       ? 'border-red-400/60 bg-red-500 text-white shadow-lg shadow-red-950/30'
                       : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
                   }`}
@@ -844,13 +868,13 @@ export function SCEV2ScopeSelector({
                   Tüm Konsollar
                 </button>
                 {factoryGroups?.map((group) => {
-                  const active = selectedGroup === group.name;
+                  const active = selectedGroups.includes(group.name);
                   return (
                     <button
                       key={group.name}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => onGroupChange(group.name)}
+                      onClick={() => onGroupToggle(group.name)}
                       className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
                         active
                           ? 'border-red-400/60 bg-red-500/20 text-red-100 ring-1 ring-red-400/20'
@@ -863,43 +887,55 @@ export function SCEV2ScopeSelector({
                 })}
               </div>
 
-              {selectedGroup && selectedGroupOptions.length > 0 && (
-                <div className="rounded-xl border border-red-400/15 bg-red-500/[0.04] p-4">
-                  <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-red-300/80">
-                    {selectedGroup} Üniteleri
-                  </div>
-                  <div className="flex flex-wrap gap-2">
+              {selectedGroupOptions.length > 0 && (
+                <div className="space-y-3 rounded-xl border border-red-400/15 bg-red-500/[0.04] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-red-300/80">
+                      Seçili Konsolların Üniteleri
+                    </div>
                     <button
                       type="button"
                       aria-pressed={selectedFactories.length === 0}
                       onClick={onAllFactories}
-                      className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                         selectedFactories.length === 0
                           ? 'border-red-400/60 bg-red-500 text-white'
                           : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
                       }`}
                     >
-                      Tümü
+                      Tüm Üniteler
                     </button>
-                    {selectedGroupOptions.map((unit) => {
-                      const active = selectedFactories.includes(unit);
-                      return (
-                        <button
-                          key={unit}
-                          type="button"
-                          aria-pressed={active}
-                          onClick={() => onFactoryToggle(unit)}
-                          className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
-                            active
-                              ? 'border-red-400/60 bg-red-500/20 text-red-100 ring-1 ring-red-400/20'
-                              : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
-                          }`}
-                        >
-                          {unit}
-                        </button>
-                      );
-                    })}
                   </div>
+                  {selectedGroupOptions.map((group) => (
+                    <div
+                      key={group.name}
+                      className="grid gap-2 border-t border-white/[0.07] pt-3 sm:grid-cols-[110px_1fr] sm:items-start"
+                    >
+                      <div className="pt-2 text-xs font-semibold text-red-200/70">
+                        {group.name}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {group.options.map((unit) => {
+                          const active = selectedFactories.includes(unit);
+                          return (
+                            <button
+                              key={unit}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => onFactoryToggle(unit)}
+                              className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+                                active
+                                  ? 'border-red-400/60 bg-red-500/20 text-red-100 ring-1 ring-red-400/20'
+                                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-red-400/30 hover:text-white'
+                              }`}
+                            >
+                              {unit}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1177,9 +1213,9 @@ function EquipmentDetailModal({
               <>
                 <DetailItem label="Ünite" value={row.unit} />
                 <DetailItem label="Konsol" value={row.consoleName} />
-                <DetailItem label="Ekipman Tipi" value={row.equipmentType} />
               </>
             )}
+            <DetailItem label="Ekipman Tipi" value={row.equipmentType} />
             <DetailItem label="Bakım Planı" value={row.maintenancePlanNo} />
             <DetailItem label="Bakım Kalemi" value={row.maintenanceItemNo} />
             <DetailItem label="Sipariş Numarası" value={row.orderNo} />
@@ -1409,4 +1445,30 @@ function downloadControlTemplate(rows: SCEV2DashboardRow[]) {
   XLSX.utils.book_append_sheet(workbook, controlSheet, 'Kontrol');
   XLSX.utils.book_append_sheet(workbook, instructionSheet, 'Kullanım');
   XLSX.writeFile(workbook, 'SCE_V2_Saha_Kontrol_Sablonu.xlsx');
+}
+
+function buildReportScopeLabel(
+  company: 'PETKIM' | 'STAR',
+  selectedConsoleScopes: string[],
+  selectedFactories: string[],
+) {
+  if (company === 'STAR') {
+    const consoles =
+      selectedConsoleScopes.length > 0
+        ? selectedConsoleScopes.join(', ')
+        : 'Tüm Konsollar';
+    const units =
+      selectedFactories.length > 0
+        ? ` · ${selectedFactories.join(', ')}`
+        : '';
+    return `Star · ${consoles}${units}`;
+  }
+
+  const factories =
+    selectedFactories.length > 0
+      ? selectedFactories
+          .map((factory) => FACTORY_LABELS[factory] ?? factory)
+          .join(', ')
+      : 'Tüm Fabrikalar';
+  return `Petkim · ${factories}`;
 }
