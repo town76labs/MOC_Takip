@@ -145,7 +145,8 @@ export type SCEV2DeferralStatus =
 export type SCEV2CalibrationStatus =
   | 'shared'
   | 'not_shared'
-  | 'unknown';
+  | 'unknown'
+  | 'not_applicable';
 
 export interface SCEV2Row {
   rowId: string;
@@ -175,7 +176,7 @@ export interface SCEV2Row {
 export interface SCEV2ControlRow {
   rowId: string;
   sourceRow: number;
-  equipmentNo: string;
+  orderNo: string;
   calibrationStatus: SCEV2CalibrationStatus;
   deferralStarted: boolean;
   deferralRaw: string;

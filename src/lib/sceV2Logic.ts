@@ -9,25 +9,28 @@ export function buildSCEV2DashboardRows(
   rows: SCEV2Row[],
   controls: SCEV2ControlRow[],
 ): SCEV2DashboardRow[] {
-  const controlByEquipment = new Map<string, SCEV2ControlRow>();
+  const controlByOrder = new Map<string, SCEV2ControlRow>();
   for (const control of controls) {
-    const key = equipmentKey(control.equipmentNo);
+    const key = orderKey(control.orderNo);
     if (!key) continue;
-    const current = controlByEquipment.get(key);
+    const current = controlByOrder.get(key);
     if (
       !current ||
       (control.updatedAt?.getTime() ?? control.sourceRow) >=
         (current.updatedAt?.getTime() ?? current.sourceRow)
     ) {
-      controlByEquipment.set(key, control);
+      controlByOrder.set(key, control);
     }
   }
 
   return rows.map((row) => {
-    const control = controlByEquipment.get(equipmentKey(row.equipmentNo));
+    const control = controlByOrder.get(orderKey(row.orderNo));
     return {
       ...row,
-      calibrationStatus: control?.calibrationStatus ?? 'unknown',
+      calibrationStatus:
+        row.maintenanceStatus === 'completed'
+          ? control?.calibrationStatus ?? 'unknown'
+          : 'not_applicable',
       deferralStatus:
         row.maintenanceStatus !== 'shutdown_deferred'
           ? 'not_applicable'
@@ -41,6 +44,6 @@ export function buildSCEV2DashboardRows(
   });
 }
 
-export function equipmentKey(value: string) {
+export function orderKey(value: string) {
   return normalize(value).replace(/[^a-z0-9]/g, '');
 }

@@ -94,7 +94,7 @@ export function SCEV2Dashboard({
     () =>
       buildSCEV2DashboardRows(
         company === 'STAR' ? starRows : petkimRows,
-        company === 'STAR' ? [] : controlRows,
+        controlRows,
       ),
     [company, controlRows, petkimRows, starRows],
   );
@@ -244,7 +244,7 @@ export function SCEV2Dashboard({
                   Bakım Takibi
                 </h2>
                 <p className="mt-1 text-sm text-white/50">
-                  SAP sipariş durumları ile saha kontrol kayıtları ekipman
+                  SAP sipariş durumları ile ortak kontrol kayıtları sipariş
                   numarası üzerinden birleştirilir.
                 </p>
               </div>
@@ -432,7 +432,7 @@ export function SCEV2Dashboard({
 
         <ModernChartCard
           title="Kalibrasyon Raporları"
-          subtitle="Saha kontrol Excel'indeki paylaşım durumu"
+          subtitle="Tamamlanan bakımların ortak kontrol Excel'indeki durumu"
           accentClass="from-emerald-400/20 via-slate-400/10 to-rose-400/15"
         >
           <div className="relative h-60">
@@ -464,14 +464,14 @@ export function SCEV2Dashboard({
             <ChartCenterLabel
               value={`%${percent(
                 metrics.calibrationShared + metrics.calibrationNotShared,
-                rows.length,
+                metrics.calibrationApplicable,
               )}`}
               label="Kontrol Edilen"
             />
           </div>
           <ChartLegend
             data={calibrationChartData}
-            total={rows.length}
+            total={metrics.calibrationApplicable}
             activeFilter={filter}
             onSelect={selectDashboardFilter}
           />
@@ -1161,6 +1161,10 @@ function CalibrationBadge({ status }: { status: SCEV2CalibrationStatus }) {
       label: 'Bilgi Bekleniyor',
       className: 'bg-white/[0.05] text-white/35',
     },
+    not_applicable: {
+      label: 'Uygulanmaz',
+      className: 'bg-white/[0.03] text-white/25',
+    },
   }[status];
   return (
     <span className={`rounded-md px-2 py-1 text-xs font-medium ${config.className}`}>
@@ -1247,7 +1251,7 @@ function EquipmentDetailModal({
             <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-sky-200">
                 <CalendarDays size={17} />
-                Saha Kontrol Kaydı
+                Ortak Kontrol Kaydı
               </div>
               <div className="mt-3 text-sm text-white/70">
                 {row.controlNote || 'Açıklama girilmemiş.'}
@@ -1317,6 +1321,9 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     ).length,
     calibrationUnknown: rows.filter(
       (row) => row.calibrationStatus === 'unknown',
+    ).length,
+    calibrationApplicable: rows.filter(
+      (row) => row.calibrationStatus !== 'not_applicable',
     ).length,
   };
 }
@@ -1393,58 +1400,60 @@ function calibrationLabel(status: SCEV2CalibrationStatus) {
     shared: 'Paylaşıldı',
     not_shared: 'Paylaşılmadı',
     unknown: 'Bilgi Bekleniyor',
+    not_applicable: 'Uygulanmaz',
   }[status];
 }
 
 function downloadControlTemplate(rows: SCEV2DashboardRow[]) {
-  const uniqueRows = [...rows]
-    .sort((a, b) => a.tagNo.localeCompare(b.tagNo, 'tr', { numeric: true }))
+  const uniqueByOrder = new Map<string, SCEV2DashboardRow>();
+  for (const row of rows) {
+    if (row.orderNo && !uniqueByOrder.has(row.orderNo)) {
+      uniqueByOrder.set(row.orderNo, row);
+    }
+  }
+  const uniqueRows = [...uniqueByOrder.values()]
+    .sort((a, b) =>
+      a.orderNo.localeCompare(b.orderNo, 'tr', { numeric: true }),
+    )
     .map((row) => ({
-      Ekipman: row.equipmentNo,
-      'Teknik Birim': row.tagNo,
-      'SAP Kullanıcı Durumu': row.userStatus,
-      'Kalibrasyon Raporu': '',
-      'Deferral Durumu':
-        row.maintenanceStatus === 'shutdown_deferred' ? '' : 'Gerekmez',
+      'Personel Adı': '',
+      'Sipariş No': row.orderNo,
+      'Kalibrasyon Raporu Paylaşıldı mı?': '',
+      'Deferral Başlatıldı mı?': '',
       Açıklama: '',
-      Güncelleyen: '',
-      'Güncelleme Tarihi': '',
     }));
   const instructions = [
     {
-      Alan: 'Kalibrasyon Raporu',
-      'Kullanılacak Değerler': 'Paylaşıldı / Paylaşılmadı',
+      Alan: 'Kalibrasyon Raporu Paylaşıldı mı?',
+      'Kullanılacak Değerler': 'EVET / HAYIR',
     },
     {
-      Alan: 'Deferral Durumu',
-      'Kullanılacak Değerler': 'Başlatıldı / Başlatılmadı / Gerekmez',
+      Alan: 'Deferral Başlatıldı mı?',
+      'Kullanılacak Değerler': 'EVET / HAYIR',
     },
     {
-      Alan: 'Ekipman',
+      Alan: 'Sipariş No',
       'Kullanılacak Değerler':
-        'SAP dosyasındaki Ekipman numarası ile aynı kalmalıdır.',
+        'Petkim veya Star SAP dosyasındaki Sipariş numarası ile aynı kalmalıdır.',
     },
   ];
   const workbook = XLSX.utils.book_new();
   const controlSheet = XLSX.utils.json_to_sheet(uniqueRows);
   const instructionSheet = XLSX.utils.json_to_sheet(instructions);
   controlSheet['!cols'] = [
-    { wch: 16 },
-    { wch: 22 },
-    { wch: 22 },
     { wch: 24 },
-    { wch: 22 },
-    { wch: 42 },
-    { wch: 20 },
-    { wch: 20 },
+    { wch: 18 },
+    { wch: 38 },
+    { wch: 30 },
+    { wch: 24 },
   ];
   controlSheet['!autofilter'] = {
-    ref: controlSheet['!ref'] ?? 'A1:H1',
+    ref: controlSheet['!ref'] ?? 'A1:E1',
   };
   instructionSheet['!cols'] = [{ wch: 28 }, { wch: 65 }];
   XLSX.utils.book_append_sheet(workbook, controlSheet, 'Kontrol');
   XLSX.utils.book_append_sheet(workbook, instructionSheet, 'Kullanım');
-  XLSX.writeFile(workbook, 'SCE_V2_Saha_Kontrol_Sablonu.xlsx');
+  XLSX.writeFile(workbook, 'SCE_V2_Ortak_Kontrol_Sablonu.xlsx');
 }
 
 function buildReportScopeLabel(

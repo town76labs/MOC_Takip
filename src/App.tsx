@@ -778,9 +778,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-          {showSCEV2Uploads &&
-            (isSCEV2Star ? (
-              <section className="mb-6 grid grid-cols-1 gap-4">
+          {showSCEV2Uploads && (
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {isSCEV2Star ? (
                 <FileUpload
                   title="Star SCE Sipariş Son Durum Excel'i"
                   subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
@@ -801,9 +801,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   accentColorClass="from-red-500 to-red-800"
                   surfaceClassName="upload-panel-dark"
                 />
-              </section>
-            ) : (
-              <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              ) : (
                 <FileUpload
                   title="1. SAP SCE Sipariş Durumları Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
@@ -822,20 +820,21 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   accentColorClass="from-cyan-400 to-sky-700"
                   surfaceClassName="upload-panel-dark"
                 />
-                <FileUpload
-                  title="2. Saha Kontrol ve Rapor Excel'i"
-                  subtitle="Kalibrasyon raporu ve deferral başlatılma bilgileri"
-                  hint="Ekipman, Kalibrasyon Raporu ve Deferral Durumu sütunları kullanılır. Ekipman numarası SAP dosyasıyla eşleştirilir."
-                  fileMeta={sceV2ControlFile}
-                  loading={sceV2ControlLoading}
-                  error={sceV2ControlError}
-                  onFile={uploadSCEV2Control}
-                  onClear={clearSCEV2Control}
-                  accentColorClass="from-violet-500 to-fuchsia-700"
-                  surfaceClassName="upload-panel-dark"
-                />
-              </section>
-            ))}
+              )}
+              <FileUpload
+                title="Ortak Kontrol Excel'i"
+                subtitle="Petkim ve Star kalibrasyon raporu ile deferral takibi"
+                hint="Sipariş No, Kalibrasyon Raporu Paylaşıldı mı? ve Deferral Başlatıldı mı? sütunları kullanılır. Sipariş numarası her iki şirketin SAP dosyasıyla eşleştirilir."
+                fileMeta={sceV2ControlFile}
+                loading={sceV2ControlLoading}
+                error={sceV2ControlError}
+                onFile={uploadSCEV2Control}
+                onClear={clearSCEV2Control}
+                accentColorClass="from-violet-500 to-fuchsia-700"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
 
           <div className="mb-6">
             <SCEV2ScopeSelector
@@ -906,7 +905,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                     Başlamak için SAP SCE Sipariş Durumları Excel dosyasını yükleyin
                   </h2>
                   <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
-                    Saha kontrol dosyası daha sonra da yüklenebilir. SAP bakım
+                    Ortak kontrol dosyası daha sonra da yüklenebilir. SAP bakım
                     durumları ilk dosyadan hemen hesaplanır.
                   </p>
                 </div>

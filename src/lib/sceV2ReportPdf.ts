@@ -177,7 +177,7 @@ function buildReportContent(
         },
       ],
     },
-    summaryStrip(metrics),
+    controlStatusOverview(metrics),
   ];
 
   if (type === 'detailed') {
@@ -388,27 +388,115 @@ function vectorBarChart(
   };
 }
 
-function summaryStrip(metrics: ReturnType<typeof buildMetrics>): Content {
-  return {
-    columns: [
-      summaryCell('Deferral Başlatıldı', metrics.deferralStarted, COLORS.sky),
-      summaryCell('Deferral Başlatılmalı', metrics.deferralRequired, COLORS.star),
-      summaryCell('Kalibrasyon Paylaşıldı', metrics.calibrationShared, COLORS.green),
-      summaryCell('Kalibrasyon Bekliyor', metrics.calibrationPending, COLORS.gray),
-    ],
-    columnGap: 8,
-    margin: [0, 12, 0, 0],
-  };
-}
-
-function summaryCell(label: string, value: number, color: string): Content {
+function controlStatusOverview(
+  metrics: ReturnType<typeof buildMetrics>,
+): Content {
+  const deferralTotal = metrics.deferralStarted + metrics.deferralRequired;
+  const calibrationTotal =
+    metrics.calibrationShared +
+    metrics.calibrationNotShared +
+    metrics.calibrationUnknown;
   return {
     stack: [
-      { text: label, fontSize: 7.2, color: COLORS.slate },
-      { text: formatNumber(value), fontSize: 13, bold: true, color, margin: [0, 4, 0, 0] },
+      sectionTitle('Deferral ve Kalibrasyon Takibi'),
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              {
+                columns: [
+                  {
+                    text: 'Duruşa Ertelenen Siparişlerin Deferral Durumu',
+                    width: '*',
+                    fontSize: 8,
+                    bold: true,
+                    color: COLORS.navy,
+                  },
+                  {
+                    text: `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı`,
+                    width: 82,
+                    alignment: 'right',
+                    fontSize: 7.5,
+                    bold: true,
+                    color: COLORS.sky,
+                  },
+                ],
+                margin: [0, 0, 0, 6],
+              },
+              vectorBarChart(
+                [
+                  {
+                    label: 'Deferral Başlatıldı',
+                    value: metrics.deferralStarted,
+                    color: COLORS.sky,
+                  },
+                  {
+                    label: 'Deferral Başlatılmalı',
+                    value: metrics.deferralRequired,
+                    color: COLORS.star,
+                  },
+                ],
+                deferralTotal,
+                330,
+              ),
+            ],
+            fillColor: '#f8fafc',
+            margin: [10, 9, 10, 5],
+          },
+          {
+            width: '*',
+            stack: [
+              {
+                columns: [
+                  {
+                    text: 'Tamamlanan Bakımların Kalibrasyon Raporu',
+                    width: '*',
+                    fontSize: 8,
+                    bold: true,
+                    color: COLORS.navy,
+                  },
+                  {
+                    text: `%${percent(metrics.calibrationShared, calibrationTotal)} paylaşıldı`,
+                    width: 82,
+                    alignment: 'right',
+                    fontSize: 7.5,
+                    bold: true,
+                    color: COLORS.green,
+                  },
+                ],
+                margin: [0, 0, 0, 6],
+              },
+              vectorBarChart(
+                [
+                  {
+                    label: 'Paylaşıldı',
+                    value: metrics.calibrationShared,
+                    color: COLORS.green,
+                  },
+                  {
+                    label: 'Paylaşılmadı',
+                    value: metrics.calibrationNotShared,
+                    color: COLORS.rose,
+                  },
+                  {
+                    label: 'Bilgi Bekleniyor',
+                    value: metrics.calibrationUnknown,
+                    color: COLORS.gray,
+                  },
+                ],
+                calibrationTotal,
+                330,
+              ),
+            ],
+            fillColor: '#f8fafc',
+            margin: [10, 9, 10, 5],
+          },
+        ],
+        columnGap: 10,
+      },
     ],
-    fillColor: '#f8fafc',
-    margin: [8, 7, 8, 7],
+    margin: [0, 2, 0, 0],
   };
 }
 
@@ -505,8 +593,11 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter((row) => row.deferralStatus === 'required').length,
     calibrationShared: rows.filter((row) => row.calibrationStatus === 'shared').length,
-    calibrationPending: rows.filter(
-      (row) => row.calibrationStatus !== 'shared',
+    calibrationNotShared: rows.filter(
+      (row) => row.calibrationStatus === 'not_shared',
+    ).length,
+    calibrationUnknown: rows.filter(
+      (row) => row.calibrationStatus === 'unknown',
     ).length,
   };
 }
@@ -564,6 +655,7 @@ function deferralLabel(row: SCEV2DashboardRow) {
 function calibrationLabel(row: SCEV2DashboardRow) {
   if (row.calibrationStatus === 'shared') return 'Paylaşıldı';
   if (row.calibrationStatus === 'not_shared') return 'Paylaşılmadı';
+  if (row.calibrationStatus === 'not_applicable') return 'Uygulanmaz';
   return 'Bilgi Bekleniyor';
 }
 

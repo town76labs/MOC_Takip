@@ -27,7 +27,7 @@ type SAPField =
   | 'maintenancePlanNo';
 
 type ControlField =
-  | 'equipmentNo'
+  | 'orderNo'
   | 'calibrationStatus'
   | 'deferralStatus'
   | 'note'
@@ -58,7 +58,14 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
 };
 
 const CONTROL_ALIASES: Record<ControlField, string[]> = {
-  equipmentNo: ['ekipman', 'ekipman no', 'ekipman numarasi'],
+  orderNo: [
+    'siparis no',
+    'sipariş no',
+    'siparis numarasi',
+    'sipariş numarası',
+    'siparis',
+    'sipariş',
+  ],
   calibrationStatus: [
     'kalibrasyon raporu',
     'kalibrasyon raporu durumu',
@@ -72,6 +79,8 @@ const CONTROL_ALIASES: Record<ControlField, string[]> = {
   ],
   note: ['aciklama', 'not', 'yorum'],
   updatedBy: [
+    'personel adi',
+    'personel adı',
     'guncelleyen',
     'kaydeden windows',
     'kaydeden',
@@ -175,7 +184,7 @@ export async function parseSCEV2ControlExcel(
 ): Promise<{ data: SCEV2ControlRow[]; error?: ParseError }> {
   try {
     if (file.size === 0) {
-      return { data: [], error: { message: 'Saha kontrol dosyası boş.' } };
+      return { data: [], error: { message: 'Ortak kontrol dosyası boş.' } };
     }
 
     const workbook = XLSX.read(await file.arrayBuffer(), {
@@ -183,13 +192,13 @@ export async function parseSCEV2ControlExcel(
       cellDates: true,
     });
     const sheet = findBestSheet(workbook, CONTROL_ALIASES);
-    if (!sheet || sheet.fieldMap.equipmentNo === undefined) {
+    if (!sheet || sheet.fieldMap.orderNo === undefined) {
       return {
         data: [],
         error: {
-          message: 'Saha kontrol dosyasında Ekipman sütunu bulunamadı.',
+          message: 'Ortak kontrol dosyasında Sipariş No sütunu bulunamadı.',
           details: [
-            'Beklenen temel başlıklar: Ekipman, Kalibrasyon Raporu, Deferral Durumu.',
+            'Beklenen temel başlıklar: Sipariş No, Kalibrasyon Raporu Paylaşıldı mı?, Deferral Başlatıldı mı?.',
           ],
         },
       };
@@ -202,7 +211,7 @@ export async function parseSCEV2ControlExcel(
         data: [],
         error: {
           message:
-            'Saha kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.',
+            'Ortak kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.',
           foundHeaders: sheet.headers,
         },
       };
@@ -217,7 +226,7 @@ export async function parseSCEV2ControlExcel(
     if (data.length === 0) {
       return {
         data: [],
-        error: { message: 'Saha kontrol dosyasında eşleştirilecek ekipman bulunamadı.' },
+        error: { message: 'Ortak kontrol dosyasında eşleştirilecek sipariş bulunamadı.' },
       };
     }
     return { data };
@@ -226,7 +235,7 @@ export async function parseSCEV2ControlExcel(
       data: [],
       error: {
         message:
-          'Saha kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.',
+          'Ortak kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.',
       },
     };
   }
@@ -305,15 +314,15 @@ function parseControlRow(
   const value = (field: ControlField) =>
     fieldMap[field] === undefined ? '' : cells[fieldMap[field] ?? -1];
   const text = (field: ControlField) => compact(value(field));
-  const equipmentNo = text('equipmentNo');
-  if (!equipmentNo) return null;
+  const orderNo = text('orderNo');
+  if (!orderNo) return null;
   const calibrationRaw = text('calibrationStatus');
   const deferralRaw = text('deferralStatus');
 
   return {
-    rowId: `sce-v2-control-${sourceRow}-${equipmentNo}`,
+    rowId: `sce-v2-control-${sourceRow}-${orderNo}`,
     sourceRow,
-    equipmentNo,
+    orderNo,
     calibrationStatus: resolveCalibrationStatus(calibrationRaw),
     deferralStarted: isAffirmativeDeferral(deferralRaw),
     deferralRaw,
