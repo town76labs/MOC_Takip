@@ -1,4 +1,5 @@
 import lookupText from '../data/sceStarEquipmentLookup.tsv?raw';
+import tagLookupText from '../data/sceStarEquipmentTags.tsv?raw';
 
 export interface SCEStarEquipmentInfo {
   equipmentNo: string;
@@ -6,6 +7,7 @@ export interface SCEStarEquipmentInfo {
   consoleName: string;
   categoryType: string;
   equipmentType: string;
+  tagNo: string;
 }
 
 const lookup = new Map<string, SCEStarEquipmentInfo>();
@@ -21,14 +23,27 @@ for (const line of lookupText.split(/\r?\n/).slice(1)) {
     consoleName,
     categoryType,
     equipmentType,
+    tagNo: '',
   });
   if (sourceUnit && consoleName) {
     consoleByUnit.set(normalizeUnit(sourceUnit), consoleName);
   }
 }
 
+for (const line of tagLookupText.split(/\r?\n/).slice(1)) {
+  const [equipmentNo, tagNo] = line
+    .split('\t')
+    .map((value) => value?.trim() ?? '');
+  const info = lookup.get(normalizeEquipmentNo(equipmentNo));
+  if (info) info.tagNo = tagNo;
+}
+
 export function getSCEStarEquipmentInfo(equipmentNo: string) {
   return lookup.get(normalizeEquipmentNo(equipmentNo));
+}
+
+export function getAllSCEStarEquipmentInfo() {
+  return [...lookup.values()];
 }
 
 export function getSCEStarConsoleByUnit(unit: string) {

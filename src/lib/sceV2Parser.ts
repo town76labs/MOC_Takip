@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { normalize, parseDate, toDisplayString } from './normalize';
 import {
+  getAllSCEStarEquipmentInfo,
   getSCEStarConsoleByUnit,
   getSCEStarEquipmentInfo,
 } from './sceStarLookup';
@@ -159,7 +160,10 @@ export async function parseSCEV2SAPExcel(
         ),
       )
       .filter((row): row is SCEV2Row => row !== null);
-    const data = deduplicateSAPRows(parsed);
+    const data =
+      company === 'STAR'
+        ? buildSCEStarInventoryRows(parsed)
+        : deduplicateSAPRows(parsed);
 
     if (data.length === 0) {
       return {
@@ -464,6 +468,106 @@ function deduplicateSAPRows(rows: SCEV2Row[]) {
     }
   }
   return [...bestByKey.values()];
+}
+
+function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
+  const latestByEquipment = new Map<string, SCEV2Row>();
+  for (const row of rows) {
+    const key = normalizeKey(row.equipmentNo);
+    if (!key) continue;
+    const current = latestByEquipment.get(key);
+    if (!current || compareStarRowRecency(row, current) > 0) {
+      latestByEquipment.set(key, row);
+    }
+  }
+
+  return getAllSCEStarEquipmentInfo().map((info) => {
+    const latest = latestByEquipment.get(normalizeKey(info.equipmentNo));
+    const unit = info.sourceUnit ? `U-${info.sourceUnit}` : 'U-BELIRSIZ';
+    const equipmentType = [info.categoryType, info.equipmentType]
+      .filter(Boolean)
+      .join(' - ');
+
+    if (latest) {
+      return {
+        ...latest,
+        rowId: `sce-v2-STAR-inventory-${info.equipmentNo}`,
+        businessArea: info.sourceUnit,
+        factory: unit,
+        unit,
+        consoleName: info.consoleName,
+        categoryType: info.categoryType,
+        equipmentType,
+        equipmentNo: info.equipmentNo,
+        tagNo: info.tagNo || latest.tagNo,
+      };
+    }
+
+    return {
+      rowId: `sce-v2-STAR-inventory-${info.equipmentNo}`,
+      sourceRow: 0,
+      company: 'STAR' as const,
+      factory: unit,
+      businessArea: info.sourceUnit,
+      unit,
+      consoleName: info.consoleName,
+      categoryType: info.categoryType,
+      equipmentType,
+      equipmentNo: info.equipmentNo,
+      tagNo: info.tagNo,
+      equipmentDescription: info.equipmentType,
+      notificationNo: '',
+      orderNo: '',
+      userStatus: 'Sipariş Bulunamadı',
+      maintenanceStartDate: null,
+      maintenanceEndDate: null,
+      maintenanceItemNo: '',
+      maintenancePlanNo: '',
+      maintenancePeriod: '5 Yıl',
+      maintenanceStatus: 'order_not_found' as const,
+      raw: {},
+    };
+  });
+}
+
+function compareStarRowRecency(candidate: SCEV2Row, current: SCEV2Row) {
+  const candidateDate = latestMaintenanceTimestamp(candidate);
+  const currentDate = latestMaintenanceTimestamp(current);
+  const candidateOrder = numericKey(candidate.orderNo);
+  const currentOrder = numericKey(current.orderNo);
+
+  if (candidateDate !== null && currentDate !== null) {
+    if (candidateDate !== currentDate) return candidateDate - currentDate;
+  } else if (candidateDate === null && currentDate === null) {
+    if (candidateOrder !== currentOrder) return candidateOrder - currentOrder;
+  } else {
+    if (candidateOrder !== currentOrder) return candidateOrder - currentOrder;
+    return candidateDate !== null ? 1 : -1;
+  }
+
+  if (candidateOrder !== currentOrder) return candidateOrder - currentOrder;
+
+  const notificationDifference =
+    numericKey(candidate.notificationNo) - numericKey(current.notificationNo);
+  if (notificationDifference !== 0) return notificationDifference;
+
+  const completenessDifference =
+    completenessScore(candidate) - completenessScore(current);
+  if (completenessDifference !== 0) return completenessDifference;
+  return candidate.sourceRow - current.sourceRow;
+}
+
+function latestMaintenanceTimestamp(row: SCEV2Row) {
+  const timestamps = [row.maintenanceStartDate, row.maintenanceEndDate]
+    .filter((value): value is Date => value instanceof Date)
+    .map((value) => value.getTime())
+    .filter(Number.isFinite);
+  return timestamps.length > 0 ? Math.max(...timestamps) : null;
+}
+
+function numericKey(value: string) {
+  const numeric = Number(value.replace(/[^0-9]/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
 }
 
 function completenessScore(row: SCEV2Row) {

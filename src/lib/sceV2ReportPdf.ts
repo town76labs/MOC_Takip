@@ -140,12 +140,19 @@ function buildReportContent(
     { label: 'Bakımı Tamamlanan', value: metrics.completed, color: COLORS.green },
     { label: 'Duruşa Ertelenen', value: metrics.deferred, color: COLORS.amber },
     { label: 'Bakımı Yapılmayan', value: metrics.notCompleted, color: COLORS.rose },
+    { label: 'Sipariş Kaydı Yok', value: metrics.orderNotFound, color: COLORS.gray },
   ];
 
   const content: Content[] = [
     ...reportHeading(company, type, scopeLabel, accent),
     kpiGrid([
-      ['Toplam Ekipman', formatNumber(metrics.total), 'Tekilleştirilmiş kayıt'],
+      [
+        'Toplam Ekipman',
+        formatNumber(metrics.total),
+        company === 'STAR'
+          ? `${formatNumber(metrics.orderNotFound)} sipariş kaydı yok`
+          : 'Tekilleştirilmiş kayıt',
+      ],
       [
         'Bakımı Tamamlanan',
         formatNumber(metrics.completed),
@@ -181,25 +188,22 @@ function buildReportContent(
   ];
 
   if (type === 'detailed') {
-    const equipmentTypes = buildDistribution(
-      rows.map((row) => row.equipmentType || 'Ekipman tipi bulunamadı'),
-      accent,
-    );
+    const equipmentTypes = buildEquipmentTypeCompletionRows(rows);
     const actionRows = rows
       .filter((row) => row.maintenanceStatus !== 'completed')
       .sort(compareActionRows);
     content.push(
       {
-        text: 'Ekipman Tipi Dağılımı',
+        text: 'Ekipman Tipi Tamamlanma Oranları',
         style: 'section',
         pageBreak: 'before',
       },
       {
-        text: 'Seçili kapsamdaki ekipmanların tip bazlı adet dağılımı',
+        text: 'Her ekipman tipi için tamamlanan / toplam ekipman adedi ve tamamlanma yüzdesi',
         style: 'small',
         margin: [0, 0, 0, 8],
       },
-      vectorBarChart(equipmentTypes, maxValue(equipmentTypes), 500),
+      completionChart(equipmentTypes, 500, accent),
       {
         text: 'Aksiyon Gerektiren Ekipmanlar',
         style: 'section',
@@ -590,6 +594,9 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     notCompleted: rows.filter(
       (row) => row.maintenanceStatus === 'maintenance_not_completed',
     ).length,
+    orderNotFound: rows.filter(
+      (row) => row.maintenanceStatus === 'order_not_found',
+    ).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter((row) => row.deferralStatus === 'required').length,
     calibrationShared: rows.filter((row) => row.calibrationStatus === 'shared').length,
@@ -632,17 +639,40 @@ function buildCompletionRows(
     );
 }
 
-function buildDistribution(values: string[], color: string): DistributionRow[] {
-  const counts = new Map<string, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return [...counts.entries()]
-    .map(([label, value]) => ({ label, value, color }))
-    .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label, 'tr'));
+function buildEquipmentTypeCompletionRows(
+  rows: SCEV2DashboardRow[],
+): CompletionRow[] {
+  const groups = new Map<string, SCEV2DashboardRow[]>();
+  for (const row of rows) {
+    const key = row.equipmentType || 'Ekipman tipi bulunamadı';
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+
+  return [...groups.entries()]
+    .map(([label, groupRows]) => ({
+      label,
+      total: groupRows.length,
+      completed: groupRows.filter(
+        (row) => row.maintenanceStatus === 'completed',
+      ).length,
+      deferred: groupRows.filter(
+        (row) => row.maintenanceStatus === 'shutdown_deferred',
+      ).length,
+      notCompleted: groupRows.filter(
+        (row) => row.maintenanceStatus === 'maintenance_not_completed',
+      ).length,
+    }))
+    .sort(
+      (left, right) =>
+        right.total - left.total ||
+        left.label.localeCompare(right.label, 'tr', { numeric: true }),
+    );
 }
 
 function maintenanceLabel(row: SCEV2DashboardRow) {
   if (row.maintenanceStatus === 'completed') return 'Tamamlandı';
   if (row.maintenanceStatus === 'shutdown_deferred') return 'Duruşa Ertelendi';
+  if (row.maintenanceStatus === 'order_not_found') return 'Sipariş Kaydı Yok';
   return 'Bakımı Yapılmadı';
 }
 
@@ -665,10 +695,6 @@ function compareActionRows(left: SCEV2DashboardRow, right: SCEV2DashboardRow) {
     left.factory.localeCompare(right.factory, 'tr', { numeric: true }) ||
     left.equipmentNo.localeCompare(right.equipmentNo, 'tr', { numeric: true })
   );
-}
-
-function maxValue(rows: DistributionRow[]) {
-  return Math.max(...rows.map((row) => row.value), 1);
 }
 
 function companyLabel(company: 'PETKIM' | 'STAR') {

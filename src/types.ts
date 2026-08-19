@@ -135,7 +135,8 @@ export interface SCERow {
 export type SCEV2MaintenanceStatus =
   | 'completed'
   | 'shutdown_deferred'
-  | 'maintenance_not_completed';
+  | 'maintenance_not_completed'
+  | 'order_not_found';
 
 export type SCEV2DeferralStatus =
   | 'not_applicable'

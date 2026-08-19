@@ -147,6 +147,12 @@ export function SCEV2Dashboard({
       color: '#f43f5e',
       filter: 'maintenance_not_completed',
     },
+    {
+      name: 'Sipariş Kaydı Yok',
+      value: metrics.orderNotFound,
+      color: '#64748b',
+      filter: 'order_not_found',
+    },
   ];
   const deferralChartData: ChartDatum[] = [
     {
@@ -282,7 +288,11 @@ export function SCEV2Dashboard({
           <MetricButton
             label="Toplam Ekipman"
             value={rows.length}
-            note="Tekilleştirilmiş kayıt"
+            note={
+              company === 'STAR'
+                ? `${metrics.orderNotFound} sipariş kaydı yok`
+                : 'Tekilleştirilmiş kayıt'
+            }
             color="slate"
             active={filter === 'all'}
             onClick={() => selectDashboardFilter('all')}
@@ -1146,6 +1156,10 @@ function MaintenanceBadge({ status }: { status: SCEV2MaintenanceStatus }) {
       label: 'Bakımı Yapılmadı',
       className: 'bg-rose-500/15 text-rose-300',
     },
+    order_not_found: {
+      label: 'Sipariş Kaydı Yok',
+      className: 'bg-slate-500/15 text-slate-300',
+    },
   }[status];
   return (
     <span className={`rounded-md px-2 py-1 text-xs font-medium ${config.className}`}>
@@ -1338,6 +1352,9 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     notCompleted: rows.filter(
       (row) => row.maintenanceStatus === 'maintenance_not_completed',
     ).length,
+    orderNotFound: rows.filter(
+      (row) => row.maintenanceStatus === 'order_not_found',
+    ).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter(
       (row) => row.deferralStatus === 'required',
@@ -1366,7 +1383,8 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
   if (
     filter === 'completed' ||
     filter === 'shutdown_deferred' ||
-    filter === 'maintenance_not_completed'
+    filter === 'maintenance_not_completed' ||
+    filter === 'order_not_found'
   ) {
     return row.maintenanceStatus === filter;
   }
@@ -1383,9 +1401,10 @@ function compareRows(a: SCEV2DashboardRow, b: SCEV2DashboardRow) {
   const priority = (row: SCEV2DashboardRow) => {
     if (row.deferralStatus === 'required') return 0;
     if (row.maintenanceStatus === 'maintenance_not_completed') return 1;
-    if (row.calibrationStatus === 'not_shared') return 2;
-    if (row.maintenanceStatus === 'shutdown_deferred') return 3;
-    return 4;
+    if (row.maintenanceStatus === 'order_not_found') return 2;
+    if (row.calibrationStatus === 'not_shared') return 3;
+    if (row.maintenanceStatus === 'shutdown_deferred') return 4;
+    return 5;
   };
   return (
     priority(a) - priority(b) ||
@@ -1399,6 +1418,7 @@ function filterLabel(filter: DashboardFilter) {
     completed: 'Bakımı tamamlananlar',
     shutdown_deferred: 'Duruşa ertelenenler',
     maintenance_not_completed: 'Bakımı yapılmayanlar',
+    order_not_found: 'Sipariş kaydı bulunmayanlar',
     deferral_started: 'Deferral başlatılanlar',
     deferral_required: 'Deferral başlatılması gerekenler',
     calibration_shared: 'Kalibrasyon raporu paylaşılanlar',
@@ -1413,6 +1433,7 @@ function maintenanceLabel(status: SCEV2MaintenanceStatus) {
     completed: 'Bakımı Tamamlandı',
     shutdown_deferred: 'Duruşa Ertelendi',
     maintenance_not_completed: 'Bakımı Yapılmadı',
+    order_not_found: 'Sipariş Kaydı Yok',
   }[status];
 }
 
