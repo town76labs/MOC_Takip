@@ -69,6 +69,15 @@ const tooltipStyle = {
   color: '#f8fafc',
   boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
 };
+const tooltipItemStyle = {
+  color: '#f8fafc',
+  fontWeight: 600,
+};
+const tooltipLabelStyle = {
+  color: '#f8fafc',
+  fontWeight: 600,
+  marginBottom: '6px',
+};
 
 export function SCEV2Dashboard({
   company,
@@ -408,8 +417,15 @@ export function SCEV2Dashboard({
                 <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   contentStyle={tooltipStyle}
+                  itemStyle={tooltipItemStyle}
+                  labelStyle={tooltipLabelStyle}
                 />
-                <Bar dataKey="value" barSize={25} radius={[0, 8, 8, 0]}>
+                <Bar
+                  dataKey="value"
+                  name="Adet"
+                  barSize={25}
+                  radius={[0, 8, 8, 0]}
+                >
                   {deferralChartData.map((item) => (
                     <Cell
                       key={item.name}
@@ -543,8 +559,15 @@ export function SCEV2Dashboard({
                     <Tooltip
                       cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                       contentStyle={tooltipStyle}
+                      itemStyle={tooltipItemStyle}
+                      labelStyle={tooltipLabelStyle}
                     />
-                    <Bar dataKey="value" barSize={23} radius={[0, 7, 7, 0]}>
+                    <Bar
+                      dataKey="value"
+                      name="Adet"
+                      barSize={23}
+                      radius={[0, 7, 7, 0]}
+                    >
                       {equipmentTypeChartData.map((item) => (
                         <Cell
                           key={item.name}
@@ -1100,7 +1123,13 @@ function ChartLegend({
 }
 
 function ChartTooltip() {
-  return <Tooltip contentStyle={tooltipStyle} />;
+  return (
+    <Tooltip
+      contentStyle={tooltipStyle}
+      itemStyle={tooltipItemStyle}
+      labelStyle={tooltipLabelStyle}
+    />
+  );
 }
 
 function MaintenanceBadge({ status }: { status: SCEV2MaintenanceStatus }) {
