@@ -105,6 +105,8 @@ interface SheetCandidate<Field extends string> {
   score: number;
 }
 
+const SCE_V2_REPORTING_START_YEAR = 2026;
+
 export async function parseSCEV2SAPExcel(
   file: File,
   company: 'PETKIM' | 'STAR' = 'PETKIM',
@@ -159,7 +161,8 @@ export async function parseSCEV2SAPExcel(
           company,
         ),
       )
-      .filter((row): row is SCEV2Row => row !== null);
+      .filter((row): row is SCEV2Row => row !== null)
+      .filter(isInSCEV2ReportingPeriod);
     const data =
       company === 'STAR'
         ? buildSCEStarInventoryRows(parsed)
@@ -168,7 +171,10 @@ export async function parseSCEV2SAPExcel(
     if (data.length === 0) {
       return {
         data: [],
-        error: { message: 'Dosyada işlenebilir SCE V2 ekipman kaydı bulunamadı.' },
+        error: {
+          message:
+            'Dosyada 2026 ve sonrasına ait işlenebilir SCE V2 ekipman kaydı bulunamadı.',
+        },
       };
     }
     return { data };
@@ -563,6 +569,12 @@ function latestMaintenanceTimestamp(row: SCEV2Row) {
     .map((value) => value.getTime())
     .filter(Number.isFinite);
   return timestamps.length > 0 ? Math.max(...timestamps) : null;
+}
+
+function isInSCEV2ReportingPeriod(row: SCEV2Row) {
+  return [row.maintenanceStartDate, row.maintenanceEndDate].some(
+    (date) => date instanceof Date && date.getFullYear() >= SCE_V2_REPORTING_START_YEAR,
+  );
 }
 
 function numericKey(value: string) {

@@ -785,7 +785,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Star SCE Sipariş Son Durum Excel'i"
                   subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
-                  hint="A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür. Ekipman kategorisi, tipi ve konsolu kalıcı eşleştirme tablosundan alınır."
+                  hint="Yalnız 2026 ve sonrası bakım kayıtları alınır. A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür; ekipman kategorisi, tipi ve konsolu kalıcı eşleştirme tablosundan alınır."
                   fileMeta={sceV2StarFile}
                   loading={sceV2StarLoading}
                   error={sceV2StarError}
@@ -806,7 +806,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="1. SAP SCE Sipariş Durumları Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                  hint="Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
+                  hint="Yalnız 2026 ve sonrası bakım kayıtları alınır. Ekipman, Teknik birim, Kullanıcı drm., Yürütme bşl.tarihi, Yürütme bitiş tarihi, Bakım kalemi ve Bakım planı sütunları beklenir."
                   fileMeta={sceV2File}
                   loading={sceV2Loading}
                   error={sceV2Error}

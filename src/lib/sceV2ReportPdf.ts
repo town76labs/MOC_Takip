@@ -240,7 +240,10 @@ function reportHeading(
               text: `${companyLabel(company)} SCE V2 ${reportName}`,
               style: 'title',
             },
-            { text: `Kapsam: ${scopeLabel}`, style: 'subtitle' },
+            {
+              text: `Kapsam: ${scopeLabel} · Dönem: 2026 ve sonrası`,
+              style: 'subtitle',
+            },
           ],
         },
         {

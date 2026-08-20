@@ -259,8 +259,8 @@ export function SCEV2Dashboard({
                   Bakım Takibi
                 </h2>
                 <p className="mt-1 text-sm text-white/50">
-                  SAP sipariş durumları ile ortak kontrol kayıtları sipariş
-                  numarası üzerinden birleştirilir.
+                  2026 ve sonrası SAP sipariş durumları ile ortak kontrol
+                  kayıtları sipariş numarası üzerinden birleştirilir.
                 </p>
               </div>
             </div>
