@@ -259,8 +259,9 @@ export function SCEV2Dashboard({
                   Bakım Takibi
                 </h2>
                 <p className="mt-1 text-sm text-white/50">
-                  2026 ve sonrası SAP sipariş durumları ile ortak kontrol
-                  kayıtları sipariş numarası üzerinden birleştirilir.
+                  Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP
+                  kayıtları, ortak kontrol verileriyle sipariş numarası üzerinden
+                  birleştirilir.
                 </p>
               </div>
             </div>

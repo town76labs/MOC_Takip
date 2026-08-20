@@ -587,15 +587,15 @@ function isInSCEV2ReportingPeriod(
   row: SCEV2Row,
   company: 'PETKIM' | 'STAR',
 ) {
-  if (company === 'STAR') {
-    return (
-      row.plannedCompletionDate instanceof Date &&
-      row.plannedCompletionDate.getFullYear() >= SCE_V2_REPORTING_START_YEAR
-    );
-  }
-  return [row.maintenanceStartDate, row.maintenanceEndDate].some(
-    (date) =>
-      date instanceof Date && date.getFullYear() >= SCE_V2_REPORTING_START_YEAR,
+  const dates = [
+    row.maintenanceStartDate,
+    row.maintenanceEndDate,
+    company === 'STAR' ? row.plannedCompletionDate : null,
+  ].filter((date): date is Date => date instanceof Date);
+
+  return (
+    dates.length > 0 &&
+    dates.every((date) => date.getFullYear() >= SCE_V2_REPORTING_START_YEAR)
   );
 }
 
