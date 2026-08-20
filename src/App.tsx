@@ -153,11 +153,34 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const sceV2StarError = useDataStore((s) => s.sceV2StarError);
   const uploadSCEV2Star = useDataStore((s) => s.uploadSCEV2Star);
   const clearSCEV2Star = useDataStore((s) => s.clearSCEV2Star);
-  const sceV2ControlFile = useDataStore((s) => s.sceV2ControlFile);
-  const sceV2ControlLoading = useDataStore((s) => s.sceV2ControlLoading);
-  const sceV2ControlError = useDataStore((s) => s.sceV2ControlError);
-  const uploadSCEV2Control = useDataStore((s) => s.uploadSCEV2Control);
-  const clearSCEV2Control = useDataStore((s) => s.clearSCEV2Control);
+  const sceV2PetkimControlFile = useDataStore(
+    (s) => s.sceV2PetkimControlFile,
+  );
+  const sceV2PetkimControlLoading = useDataStore(
+    (s) => s.sceV2PetkimControlLoading,
+  );
+  const sceV2PetkimControlError = useDataStore(
+    (s) => s.sceV2PetkimControlError,
+  );
+  const uploadSCEV2PetkimControl = useDataStore(
+    (s) => s.uploadSCEV2PetkimControl,
+  );
+  const clearSCEV2PetkimControl = useDataStore(
+    (s) => s.clearSCEV2PetkimControl,
+  );
+  const sceV2StarControlFile = useDataStore((s) => s.sceV2StarControlFile);
+  const sceV2StarControlLoading = useDataStore(
+    (s) => s.sceV2StarControlLoading,
+  );
+  const sceV2StarControlError = useDataStore(
+    (s) => s.sceV2StarControlError,
+  );
+  const uploadSCEV2StarControl = useDataStore(
+    (s) => s.uploadSCEV2StarControl,
+  );
+  const clearSCEV2StarControl = useDataStore(
+    (s) => s.clearSCEV2StarControl,
+  );
   const rcaFile = useDataStore((s) => s.rcaFile);
   const rcaLoading = useDataStore((s) => s.rcaLoading);
   const rcaError = useDataStore((s) => s.rcaError);
@@ -823,15 +846,51 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 />
               )}
               <FileUpload
-                title="Ortak Kontrol Excel'i"
-                subtitle="Petkim ve Star kalibrasyon raporu ile deferral takibi"
-                hint="Sipariş No, Kalibrasyon Raporu Paylaşıldı mı? ve Deferral Başlatıldı mı? sütunları kullanılır. Sipariş numarası her iki şirketin SAP dosyasıyla eşleştirilir."
-                fileMeta={sceV2ControlFile}
-                loading={sceV2ControlLoading}
-                error={sceV2ControlError}
-                onFile={uploadSCEV2Control}
-                onClear={clearSCEV2Control}
-                accentColorClass="from-violet-500 to-fuchsia-700"
+                title={
+                  isSCEV2Star
+                    ? "Star Kontrol Excel'i"
+                    : "Petkim Kontrol Excel'i"
+                }
+                subtitle={
+                  isSCEV2Star
+                    ? 'Star kalibrasyon raporu ve doküman takibi'
+                    : 'Petkim kalibrasyon raporu ve deferral takibi'
+                }
+                hint={
+                  isSCEV2Star
+                    ? 'SCE_Kontrol.xlsm dosyasındaki Ekipman No, Tag No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman bilgileri kullanılır.'
+                    : 'Petkim kontrol dosyası Sipariş No üzerinden eşleştirilir. Star kontrol dosyasından tamamen ayrı tutulur.'
+                }
+                fileMeta={
+                  isSCEV2Star
+                    ? sceV2StarControlFile
+                    : sceV2PetkimControlFile
+                }
+                loading={
+                  isSCEV2Star
+                    ? sceV2StarControlLoading
+                    : sceV2PetkimControlLoading
+                }
+                error={
+                  isSCEV2Star
+                    ? sceV2StarControlError
+                    : sceV2PetkimControlError
+                }
+                onFile={
+                  isSCEV2Star
+                    ? uploadSCEV2StarControl
+                    : uploadSCEV2PetkimControl
+                }
+                onClear={
+                  isSCEV2Star
+                    ? clearSCEV2StarControl
+                    : clearSCEV2PetkimControl
+                }
+                accentColorClass={
+                  isSCEV2Star
+                    ? 'from-red-500 to-rose-800'
+                    : 'from-violet-500 to-fuchsia-700'
+                }
                 surfaceClassName="upload-panel-dark"
               />
             </section>

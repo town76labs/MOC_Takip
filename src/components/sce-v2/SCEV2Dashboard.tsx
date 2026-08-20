@@ -90,7 +90,12 @@ export function SCEV2Dashboard({
 }) {
   const petkimRows = useDataStore((state) => state.sceV2Rows);
   const starRows = useDataStore((state) => state.sceV2StarRows);
-  const controlRows = useDataStore((state) => state.sceV2ControlRows);
+  const petkimControlRows = useDataStore(
+    (state) => state.sceV2PetkimControlRows,
+  );
+  const starControlRows = useDataStore(
+    (state) => state.sceV2StarControlRows,
+  );
   const [selectedEquipmentType, setSelectedEquipmentType] = useState('');
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
@@ -103,9 +108,9 @@ export function SCEV2Dashboard({
     () =>
       buildSCEV2DashboardRows(
         company === 'STAR' ? starRows : petkimRows,
-        controlRows,
+        company === 'STAR' ? starControlRows : petkimControlRows,
       ),
-    [company, controlRows, petkimRows, starRows],
+    [company, petkimControlRows, petkimRows, starControlRows, starRows],
   );
   const scopeRows = useMemo(
     () =>
@@ -259,9 +264,9 @@ export function SCEV2Dashboard({
                   Bakım Takibi
                 </h2>
                 <p className="mt-1 text-sm text-white/50">
-                  Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP
-                  kayıtları, ortak kontrol verileriyle sipariş numarası üzerinden
-                  birleştirilir.
+                  {company === 'STAR'
+                    ? 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Star kontrol dosyasıyla Ekipman No; gerekirse Tag No üzerinden birleştirilir.'
+                    : 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Petkim kontrol dosyasıyla sipariş numarası üzerinden birleştirilir.'}
                 </p>
               </div>
             </div>
@@ -459,7 +464,9 @@ export function SCEV2Dashboard({
 
         <ModernChartCard
           title="Kalibrasyon Raporları"
-          subtitle="Tamamlanan bakımların ortak kontrol Excel'indeki durumu"
+          subtitle={`Tamamlanan bakımların ${
+            company === 'STAR' ? 'Star' : 'Petkim'
+          } kontrol Excel'indeki durumu`}
           accentClass="from-emerald-400/20 via-slate-400/10 to-rose-400/15"
         >
           <div className="relative h-60">
@@ -1279,10 +1286,28 @@ function EquipmentDetailModal({
               value={formatDate(row.maintenanceEndDate)}
             />
             {row.company === 'STAR' && (
-              <DetailItem
-                label="Planlanan Bitiş Termini"
-                value={formatDate(row.plannedCompletionDate)}
-              />
+              <>
+                <DetailItem
+                  label="Planlanan Bitiş Termini"
+                  value={formatDate(row.plannedCompletionDate)}
+                />
+                <DetailItem
+                  label="Kalibrasyon PDF Sayısı"
+                  value={String(row.calibrationPdfCount)}
+                />
+                <DetailItem
+                  label="Toplam Doküman Sayısı"
+                  value={String(row.calibrationDocumentCount)}
+                />
+                <DetailItem
+                  label="Rapor Klasörü"
+                  value={row.calibrationReportFolder}
+                />
+                <DetailItem
+                  label="Örnek PDF"
+                  value={row.calibrationReportFile}
+                />
+              </>
             )}
           </div>
 
@@ -1301,7 +1326,7 @@ function EquipmentDetailModal({
             <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-sky-200">
                 <CalendarDays size={17} />
-                Ortak Kontrol Kaydı
+                {row.company === 'STAR' ? 'Star' : 'Petkim'} Kontrol Kaydı
               </div>
               <div className="mt-3 text-sm text-white/70">
                 {row.controlNote || 'Açıklama girilmemiş.'}
@@ -1345,7 +1370,9 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-b border-white/[0.08] pb-3">
       <div className="text-xs text-white/35">{label}</div>
-      <div className="mt-1 text-sm font-medium text-white/80">{value || '—'}</div>
+      <div className="mt-1 break-all text-sm font-medium text-white/80">
+        {value || '—'}
+      </div>
     </div>
   );
 }

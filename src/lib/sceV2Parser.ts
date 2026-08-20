@@ -29,8 +29,15 @@ type SAPField =
   | 'maintenancePlanNo';
 
 type ControlField =
+  | 'company'
+  | 'equipmentNo'
+  | 'tagNo'
   | 'orderNo'
   | 'calibrationStatus'
+  | 'pdfCount'
+  | 'documentCount'
+  | 'reportFolder'
+  | 'reportFile'
   | 'deferralStatus'
   | 'note'
   | 'updatedBy'
@@ -64,6 +71,9 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
 };
 
 const CONTROL_ALIASES: Record<ControlField, string[]> = {
+  company: ['sirket', 'şirket'],
+  equipmentNo: ['ekipman no', 'ekipman numarasi', 'ekipman numarası'],
+  tagNo: ['tag no', 'tag numarasi', 'tag numarası', 'teknik birim'],
   orderNo: [
     'siparis no',
     'sipariş no',
@@ -78,6 +88,10 @@ const CONTROL_ALIASES: Record<ControlField, string[]> = {
     'kalibrasyon raporu paylasildi paylasilmadi',
     'kalibrasyon raporu paylasildi mi',
   ],
+  pdfCount: ['pdf sayisi', 'pdf sayısı'],
+  documentCount: ['toplam dokuman', 'toplam doküman', 'dokuman sayisi'],
+  reportFolder: ['rapor klasoru', 'rapor klasörü', 'klasor yolu'],
+  reportFile: ['ornek pdf', 'örnek pdf', 'rapor dosyasi', 'rapor dosyası'],
   deferralStatus: [
     'deferral durumu',
     'deferral baslatildi mi',
@@ -94,6 +108,7 @@ const CONTROL_ALIASES: Record<ControlField, string[]> = {
     'sorumlu',
   ],
   updatedAt: [
+    'son tarama tarihi',
     'guncelleme tarihi',
     'kayit tarihi',
     'kontrol tarihi',
@@ -202,10 +217,16 @@ export async function parseSCEV2SAPExcel(
 
 export async function parseSCEV2ControlExcel(
   file: File,
+  company: 'PETKIM' | 'STAR' = 'PETKIM',
 ): Promise<{ data: SCEV2ControlRow[]; error?: ParseError }> {
   try {
     if (file.size === 0) {
-      return { data: [], error: { message: 'Ortak kontrol dosyası boş.' } };
+      return {
+        data: [],
+        error: {
+          message: `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol dosyası boş.`,
+        },
+      };
     }
 
     const workbook = XLSX.read(await file.arrayBuffer(), {
@@ -213,13 +234,22 @@ export async function parseSCEV2ControlExcel(
       cellDates: true,
     });
     const sheet = findBestSheet(workbook, CONTROL_ALIASES);
-    if (!sheet || sheet.fieldMap.orderNo === undefined) {
+    const hasOrder = sheet?.fieldMap.orderNo !== undefined;
+    const hasEquipment = sheet?.fieldMap.equipmentNo !== undefined;
+    const hasTag = sheet?.fieldMap.tagNo !== undefined;
+    const hasIdentity = company === 'STAR' ? hasEquipment || hasTag : hasOrder;
+    if (!sheet || !hasIdentity) {
       return {
         data: [],
         error: {
-          message: 'Ortak kontrol dosyasında Sipariş No sütunu bulunamadı.',
+          message:
+            company === 'STAR'
+              ? 'Star kontrol dosyasında Ekipman No veya Tag No sütunu bulunamadı.'
+              : 'Petkim kontrol dosyasında Sipariş No sütunu bulunamadı.',
           details: [
-            'Beklenen temel başlıklar: Sipariş No, Kalibrasyon Raporu Paylaşıldı mı?, Deferral Başlatıldı mı?.',
+            company === 'STAR'
+              ? 'Beklenen temel başlıklar: Ekipman No, Tag No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman.'
+              : 'Beklenen temel başlıklar: Sipariş No, Kalibrasyon Raporu Paylaşıldı mı?, Deferral Başlatıldı mı?.',
           ],
         },
       };
@@ -232,7 +262,7 @@ export async function parseSCEV2ControlExcel(
         data: [],
         error: {
           message:
-            'Ortak kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.',
+            `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.`,
           foundHeaders: sheet.headers,
         },
       };
@@ -247,7 +277,12 @@ export async function parseSCEV2ControlExcel(
     if (data.length === 0) {
       return {
         data: [],
-        error: { message: 'Ortak kontrol dosyasında eşleştirilecek sipariş bulunamadı.' },
+        error: {
+          message:
+            company === 'STAR'
+              ? 'Star kontrol dosyasında eşleştirilecek ekipman veya Tag bulunamadı.'
+              : 'Petkim kontrol dosyasında eşleştirilecek sipariş bulunamadı.',
+        },
       };
     }
     return { data };
@@ -256,7 +291,7 @@ export async function parseSCEV2ControlExcel(
       data: [],
       error: {
         message:
-          'Ortak kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.',
+          `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.`,
       },
     };
   }
@@ -337,15 +372,24 @@ function parseControlRow(
     fieldMap[field] === undefined ? '' : cells[fieldMap[field] ?? -1];
   const text = (field: ControlField) => compact(value(field));
   const orderNo = text('orderNo');
-  if (!orderNo) return null;
+  const equipmentNo = text('equipmentNo');
+  const tagNo = text('tagNo');
+  if (!orderNo && !equipmentNo && !tagNo) return null;
   const calibrationRaw = text('calibrationStatus');
   const deferralRaw = text('deferralStatus');
 
   return {
-    rowId: `sce-v2-control-${sourceRow}-${orderNo}`,
+    rowId: `sce-v2-control-${sourceRow}-${orderNo || equipmentNo || tagNo}`,
     sourceRow,
+    company: text('company'),
+    equipmentNo,
+    tagNo,
     orderNo,
     calibrationStatus: resolveCalibrationStatus(calibrationRaw),
+    pdfCount: parseCount(value('pdfCount')),
+    documentCount: parseCount(value('documentCount')),
+    reportFolder: text('reportFolder'),
+    reportFile: text('reportFile'),
     deferralStarted: isAffirmativeDeferral(deferralRaw),
     deferralRaw,
     calibrationRaw,
@@ -353,6 +397,11 @@ function parseControlRow(
     updatedBy: text('updatedBy'),
     updatedAt: parseDate(value('updatedAt')),
   };
+}
+
+function parseCount(value: unknown) {
+  const parsed = Number(String(value ?? '').replace(',', '.'));
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
 }
 
 const FACTORY_BY_BUSINESS_AREA: Record<string, string> = {

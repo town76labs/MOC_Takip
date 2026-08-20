@@ -178,8 +178,15 @@ export interface SCEV2Row {
 export interface SCEV2ControlRow {
   rowId: string;
   sourceRow: number;
+  company: string;
+  equipmentNo: string;
+  tagNo: string;
   orderNo: string;
   calibrationStatus: SCEV2CalibrationStatus;
+  pdfCount: number;
+  documentCount: number;
+  reportFolder: string;
+  reportFile: string;
   deferralStarted: boolean;
   deferralRaw: string;
   calibrationRaw: string;
@@ -194,6 +201,10 @@ export interface SCEV2DashboardRow extends SCEV2Row {
   controlNote: string;
   controlUpdatedBy: string;
   controlUpdatedAt: Date | null;
+  calibrationPdfCount: number;
+  calibrationDocumentCount: number;
+  calibrationReportFolder: string;
+  calibrationReportFile: string;
 }
 
 export type RCACompany = 'PETKIM' | 'STAR' | 'STAD';
