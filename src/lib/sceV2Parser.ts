@@ -168,6 +168,7 @@ export async function parseSCEV2SAPExcel(
         ),
       )
       .filter((row): row is SCEV2Row => row !== null)
+      .filter((row) => !isExcludedMaintenanceText(row))
       .filter((row) => isInSCEV2ReportingPeriod(row, company));
     const data =
       company === 'STAR'
@@ -597,6 +598,10 @@ function isInSCEV2ReportingPeriod(
     dates.length > 0 &&
     dates.every((date) => date.getFullYear() >= SCE_V2_REPORTING_START_YEAR)
   );
+}
+
+function isExcludedMaintenanceText(row: SCEV2Row) {
+  return normalize(row.equipmentDescription).includes('tgs periyodik bakimi');
 }
 
 function numericKey(value: string) {

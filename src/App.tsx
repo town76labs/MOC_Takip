@@ -785,7 +785,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Star SCE Sipariş Son Durum Excel'i"
                   subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
-                  hint="K, M ve AD tarihleri birlikte kontrol edilir; bu alanlardaki mevcut tarihlerden biri bile 2026 öncesiyse kayıt alınmaz. A sütunundaki işletme alanı U-xxx ünitesine dönüştürülür."
+                  hint="K, M ve AD tarihleri birlikte kontrol edilir; bu alanlardaki mevcut tarihlerden biri bile 2026 öncesiyse kayıt alınmaz. Kısa metninde TGS Periyodik Bakımı bulunan satırlar hariç tutulur."
                   fileMeta={sceV2StarFile}
                   loading={sceV2StarLoading}
                   error={sceV2StarError}
