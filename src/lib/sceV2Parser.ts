@@ -111,6 +111,10 @@ interface SheetCandidate<Field extends string> {
 }
 
 const SCE_V2_REPORTING_START_YEAR = 2026;
+const EXCLUDED_MAINTENANCE_TEXTS = [
+  'tgs periyodik bakimi',
+  'sil bakim plani',
+];
 
 export async function parseSCEV2SAPExcel(
   file: File,
@@ -601,7 +605,8 @@ function isInSCEV2ReportingPeriod(
 }
 
 function isExcludedMaintenanceText(row: SCEV2Row) {
-  return normalize(row.equipmentDescription).includes('tgs periyodik bakimi');
+  const description = normalize(row.equipmentDescription);
+  return EXCLUDED_MAINTENANCE_TEXTS.some((text) => description.includes(text));
 }
 
 function numericKey(value: string) {
