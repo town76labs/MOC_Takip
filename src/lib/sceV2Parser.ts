@@ -23,6 +23,7 @@ type SAPField =
   | 'userStatus'
   | 'maintenanceStartDate'
   | 'maintenanceEndDate'
+  | 'plannedCompletionDate'
   | 'tagNo'
   | 'maintenanceItemNo'
   | 'maintenancePlanNo';
@@ -52,6 +53,10 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
     'yurutme bitis tarihi',
     'yürütme bitiş tarihi',
     'fiili yurutme bitis tarihi',
+  ],
+  plannedCompletionDate: [
+    'planlanan bitis termini',
+    'planlanan bitiş termini',
   ],
   tagNo: ['teknik birim'],
   maintenanceItemNo: ['bakim kalemi', 'bakım kalemi'],
@@ -139,6 +144,7 @@ export async function parseSCEV2SAPExcel(
       'maintenanceItemNo',
       'maintenancePlanNo',
     ];
+    if (company === 'STAR') required.push('plannedCompletionDate');
     const missing = required.filter((field) => sheet.fieldMap[field] === undefined);
     if (missing.length > 0) {
       return {
@@ -162,7 +168,7 @@ export async function parseSCEV2SAPExcel(
         ),
       )
       .filter((row): row is SCEV2Row => row !== null)
-      .filter(isInSCEV2ReportingPeriod);
+      .filter((row) => isInSCEV2ReportingPeriod(row, company));
     const data =
       company === 'STAR'
         ? buildSCEStarInventoryRows(parsed)
@@ -303,6 +309,7 @@ function parseSAPRow(
     userStatus,
     maintenanceStartDate: parseDate(value('maintenanceStartDate')),
     maintenanceEndDate: parseDate(value('maintenanceEndDate')),
+    plannedCompletionDate: parseDate(value('plannedCompletionDate')),
     maintenanceItemNo: text('maintenanceItemNo'),
     maintenancePlanNo: text('maintenancePlanNo'),
     maintenancePeriod: '5 Yıl',
@@ -527,6 +534,7 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
       userStatus: 'Sipariş Bulunamadı',
       maintenanceStartDate: null,
       maintenanceEndDate: null,
+      plannedCompletionDate: null,
       maintenanceItemNo: '',
       maintenancePlanNo: '',
       maintenancePeriod: '5 Yıl',
@@ -537,8 +545,12 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
 }
 
 function compareStarRowRecency(candidate: SCEV2Row, current: SCEV2Row) {
-  const candidateDate = latestMaintenanceTimestamp(candidate);
-  const currentDate = latestMaintenanceTimestamp(current);
+  const candidateDate =
+    candidate.plannedCompletionDate?.getTime() ??
+    latestMaintenanceTimestamp(candidate);
+  const currentDate =
+    current.plannedCompletionDate?.getTime() ??
+    latestMaintenanceTimestamp(current);
   const candidateOrder = numericKey(candidate.orderNo);
   const currentOrder = numericKey(current.orderNo);
 
@@ -571,9 +583,19 @@ function latestMaintenanceTimestamp(row: SCEV2Row) {
   return timestamps.length > 0 ? Math.max(...timestamps) : null;
 }
 
-function isInSCEV2ReportingPeriod(row: SCEV2Row) {
+function isInSCEV2ReportingPeriod(
+  row: SCEV2Row,
+  company: 'PETKIM' | 'STAR',
+) {
+  if (company === 'STAR') {
+    return (
+      row.plannedCompletionDate instanceof Date &&
+      row.plannedCompletionDate.getFullYear() >= SCE_V2_REPORTING_START_YEAR
+    );
+  }
   return [row.maintenanceStartDate, row.maintenanceEndDate].some(
-    (date) => date instanceof Date && date.getFullYear() >= SCE_V2_REPORTING_START_YEAR,
+    (date) =>
+      date instanceof Date && date.getFullYear() >= SCE_V2_REPORTING_START_YEAR,
   );
 }
 
@@ -586,6 +608,7 @@ function completenessScore(row: SCEV2Row) {
   return (
     Number(Boolean(row.maintenanceStartDate)) +
     Number(Boolean(row.maintenanceEndDate)) +
+    Number(Boolean(row.plannedCompletionDate)) +
     Number(Boolean(row.tagNo)) +
     Number(Boolean(row.equipmentDescription))
   );

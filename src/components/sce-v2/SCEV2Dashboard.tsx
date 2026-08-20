@@ -1277,6 +1277,12 @@ function EquipmentDetailModal({
               label="Son Bakım Yapıldığı Tarih"
               value={formatDate(row.maintenanceEndDate)}
             />
+            {row.company === 'STAR' && (
+              <DetailItem
+                label="Planlanan Bitiş Termini"
+                value={formatDate(row.plannedCompletionDate)}
+              />
+            )}
           </div>
 
           {row.equipmentDescription && (

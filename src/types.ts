@@ -167,6 +167,7 @@ export interface SCEV2Row {
   userStatus: string;
   maintenanceStartDate: Date | null;
   maintenanceEndDate: Date | null;
+  plannedCompletionDate: Date | null;
   maintenanceItemNo: string;
   maintenancePlanNo: string;
   maintenancePeriod: string;
