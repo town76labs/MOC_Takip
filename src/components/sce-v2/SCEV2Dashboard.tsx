@@ -262,6 +262,14 @@ export function SCEV2Dashboard({
     selectedConsoleScopes,
     selectedFactories,
   );
+  const activeExcelFilterLabel = [
+    reportScopeLabel,
+    filterLabel(filter),
+    selectedEquipmentType ? `Ekipman tipi: ${selectedEquipmentType}` : '',
+    search ? `Arama: ${search}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   function selectDashboardFilter(nextFilter: DashboardFilter) {
     const resolvedFilter =
@@ -283,22 +291,19 @@ export function SCEV2Dashboard({
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">
-                  {company === 'STAR' ? 'Star' : 'Petkim'} SCE V2 Periyodik
+                  {company === 'STAR' ? 'Star' : 'Petkim'} SCE Periyodik
                   Bakım Takibi
                 </h2>
-                <p className="mt-1 text-sm text-white/50">
-                  {company === 'STAR'
-                    ? 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Star kontrol dosyasıyla Ekipman No; gerekirse Tag No üzerinden birleştirilir.'
-                    : 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Petkim kontrol dosyasıyla Ekipman No; eski dosyalarda Sipariş No üzerinden birleştirilir.'}
-                </p>
               </div>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-0 sm:justify-end">
             <SCEV2ReportControl
               rows={scopeRows}
+              excelRows={filteredRows}
               company={company}
               scopeLabel={reportScopeLabel}
+              activeFilterLabel={activeExcelFilterLabel}
             />
             {company === 'PETKIM' && (
               <button
@@ -1575,7 +1580,7 @@ function downloadControlTemplate(rows: SCEV2DashboardRow[]) {
   instructionSheet['!cols'] = [{ wch: 28 }, { wch: 65 }];
   XLSX.utils.book_append_sheet(workbook, controlSheet, 'Kontrol');
   XLSX.utils.book_append_sheet(workbook, instructionSheet, 'Kullanım');
-  XLSX.writeFile(workbook, 'SCE_V2_Ortak_Kontrol_Sablonu.xlsx');
+  XLSX.writeFile(workbook, 'SCE_Ortak_Kontrol_Sablonu.xlsx');
 }
 
 function buildReportScopeLabel(

@@ -659,23 +659,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => setAppMode('sce')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-sky-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
-                  <ShieldAlert size={25} strokeWidth={1.8} />
-                </div>
-                <div className="mt-8 text-3xl font-semibold text-white">
-                  SCE Dashboard
-                </div>
-                <div className="mt-3 text-sm text-white/50">
-                  Safety Critical Element
-                </div>
-              </button>
-
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setAppMode('sce-v2')}
@@ -685,10 +669,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   <ListChecks size={25} strokeWidth={1.8} />
                 </div>
                 <div className="mt-8 text-3xl font-semibold text-white">
-                  SCE V2 Dashboard
-                </div>
-                <div className="mt-3 text-sm text-white/50">
-                  SAP Sipariş ve Kalibrasyon Takibi
+                  SCE Dashboard
                 </div>
               </button>
 
@@ -762,11 +743,8 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Enstrüman Bakım Müdürlüğü
                 </p>
                 <h1 className="text-base font-semibold leading-tight text-white">
-                  SCE V2 Dashboard
+                  SCE Dashboard
                 </h1>
-                <p className="text-xs text-white/50">
-                  SAP Sipariş, Deferral ve Kalibrasyon Raporu Takibi
-                </p>
               </div>
               <button
                 type="button"
@@ -775,7 +753,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:inline-flex"
               >
                 <FileSpreadsheet size={16} />
-                SCE V2 Excel Dosyaları
+                SCE Excel Dosyaları
                 <ChevronDown
                   size={16}
                   className={`transition ${
@@ -789,7 +767,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 type="button"
                 onClick={() => setSceV2UploadsOpen((open) => !open)}
                 aria-expanded={sceV2UploadsOpen}
-                aria-label="SCE V2 Excel dosyası panelini aç veya kapat"
+                aria-label="SCE Excel dosyası panelini aç veya kapat"
                 className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30 sm:hidden"
               >
                 <FileSpreadsheet size={18} />
@@ -832,7 +810,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 />
               ) : (
                 <FileUpload
-                  title="1. SAP SCE Sipariş Durumları Excel'i"
+                  title="Petkim SCE Sipariş Son Durum Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
                   hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi ve Bakım planı sütunları beklenir."
                   fileMeta={sceV2File}
@@ -979,7 +957,8 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                     strokeWidth={1.8}
                   />
                   <h2 className="text-lg font-semibold text-white">
-                    Başlamak için SAP SCE Sipariş Durumları Excel dosyasını yükleyin
+                    Başlamak için Petkim SCE Sipariş Son Durum Excel dosyasını
+                    yükleyin
                   </h2>
                   <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
                     Ortak kontrol dosyası daha sonra da yüklenebilir. SAP bakım

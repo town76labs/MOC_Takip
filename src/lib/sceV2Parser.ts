@@ -202,7 +202,7 @@ export async function parseSCEV2SAPExcel(
         data: [],
         error: {
           message:
-            'Dosyada 2026 ve sonrasına ait işlenebilir SCE V2 ekipman kaydı bulunamadı.',
+            'Dosyada 2026 ve sonrasına ait işlenebilir SCE ekipman kaydı bulunamadı.',
         },
       };
     }
