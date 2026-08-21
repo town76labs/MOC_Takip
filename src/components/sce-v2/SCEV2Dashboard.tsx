@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
 import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Download,
   FileCheck2,
+  ListFilterPlus,
   Search,
   ShieldAlert,
   Wrench,
@@ -84,10 +83,12 @@ export function SCEV2Dashboard({
   company,
   selectedFactories,
   selectedConsoleScopes,
+  onClearScopeFilters,
 }: {
   company: 'PETKIM' | 'STAR';
   selectedFactories: string[];
   selectedConsoleScopes: string[];
+  onClearScopeFilters: () => void;
 }) {
   const petkimRows = useDataStore((state) => state.sceV2Rows);
   const starRows = useDataStore((state) => state.sceV2StarRows);
@@ -280,6 +281,14 @@ export function SCEV2Dashboard({
     setPage(1);
   }
 
+  function clearAllFilters() {
+    setFilter('all');
+    setSelectedEquipmentType('');
+    setSearch('');
+    setPage(1);
+    onClearScopeFilters();
+  }
+
   return (
     <div className="space-y-6">
       <section className="card overflow-hidden">
@@ -305,16 +314,14 @@ export function SCEV2Dashboard({
               scopeLabel={reportScopeLabel}
               activeFilterLabel={activeExcelFilterLabel}
             />
-            {company === 'PETKIM' && (
-              <button
-                type="button"
-                onClick={() => downloadControlTemplate(allRows)}
-                className="inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-              >
-                <Download size={16} />
-                Kontrol Excel Şablonunu İndir
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+            >
+              <ListFilterPlus size={16} />
+              Filtreleri Temizle
+            </button>
           </div>
         </div>
 
@@ -1529,58 +1536,6 @@ function calibrationLabel(status: SCEV2CalibrationStatus) {
     unknown: 'Bilgi Bekleniyor',
     not_applicable: 'Uygulanmaz',
   }[status];
-}
-
-function downloadControlTemplate(rows: SCEV2DashboardRow[]) {
-  const uniqueByOrder = new Map<string, SCEV2DashboardRow>();
-  for (const row of rows) {
-    if (row.orderNo && !uniqueByOrder.has(row.orderNo)) {
-      uniqueByOrder.set(row.orderNo, row);
-    }
-  }
-  const uniqueRows = [...uniqueByOrder.values()]
-    .sort((a, b) =>
-      a.orderNo.localeCompare(b.orderNo, 'tr', { numeric: true }),
-    )
-    .map((row) => ({
-      'Personel Adı': '',
-      'Sipariş No': row.orderNo,
-      'Kalibrasyon Raporu Paylaşıldı mı?': '',
-      'Deferral Başlatıldı mı?': '',
-      Açıklama: '',
-    }));
-  const instructions = [
-    {
-      Alan: 'Kalibrasyon Raporu Paylaşıldı mı?',
-      'Kullanılacak Değerler': 'EVET / HAYIR',
-    },
-    {
-      Alan: 'Deferral Başlatıldı mı?',
-      'Kullanılacak Değerler': 'EVET / HAYIR',
-    },
-    {
-      Alan: 'Sipariş No',
-      'Kullanılacak Değerler':
-        'Petkim veya Star SAP dosyasındaki Sipariş numarası ile aynı kalmalıdır.',
-    },
-  ];
-  const workbook = XLSX.utils.book_new();
-  const controlSheet = XLSX.utils.json_to_sheet(uniqueRows);
-  const instructionSheet = XLSX.utils.json_to_sheet(instructions);
-  controlSheet['!cols'] = [
-    { wch: 24 },
-    { wch: 18 },
-    { wch: 38 },
-    { wch: 30 },
-    { wch: 24 },
-  ];
-  controlSheet['!autofilter'] = {
-    ref: controlSheet['!ref'] ?? 'A1:E1',
-  };
-  instructionSheet['!cols'] = [{ wch: 28 }, { wch: 65 }];
-  XLSX.utils.book_append_sheet(workbook, controlSheet, 'Kontrol');
-  XLSX.utils.book_append_sheet(workbook, instructionSheet, 'Kullanım');
-  XLSX.writeFile(workbook, 'SCE_Ortak_Kontrol_Sablonu.xlsx');
 }
 
 function buildReportScopeLabel(

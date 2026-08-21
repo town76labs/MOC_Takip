@@ -944,6 +944,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   company="STAR"
                   selectedFactories={sceV2SelectedFactories}
                   selectedConsoleScopes={sceV2SelectedConsoles}
+                  onClearScopeFilters={() => {
+                    setSceV2SelectedConsoles([]);
+                    setSceV2SelectedFactories([]);
+                  }}
                 />
               )}
             </>
@@ -971,6 +975,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   company="PETKIM"
                   selectedFactories={sceV2SelectedFactories}
                   selectedConsoleScopes={[]}
+                  onClearScopeFilters={() => {
+                    setSceV2SelectedConsoles([]);
+                    setSceV2SelectedFactories([]);
+                  }}
                 />
               )}
             </>

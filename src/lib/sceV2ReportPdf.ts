@@ -103,7 +103,7 @@ export function buildSCEV2ReportDefinition({
   return {
     pageSize: 'A4',
     pageOrientation: 'landscape',
-    pageMargins: [30, 48, 30, 34],
+    pageMargins: [30, 34, 30, 34],
     info: {
       title: `SCE ${companyLabel(company)} ${reportName}`,
       author: 'Enstrüman Bakım Müdürlüğü',
@@ -111,7 +111,6 @@ export function buildSCEV2ReportDefinition({
     },
     defaultStyle: { font: 'Roboto', fontSize: 9, color: '#334155' },
     styles,
-    header: socarHeader(),
     content: buildReportContent(rows, company, type, scopeLabel),
     footer: (currentPage, pageCount) => ({
       columns: [
@@ -288,24 +287,6 @@ function reportHeading(
       margin: [0, 13, 0, 10],
     },
   ];
-}
-
-function socarHeader(): Content {
-  return {
-    columns: [
-      { text: '', width: '*' },
-      {
-        width: 118,
-        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 44">
-          <path d="M10 36C1 25 5 10 18 3C12 16 14 27 22 37C18 39 14 39 10 36Z" fill="#21A7D8"/>
-          <path d="M25 38C15 25 18 9 30 2C26 15 29 27 37 35C34 39 29 40 25 38Z" fill="#F04444"/>
-          <path d="M40 41C33 31 37 18 50 12C44 24 46 33 52 39C48 42 44 43 40 41Z" fill="#52B848"/>
-          <text x="61" y="34" font-family="Roboto, Arial, sans-serif" font-size="31" font-weight="800" fill="#0f172a">SOCAR</text>
-        </svg>`,
-      },
-    ],
-    margin: [30, 9, 30, 0],
-  };
 }
 
 function kpiGrid(items: [string, string, string][], accent: string): Content {
