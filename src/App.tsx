@@ -181,6 +181,11 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const clearSCEV2StarControl = useDataStore(
     (s) => s.clearSCEV2StarControl,
   );
+  const sceV2DeferralFile = useDataStore((s) => s.sceV2DeferralFile);
+  const sceV2DeferralLoading = useDataStore((s) => s.sceV2DeferralLoading);
+  const sceV2DeferralError = useDataStore((s) => s.sceV2DeferralError);
+  const uploadSCEV2Deferral = useDataStore((s) => s.uploadSCEV2Deferral);
+  const clearSCEV2Deferral = useDataStore((s) => s.clearSCEV2Deferral);
   const rcaFile = useDataStore((s) => s.rcaFile);
   const rcaLoading = useDataStore((s) => s.rcaLoading);
   const rcaError = useDataStore((s) => s.rcaError);
@@ -803,7 +808,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
           {showSCEV2Uploads && (
-            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
               {isSCEV2Star ? (
                 <FileUpload
                   title="Star SCE Sipariş Son Durum Excel'i"
@@ -854,7 +859,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 subtitle={
                   isSCEV2Star
                     ? 'Star kalibrasyon raporu ve doküman takibi'
-                    : 'Petkim kalibrasyon raporu ve deferral takibi'
+                    : 'Petkim kalibrasyon raporu ve doküman takibi'
                 }
                 hint={
                   isSCEV2Star
@@ -891,6 +896,18 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                     ? 'from-red-500 to-rose-800'
                     : 'from-violet-500 to-fuchsia-700'
                 }
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="Ortak Deferral PM Excel'i"
+                subtitle="Petkim ve Star duruş erteleme takibi"
+                hint="Main Work Center değeri ENS olan satırlar alınır. Equipment ID başındaki sıfırlar yok sayılır; Bakım Erteleme Başlat ve Overdue Date alanları iki şirket için ortak kullanılır."
+                fileMeta={sceV2DeferralFile}
+                loading={sceV2DeferralLoading}
+                error={sceV2DeferralError}
+                onFile={uploadSCEV2Deferral}
+                onClear={clearSCEV2Deferral}
+                accentColorClass="from-amber-400 to-orange-700"
                 surfaceClassName="upload-panel-dark"
               />
             </section>

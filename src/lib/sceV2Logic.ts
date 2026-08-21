@@ -1,13 +1,16 @@
 import type {
   SCEV2ControlRow,
   SCEV2DashboardRow,
+  SCEV2DeferralRow,
   SCEV2Row,
 } from '../types';
-import { normalize } from './normalize';
+import { isPastDue, normalize } from './normalize';
 
 export function buildSCEV2DashboardRows(
   rows: SCEV2Row[],
   controls: SCEV2ControlRow[],
+  deferrals: SCEV2DeferralRow[] = [],
+  deferralSourceLoaded = false,
 ): SCEV2DashboardRow[] {
   const controlByOrder = new Map<string, SCEV2ControlRow>();
   const controlByEquipment = new Map<string, SCEV2ControlRow>();
@@ -21,6 +24,11 @@ export function buildSCEV2DashboardRows(
     );
     setLatestControl(controlByTag, identityKey(control.tagNo), control);
   }
+  const deferralByEquipment = new Map<string, SCEV2DeferralRow>();
+  for (const deferral of deferrals) {
+    const key = identityKey(deferral.equipmentNo);
+    if (key) deferralByEquipment.set(key, deferral);
+  }
 
   return rows.map((row) => {
     const orderControl = controlByOrder.get(orderKey(row.orderNo));
@@ -31,19 +39,28 @@ export function buildSCEV2DashboardRows(
         ? equipmentControl ?? tagControl ?? orderControl
         : orderControl ?? equipmentControl ?? tagControl;
     const deferralControl = orderControl ?? equipmentControl ?? tagControl;
+    const deferralRecord = deferralByEquipment.get(identityKey(row.equipmentNo));
     const control = calibrationControl ?? deferralControl;
+    const isShutdownDeferred = row.maintenanceStatus === 'shutdown_deferred';
+    const deferralStatus = !isShutdownDeferred
+      ? 'not_applicable'
+      : deferralSourceLoaded
+        ? deferralRecord?.deferralStarted
+          ? 'started'
+          : 'required'
+        : deferralControl?.deferralStarted
+          ? 'started'
+          : 'required';
+    const deferralOverdueDate = isShutdownDeferred
+      ? deferralRecord?.overdueDate ?? null
+      : null;
     return {
       ...row,
       calibrationStatus:
         row.maintenanceStatus === 'completed'
           ? calibrationControl?.calibrationStatus ?? 'unknown'
           : 'not_applicable',
-      deferralStatus:
-        row.maintenanceStatus !== 'shutdown_deferred'
-          ? 'not_applicable'
-          : deferralControl?.deferralStarted
-            ? 'started'
-            : 'required',
+      deferralStatus,
       controlNote: control?.note ?? '',
       controlUpdatedBy: control?.updatedBy ?? '',
       controlUpdatedAt: control?.updatedAt ?? null,
@@ -51,6 +68,8 @@ export function buildSCEV2DashboardRows(
       calibrationDocumentCount: calibrationControl?.documentCount ?? 0,
       calibrationReportFolder: calibrationControl?.reportFolder ?? '',
       calibrationReportFile: calibrationControl?.reportFile ?? '',
+      deferralOverdueDate,
+      deferralIsOverdue: isPastDue(deferralOverdueDate),
     };
   });
 }

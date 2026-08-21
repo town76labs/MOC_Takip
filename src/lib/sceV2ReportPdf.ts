@@ -421,7 +421,7 @@ function controlStatusOverview(
                     color: COLORS.navy,
                   },
                   {
-                    text: `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı`,
+                    text: `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı · Overdue: ${metrics.deferralOverdue}`,
                     width: 82,
                     alignment: 'right',
                     fontSize: 7.5,
@@ -602,6 +602,7 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     ).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter((row) => row.deferralStatus === 'required').length,
+    deferralOverdue: rows.filter((row) => row.deferralIsOverdue).length,
     calibrationShared: rows.filter((row) => row.calibrationStatus === 'shared').length,
     calibrationNotShared: rows.filter(
       (row) => row.calibrationStatus === 'not_shared',
@@ -680,8 +681,11 @@ function maintenanceLabel(row: SCEV2DashboardRow) {
 }
 
 function deferralLabel(row: SCEV2DashboardRow) {
-  if (row.deferralStatus === 'started') return 'Başlatıldı';
-  if (row.deferralStatus === 'required') return 'Başlatılmalı';
+  const overdue = row.deferralIsOverdue
+    ? ` · Overdue ${formatDate(row.deferralOverdueDate)}`
+    : '';
+  if (row.deferralStatus === 'started') return `Başlatıldı${overdue}`;
+  if (row.deferralStatus === 'required') return `Başlatılmalı${overdue}`;
   return 'Gerekmez';
 }
 

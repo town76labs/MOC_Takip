@@ -39,6 +39,7 @@ type DashboardFilter =
   | SCEV2MaintenanceStatus
   | 'deferral_started'
   | 'deferral_required'
+  | 'deferral_overdue'
   | 'calibration_shared'
   | 'calibration_not_shared'
   | 'calibration_unknown';
@@ -96,6 +97,8 @@ export function SCEV2Dashboard({
   const starControlRows = useDataStore(
     (state) => state.sceV2StarControlRows,
   );
+  const deferralRows = useDataStore((state) => state.sceV2DeferralRows);
+  const deferralFile = useDataStore((state) => state.sceV2DeferralFile);
   const [selectedEquipmentType, setSelectedEquipmentType] = useState('');
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
@@ -109,8 +112,18 @@ export function SCEV2Dashboard({
       buildSCEV2DashboardRows(
         company === 'STAR' ? starRows : petkimRows,
         company === 'STAR' ? starControlRows : petkimControlRows,
+        deferralRows,
+        Boolean(deferralFile),
       ),
-    [company, petkimControlRows, petkimRows, starControlRows, starRows],
+    [
+      company,
+      deferralFile,
+      deferralRows,
+      petkimControlRows,
+      petkimRows,
+      starControlRows,
+      starRows,
+    ],
   );
   const scopeRows = useMemo(
     () =>
@@ -172,6 +185,16 @@ export function SCEV2Dashboard({
       color: '#ef4444',
       filter: 'deferral_required',
     },
+    ...(metrics.deferralOverdue > 0
+      ? [
+          {
+            name: 'Overdue',
+            value: metrics.deferralOverdue,
+            color: '#f97316',
+            filter: 'deferral_overdue' as const,
+          },
+        ]
+      : []),
   ];
   const calibrationChartData: ChartDatum[] = [
     {
@@ -330,7 +353,7 @@ export function SCEV2Dashboard({
           <MetricButton
             label="Deferral Başlatıldı"
             value={metrics.deferralStarted}
-            note="Kontrol Excel'i eşleşti"
+            note="Deferral PM eşleşti"
             color="sky"
             active={filter === 'deferral_started'}
             onClick={() => selectDashboardFilter('deferral_started')}
@@ -338,7 +361,7 @@ export function SCEV2Dashboard({
           <MetricButton
             label="Deferral Başlatılmalı"
             value={metrics.deferralRequired}
-            note="BEK var, kayıt yok"
+            note="Başlatma aksiyonu bekliyor"
             color="red"
             active={filter === 'deferral_required'}
             onClick={() => selectDashboardFilter('deferral_required')}
@@ -393,7 +416,7 @@ export function SCEV2Dashboard({
 
         <ModernChartCard
           title="Deferral Aksiyonları"
-          subtitle="Duruşa ertelenen ekipmanların takip durumu"
+          subtitle="Ortak Deferral PM Excel'indeki başlatma ve overdue durumu"
           accentClass="from-sky-400/25 via-red-400/10 to-transparent"
         >
           <div className="mb-2 flex items-end justify-between rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
@@ -722,6 +745,11 @@ export function SCEV2Dashboard({
                   </td>
                   <td className="px-4 py-3">
                     <DeferralBadge status={row.deferralStatus} />
+                    {row.deferralIsOverdue && (
+                      <div className="mt-1 text-[11px] font-medium text-orange-300">
+                        Overdue · {formatDate(row.deferralOverdueDate)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <CalibrationBadge status={row.calibrationStatus} />
@@ -1277,6 +1305,12 @@ function EquipmentDetailModal({
             <DetailItem label="Bildirim Numarası" value={row.notificationNo} />
             <DetailItem label="Bakım Periyodu" value={row.maintenancePeriod} />
             <DetailItem label="SAP Kullanıcı Durumu" value={row.userStatus} />
+            {row.maintenanceStatus === 'shutdown_deferred' && (
+              <DetailItem
+                label="Deferral Overdue Date"
+                value={formatDate(row.deferralOverdueDate)}
+              />
+            )}
             <DetailItem
               label="Bakım Başlangıç Tarihi"
               value={formatDate(row.maintenanceStartDate)}
@@ -1393,6 +1427,7 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     deferralRequired: rows.filter(
       (row) => row.deferralStatus === 'required',
     ).length,
+    deferralOverdue: rows.filter((row) => row.deferralIsOverdue).length,
     calibrationShared: rows.filter(
       (row) => row.calibrationStatus === 'shared',
     ).length,
@@ -1424,6 +1459,7 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
   }
   if (filter === 'deferral_started') return row.deferralStatus === 'started';
   if (filter === 'deferral_required') return row.deferralStatus === 'required';
+  if (filter === 'deferral_overdue') return row.deferralIsOverdue;
   if (filter === 'calibration_shared') return row.calibrationStatus === 'shared';
   if (filter === 'calibration_not_shared') {
     return row.calibrationStatus === 'not_shared';
@@ -1433,12 +1469,13 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
 
 function compareRows(a: SCEV2DashboardRow, b: SCEV2DashboardRow) {
   const priority = (row: SCEV2DashboardRow) => {
-    if (row.deferralStatus === 'required') return 0;
-    if (row.maintenanceStatus === 'maintenance_not_completed') return 1;
-    if (row.maintenanceStatus === 'order_not_found') return 2;
-    if (row.calibrationStatus === 'not_shared') return 3;
-    if (row.maintenanceStatus === 'shutdown_deferred') return 4;
-    return 5;
+    if (row.deferralIsOverdue) return 0;
+    if (row.deferralStatus === 'required') return 1;
+    if (row.maintenanceStatus === 'maintenance_not_completed') return 2;
+    if (row.maintenanceStatus === 'order_not_found') return 3;
+    if (row.calibrationStatus === 'not_shared') return 4;
+    if (row.maintenanceStatus === 'shutdown_deferred') return 5;
+    return 6;
   };
   return (
     priority(a) - priority(b) ||
@@ -1455,6 +1492,7 @@ function filterLabel(filter: DashboardFilter) {
     order_not_found: 'Sipariş kaydı bulunmayanlar',
     deferral_started: 'Deferral başlatılanlar',
     deferral_required: 'Deferral başlatılması gerekenler',
+    deferral_overdue: 'Deferral overdue olanlar',
     calibration_shared: 'Kalibrasyon raporu paylaşılanlar',
     calibration_not_shared: 'Kalibrasyon raporu paylaşılmayanlar',
     calibration_unknown: 'Kalibrasyon raporu bilgisi beklenenler',

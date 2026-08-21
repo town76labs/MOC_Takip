@@ -11,6 +11,7 @@ import type {
   SCECompany,
   SCERow,
   SCEV2ControlRow,
+  SCEV2DeferralRow,
   SCEV2Row,
   TechnicalRow,
   TechnicalStatus,
@@ -26,6 +27,7 @@ import {
   parseSCEV2ControlExcel,
   parseSCEV2SAPExcel,
 } from '../lib/sceV2Parser';
+import { parseSCEV2DeferralExcel } from '../lib/sceV2DeferralParser';
 import { parseSATExcel } from '../lib/satParser';
 import { parseSATBudgetExcel } from '../lib/satBudgetParser';
 import {
@@ -58,6 +60,7 @@ interface DataState {
   sceV2StarRows: SCEV2Row[];
   sceV2PetkimControlRows: SCEV2ControlRow[];
   sceV2StarControlRows: SCEV2ControlRow[];
+  sceV2DeferralRows: SCEV2DeferralRow[];
   rcaRows: RCARow[];
   satRows: SATRow[];
   satExportRows: SATExportRow[];
@@ -74,6 +77,7 @@ interface DataState {
   sceV2StarFile: FileMeta | null;
   sceV2PetkimControlFile: FileMeta | null;
   sceV2StarControlFile: FileMeta | null;
+  sceV2DeferralFile: FileMeta | null;
   rcaFile: FileMeta | null;
   satFile: FileMeta | null;
   satBudgetFile: FileMeta | null;
@@ -90,6 +94,7 @@ interface DataState {
   sceV2StarLoading: boolean;
   sceV2PetkimControlLoading: boolean;
   sceV2StarControlLoading: boolean;
+  sceV2DeferralLoading: boolean;
   rcaLoading: boolean;
   satLoading: boolean;
   satBudgetLoading: boolean;
@@ -104,6 +109,7 @@ interface DataState {
   sceV2StarError: ParseError | null;
   sceV2PetkimControlError: ParseError | null;
   sceV2StarControlError: ParseError | null;
+  sceV2DeferralError: ParseError | null;
   rcaError: ParseError | null;
   satError: ParseError | null;
   satBudgetError: ParseError | null;
@@ -124,6 +130,7 @@ interface DataState {
   uploadSCEV2Star: (file: File) => Promise<void>;
   uploadSCEV2PetkimControl: (file: File) => Promise<void>;
   uploadSCEV2StarControl: (file: File) => Promise<void>;
+  uploadSCEV2Deferral: (file: File) => Promise<void>;
   uploadRCA: (file: File) => Promise<void>;
   uploadSAT: (file: File) => Promise<void>;
   uploadSATBudget: (file: File) => Promise<void>;
@@ -138,6 +145,7 @@ interface DataState {
   clearSCEV2Star: () => void;
   clearSCEV2PetkimControl: () => void;
   clearSCEV2StarControl: () => void;
+  clearSCEV2Deferral: () => void;
   clearRCA: () => void;
   clearSAT: () => void;
   clearSATBudget: () => void;
@@ -158,6 +166,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2StarRows: [],
   sceV2PetkimControlRows: [],
   sceV2StarControlRows: [],
+  sceV2DeferralRows: [],
   rcaRows: [],
   satRows: [],
   satExportRows: [],
@@ -174,6 +183,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2StarFile: null,
   sceV2PetkimControlFile: null,
   sceV2StarControlFile: null,
+  sceV2DeferralFile: null,
   rcaFile: null,
   satFile: null,
   satBudgetFile: null,
@@ -188,6 +198,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2StarLoading: false,
   sceV2PetkimControlLoading: false,
   sceV2StarControlLoading: false,
+  sceV2DeferralLoading: false,
   rcaLoading: false,
   satLoading: false,
   satBudgetLoading: false,
@@ -202,6 +213,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2StarError: null,
   sceV2PetkimControlError: null,
   sceV2StarControlError: null,
+  sceV2DeferralError: null,
   rcaError: null,
   satError: null,
   satBudgetError: null,
@@ -447,6 +459,30 @@ export const useDataStore = create<DataState>((set, get) => ({
     });
   },
 
+  uploadSCEV2Deferral: async (file: File) => {
+    set({ sceV2DeferralLoading: true, sceV2DeferralError: null });
+    const { data, error } = await parseSCEV2DeferralExcel(file);
+    if (error) {
+      set({
+        sceV2DeferralLoading: false,
+        sceV2DeferralError: error,
+        sceV2DeferralRows: [],
+        sceV2DeferralFile: null,
+      });
+      return;
+    }
+    set({
+      sceV2DeferralLoading: false,
+      sceV2DeferralRows: data,
+      sceV2DeferralFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      sceV2DeferralError: null,
+    });
+  },
+
   uploadRCA: async (file: File) => {
     set({ rcaLoading: true, rcaError: null });
     const { data, error } = await parseRCAExcel(file);
@@ -623,6 +659,12 @@ export const useDataStore = create<DataState>((set, get) => ({
       sceV2StarControlRows: [],
       sceV2StarControlFile: null,
       sceV2StarControlError: null,
+    }),
+  clearSCEV2Deferral: () =>
+    set({
+      sceV2DeferralRows: [],
+      sceV2DeferralFile: null,
+      sceV2DeferralError: null,
     }),
   clearRCA: () =>
     set({

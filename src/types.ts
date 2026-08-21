@@ -195,6 +195,18 @@ export interface SCEV2ControlRow {
   updatedAt: Date | null;
 }
 
+export interface SCEV2DeferralRow {
+  rowId: string;
+  sourceRow: number;
+  routeId: string;
+  equipmentNo: string;
+  tagNo: string;
+  workCenter: string;
+  actionRaw: string;
+  deferralStarted: boolean;
+  overdueDate: Date | null;
+}
+
 export interface SCEV2DashboardRow extends SCEV2Row {
   calibrationStatus: SCEV2CalibrationStatus;
   deferralStatus: SCEV2DeferralStatus;
@@ -205,6 +217,8 @@ export interface SCEV2DashboardRow extends SCEV2Row {
   calibrationDocumentCount: number;
   calibrationReportFolder: string;
   calibrationReportFile: string;
+  deferralOverdueDate: Date | null;
+  deferralIsOverdue: boolean;
 }
 
 export type RCACompany = 'PETKIM' | 'STAR' | 'STAD';

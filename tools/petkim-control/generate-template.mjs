@@ -5,45 +5,22 @@ import * as XLSX from 'xlsx';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../..');
-const lookupPath = path.join(
+const inventoryPath = path.join(
   projectRoot,
-  'src/data/scePetkimEquipmentLookup.tsv',
-);
-const tagLookupPath = path.join(
-  projectRoot,
-  'src/data/scePetkimEquipmentTags.tsv',
+  'src/data/scePetkimEquipmentInventory.tsv',
 );
 const outputPath = path.join(here, 'Petkim_SCE_Kontrol_Sablonu.xlsx');
 
-const lines = fs
-  .readFileSync(lookupPath, 'utf8')
+const equipment = fs
+  .readFileSync(inventoryPath, 'utf8')
   .split(/\r?\n/)
+  .slice(1)
   .map((line) => line.trim())
-  .filter(Boolean);
-
-const tagByEquipment = new Map(
-  fs
-    .readFileSync(tagLookupPath, 'utf8')
-    .split(/\r?\n/)
-    .slice(1)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [equipmentNo, tagNo] = line.split('\t');
-      return [equipmentNo?.trim(), tagNo?.trim()];
-    })
-    .filter(([equipmentNo, tagNo]) => equipmentNo && tagNo),
-);
-
-const equipment = lines.slice(1).map((line) => {
-  const [equipmentNo, ...typeParts] = line.split('\t');
-  return [
-    'PETKIM',
-    equipmentNo,
-    tagByEquipment.get(equipmentNo) ?? '',
-    typeParts.join(' ').trim(),
-  ];
-});
+  .filter(Boolean)
+  .map((line) => {
+    const [, equipmentNo, tagNo, , , equipmentType] = line.split('\t');
+    return ['PETKIM', equipmentNo, tagNo, equipmentType];
+  });
 
 const resultHeaders = [
   'Şirket',
@@ -63,19 +40,19 @@ const resultHeaders = [
 
 const initialResults = equipment.map(
   ([, equipmentNo, tagNo, equipmentType]) => [
-  'PETKIM',
-  equipmentNo,
-  tagNo,
-  '',
-  'Yok',
-  0,
-  0,
-  '',
-  '',
-  '',
-  '',
-  '',
-  equipmentType,
+    'PETKIM',
+    equipmentNo,
+    tagNo,
+    '',
+    'Yok',
+    0,
+    0,
+    '',
+    '',
+    '',
+    '',
+    '',
+    equipmentType,
   ],
 );
 

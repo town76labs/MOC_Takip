@@ -12,7 +12,10 @@ import {
   getSCEStarConsoleByUnit,
   getSCEStarEquipmentInfo,
 } from './sceStarLookup';
-import { getSCEPetkimEquipmentType } from './scePetkimLookup';
+import {
+  getAllSCEPetkimEquipmentInfo,
+  getSCEPetkimEquipmentType,
+} from './scePetkimLookup';
 
 type SAPField =
   | 'businessArea'
@@ -192,7 +195,7 @@ export async function parseSCEV2SAPExcel(
     const data =
       company === 'STAR'
         ? buildSCEStarInventoryRows(parsed)
-        : deduplicateSAPRows(parsed);
+        : buildSCEPetkimInventoryRows(parsed);
 
     if (data.length === 0) {
       return {
@@ -544,7 +547,7 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
     const key = normalizeKey(row.equipmentNo);
     if (!key) continue;
     const current = latestByEquipment.get(key);
-    if (!current || compareStarRowRecency(row, current) > 0) {
+    if (!current || compareInventoryRowRecency(row, current) > 0) {
       latestByEquipment.set(key, row);
     }
   }
@@ -599,7 +602,73 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
   });
 }
 
-function compareStarRowRecency(candidate: SCEV2Row, current: SCEV2Row) {
+function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
+  const latestByEquipment = new Map<string, SCEV2Row>();
+  for (const row of deduplicateSAPRows(rows)) {
+    const key = normalizeKey(row.equipmentNo);
+    if (!key) continue;
+    const current = latestByEquipment.get(key);
+    if (!current || compareInventoryRowRecency(row, current) > 0) {
+      latestByEquipment.set(key, row);
+    }
+  }
+
+  return getAllSCEPetkimEquipmentInfo().map((info) => {
+    const latest = latestByEquipment.get(normalizeKey(info.equipmentNo));
+    const businessArea = info.tagNo.match(/^(\d{3})/)?.[1] ?? '';
+    const factory = resolvePetkimInventoryFactory(businessArea);
+
+    if (latest) {
+      return {
+        ...latest,
+        rowId: `sce-v2-PETKIM-inventory-${info.equipmentNo}`,
+        businessArea,
+        factory,
+        unit: factory,
+        equipmentNo: info.equipmentNo,
+        tagNo: info.tagNo || latest.tagNo,
+        equipmentType: info.equipmentType || latest.equipmentType,
+      };
+    }
+
+    return {
+      rowId: `sce-v2-PETKIM-inventory-${info.equipmentNo}`,
+      sourceRow: 0,
+      company: 'PETKIM' as const,
+      factory,
+      businessArea,
+      unit: factory,
+      consoleName: '',
+      categoryType: '',
+      equipmentType: info.equipmentType,
+      equipmentNo: info.equipmentNo,
+      tagNo: info.tagNo,
+      equipmentDescription: info.sceReason || info.equipmentType,
+      notificationNo: '',
+      orderNo: '',
+      userStatus: 'Sipariş Bulunamadı',
+      maintenanceStartDate: null,
+      maintenanceEndDate: null,
+      plannedCompletionDate: null,
+      maintenanceItemNo: '',
+      maintenancePlanNo: '',
+      maintenancePeriod: '5 Yıl',
+      maintenanceStatus: 'order_not_found' as const,
+      raw: {
+        sceGroup: info.sceGroup,
+        sceReason: info.sceReason,
+        maintenanceArea: info.maintenanceArea,
+      },
+    };
+  });
+}
+
+function resolvePetkimInventoryFactory(businessArea: string) {
+  if (businessArea === '278') return 'ISKELE';
+  return resolveFactory(businessArea);
+}
+
+function compareInventoryRowRecency(candidate: SCEV2Row, current: SCEV2Row) {
   const candidateDate =
     candidate.plannedCompletionDate?.getTime() ??
     latestMaintenanceTimestamp(candidate);
