@@ -859,7 +859,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 hint={
                   isSCEV2Star
                     ? 'SCE_Kontrol.xlsm dosyasındaki Ekipman No, Tag No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman bilgileri kullanılır.'
-                    : 'Petkim kontrol dosyası Sipariş No üzerinden eşleştirilir. Star kontrol dosyasından tamamen ayrı tutulur.'
+                    : 'Petkim kontrol dosyası Ekipman No üzerinden eşleştirilir; eski Sipariş No tabanlı dosyalar da desteklenir. Star kontrol dosyasından tamamen ayrı tutulur.'
                 }
                 fileMeta={
                   isSCEV2Star

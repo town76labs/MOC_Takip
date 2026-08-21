@@ -266,7 +266,7 @@ export function SCEV2Dashboard({
                 <p className="mt-1 text-sm text-white/50">
                   {company === 'STAR'
                     ? 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Star kontrol dosyasıyla Ekipman No; gerekirse Tag No üzerinden birleştirilir.'
-                    : 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Petkim kontrol dosyasıyla sipariş numarası üzerinden birleştirilir.'}
+                    : 'Tarih alanlarının hiçbirinde 2026 öncesi değer bulunmayan SAP kayıtları, Petkim kontrol dosyasıyla Ekipman No; eski dosyalarda Sipariş No üzerinden birleştirilir.'}
                 </p>
               </div>
             </div>

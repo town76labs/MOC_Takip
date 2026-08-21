@@ -237,7 +237,8 @@ export async function parseSCEV2ControlExcel(
     const hasOrder = sheet?.fieldMap.orderNo !== undefined;
     const hasEquipment = sheet?.fieldMap.equipmentNo !== undefined;
     const hasTag = sheet?.fieldMap.tagNo !== undefined;
-    const hasIdentity = company === 'STAR' ? hasEquipment || hasTag : hasOrder;
+    const hasIdentity =
+      company === 'STAR' ? hasEquipment || hasTag : hasOrder || hasEquipment;
     if (!sheet || !hasIdentity) {
       return {
         data: [],
@@ -245,11 +246,11 @@ export async function parseSCEV2ControlExcel(
           message:
             company === 'STAR'
               ? 'Star kontrol dosyasında Ekipman No veya Tag No sütunu bulunamadı.'
-              : 'Petkim kontrol dosyasında Sipariş No sütunu bulunamadı.',
+              : 'Petkim kontrol dosyasında Ekipman No veya Sipariş No sütunu bulunamadı.',
           details: [
             company === 'STAR'
               ? 'Beklenen temel başlıklar: Ekipman No, Tag No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman.'
-              : 'Beklenen temel başlıklar: Sipariş No, Kalibrasyon Raporu Paylaşıldı mı?, Deferral Başlatıldı mı?.',
+              : 'Beklenen temel başlıklar: Ekipman No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman. Eski Sipariş No tabanlı dosyalar da desteklenir.',
           ],
         },
       };
@@ -281,7 +282,7 @@ export async function parseSCEV2ControlExcel(
           message:
             company === 'STAR'
               ? 'Star kontrol dosyasında eşleştirilecek ekipman veya Tag bulunamadı.'
-              : 'Petkim kontrol dosyasında eşleştirilecek sipariş bulunamadı.',
+              : 'Petkim kontrol dosyasında eşleştirilecek ekipman veya sipariş bulunamadı.',
         },
       };
     }
