@@ -243,6 +243,8 @@ export function SCEV2Dashboard({
             row.userStatus,
             row.maintenancePlanNo,
             row.maintenanceItemNo,
+            row.shutdownRequirement,
+            row.shutdownExplanation,
             row.unit,
             row.consoleName,
             row.categoryType,
@@ -717,6 +719,9 @@ export function SCEV2Dashboard({
                 <th className="px-4 py-3 font-medium">Sipariş</th>
                 <th className="px-4 py-3 font-medium">Kullanıcı Durumu</th>
                 <th className="px-4 py-3 font-medium">Bakım Durumu</th>
+                {company === 'PETKIM' && (
+                  <th className="px-4 py-3 font-medium">Duruş Bilgisi</th>
+                )}
                 <th className="px-4 py-3 font-medium">Deferral</th>
                 <th className="px-4 py-3 font-medium">Kalibrasyon Raporu</th>
                 <th className="px-5 py-3 text-right font-medium">Bitiş</th>
@@ -755,6 +760,19 @@ export function SCEV2Dashboard({
                   <td className="px-4 py-3">
                     <MaintenanceBadge status={row.maintenanceStatus} />
                   </td>
+                  {company === 'PETKIM' && (
+                    <td className="max-w-72 px-4 py-3">
+                      <ShutdownRequirementBadge value={row.shutdownRequirement} />
+                      {row.shutdownExplanation && (
+                        <div
+                          className="mt-1 line-clamp-2 text-[11px] leading-4 text-white/40"
+                          title={row.shutdownExplanation}
+                        >
+                          {row.shutdownExplanation}
+                        </div>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <DeferralBadge status={row.deferralStatus} />
                     {row.deferralIsOverdue && (
@@ -1216,6 +1234,26 @@ function MaintenanceBadge({ status }: { status: SCEV2MaintenanceStatus }) {
   );
 }
 
+function ShutdownRequirementBadge({ value }: { value: string }) {
+  const clean = normalize(value).replace(/[.!?]+$/g, '').trim();
+  const className =
+    clean === 'durus gerekli' || clean === 'durus gerekir'
+      ? 'bg-red-500/15 text-red-300'
+      : clean === 'durus gerekli degil' || clean === 'durus gerekli degildir'
+        ? 'bg-emerald-500/15 text-emerald-300'
+        : clean === 'durusta yapilabilir'
+          ? 'bg-amber-500/15 text-amber-300'
+          : clean === 'yapilabilir'
+            ? 'bg-sky-500/15 text-sky-300'
+            : 'bg-white/[0.05] text-white/35';
+
+  return (
+    <span className={`rounded-md px-2 py-1 text-xs font-medium ${className}`}>
+      {value || 'Bilgi Yok'}
+    </span>
+  );
+}
+
 function DeferralBadge({ status }: { status: SCEV2DeferralStatus }) {
   const config = {
     not_applicable: {
@@ -1317,6 +1355,18 @@ function EquipmentDetailModal({
             <DetailItem label="Bildirim Numarası" value={row.notificationNo} />
             <DetailItem label="Bakım Periyodu" value={row.maintenancePeriod} />
             <DetailItem label="SAP Kullanıcı Durumu" value={row.userStatus} />
+            {row.company === 'PETKIM' && (
+              <>
+                <DetailItem
+                  label="Duruş Gereklilik / Yapılabilirlik"
+                  value={row.shutdownRequirement}
+                />
+                <DetailItem
+                  label="Duruş Açıklaması"
+                  value={row.shutdownExplanation}
+                />
+              </>
+            )}
             {row.maintenanceStatus === 'shutdown_deferred' && (
               <DetailItem
                 label="Deferral Overdue Date"

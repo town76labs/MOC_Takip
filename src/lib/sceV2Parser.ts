@@ -357,6 +357,8 @@ function parseSAPRow(
     maintenanceItemNo: text('maintenanceItemNo'),
     maintenancePlanNo: text('maintenancePlanNo'),
     maintenancePeriod: '5 Yıl',
+    shutdownRequirement: '',
+    shutdownExplanation: '',
     maintenanceStatus: resolveMaintenanceStatus(userStatus),
     raw: Object.fromEntries(
       Object.entries(fieldMap).map(([field, column]) => [
@@ -596,6 +598,8 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
       maintenanceItemNo: '',
       maintenancePlanNo: '',
       maintenancePeriod: '5 Yıl',
+      shutdownRequirement: '',
+      shutdownExplanation: '',
       maintenanceStatus: 'order_not_found' as const,
       raw: {},
     };
@@ -632,6 +636,8 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
           latest.maintenanceItemNo || info.maintenanceItemNo,
         maintenancePlanNo:
           latest.maintenancePlanNo || info.maintenancePlanNo,
+        shutdownRequirement: info.shutdownRequirement,
+        shutdownExplanation: info.shutdownExplanation,
       };
     }
 
@@ -657,6 +663,8 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
       maintenanceItemNo: info.maintenanceItemNo,
       maintenancePlanNo: info.maintenancePlanNo,
       maintenancePeriod: '5 Yıl',
+      shutdownRequirement: info.shutdownRequirement,
+      shutdownExplanation: info.shutdownExplanation,
       maintenanceStatus: 'order_not_found' as const,
       raw: {
         sceGroup: info.sceGroup,

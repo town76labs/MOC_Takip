@@ -171,6 +171,8 @@ export interface SCEV2Row {
   maintenanceItemNo: string;
   maintenancePlanNo: string;
   maintenancePeriod: string;
+  shutdownRequirement: string;
+  shutdownExplanation: string;
   maintenanceStatus: SCEV2MaintenanceStatus;
   raw: Record<string, string>;
 }
