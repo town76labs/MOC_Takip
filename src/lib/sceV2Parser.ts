@@ -628,6 +628,10 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
         equipmentNo: info.equipmentNo,
         tagNo: info.tagNo || latest.tagNo,
         equipmentType: info.equipmentType || latest.equipmentType,
+        maintenanceItemNo:
+          latest.maintenanceItemNo || info.maintenanceItemNo,
+        maintenancePlanNo:
+          latest.maintenancePlanNo || info.maintenancePlanNo,
       };
     }
 
@@ -650,8 +654,8 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
       maintenanceStartDate: null,
       maintenanceEndDate: null,
       plannedCompletionDate: null,
-      maintenanceItemNo: '',
-      maintenancePlanNo: '',
+      maintenanceItemNo: info.maintenanceItemNo,
+      maintenancePlanNo: info.maintenancePlanNo,
       maintenancePeriod: '5 Yıl',
       maintenanceStatus: 'order_not_found' as const,
       raw: {

@@ -7,6 +7,8 @@ export interface SCEPetkimEquipmentInfo {
   sceGroup: string;
   sceReason: string;
   equipmentType: string;
+  maintenanceItemNo: string;
+  maintenancePlanNo: string;
 }
 
 const inventoryByEquipment = new Map<string, SCEPetkimEquipmentInfo>();
@@ -19,6 +21,8 @@ for (const line of inventoryText.split(/\r?\n/).slice(1)) {
     sceGroup,
     sceReason,
     equipmentType,
+    maintenanceItemNo,
+    maintenancePlanNo,
   ] = line.split('\t').map((value) => value?.trim() ?? '');
   if (!equipmentNo) continue;
   inventoryByEquipment.set(normalizeEquipmentNo(equipmentNo), {
@@ -28,6 +32,8 @@ for (const line of inventoryText.split(/\r?\n/).slice(1)) {
     sceGroup,
     sceReason,
     equipmentType,
+    maintenanceItemNo,
+    maintenancePlanNo,
   });
 }
 

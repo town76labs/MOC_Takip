@@ -1,356 +1,356 @@
-Bakim Yeri	Ekipman	Teknik Tanitici Numarasi	SCE Grubu	SCE Sebebi	Ekipman Tipi
-1009	1100000115	205-HCV-211	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
-1009	1100000131	205-HCV-231	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
-1009	1100122786	205-PC-711	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Pressure Transmitter
-1009	1100122802	205-PC-741	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Pressure Transmitter
-1007	1100031605	206-0-PCV0-0009	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100202793	206-1-FZL6-0404-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch
-1007	1100108159	206-1-FZL6-0404-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100202794	206-1-FZL6-0414-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch
-1007	1100108167	206-1-FZL6-0414-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100202795	206-1-FZL6-0424-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch
-1007	1100108177	206-1-FZL6-0424-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100038247	206-1-HCV1-0308	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
-1007	1100122375	206-1-LPV1-0322	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
+Bakim Yeri	Ekipman	Teknik Tanitici Numarasi	SCE Grubu	SCE Sebebi	Ekipman Tipi	Bakim Kalemi	Bakim Plani
+1009	1100000115	205-HCV-211	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	75431	50598
+1009	1100000131	205-HCV-231	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	75432	50599
+1009	1100122786	205-PC-711	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Pressure Transmitter	75433	50600
+1009	1100122802	205-PC-741	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Pressure Transmitter	75434	50601
+1007	1100031605	206-0-PCV0-0009	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75421	50588
+1007	1100202793	206-1-FZL6-0404-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch	75351	50518
+1007	1100108159	206-1-FZL6-0404-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75345	50512
+1007	1100202794	206-1-FZL6-0414-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch	75352	50519
+1007	1100108167	206-1-FZL6-0414-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75347	50514
+1007	1100202795	206-1-FZL6-0424-A	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Flow Switch	75353	50520
+1007	1100108177	206-1-FZL6-0424-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75349	50516
+1007	1100038247	206-1-HCV1-0308	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75398	50565
+1007	1100122375	206-1-LPV1-0322	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75404	50571
 1007	1100039461	206-1-LZH1-03212	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Nuclear Radiation Level Switch
 1007	1100039483	206-1-LZH1-0413-2	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Nuclear Radiation Level Switch
-1007	1100031485	206-1-PCV1-0001	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031499	206-1-PCV1-0002	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031515	206-1-PCV1-0003	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031529	206-1-PCV1-0004	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031544	206-1-PCV1-0005	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031560	206-1-PCV1-0006	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031576	206-1-PCV1-0007	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031590	206-1-PCV1-0008	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100038500	206-1-PPV1-0243	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
-1007	1100028552	206-1-PT1-0243	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028567	206-1-PT1-0244	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028731	206-1-PT1-0307	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028657	206-1-PT1-1906-F	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028671	206-1-PT1-1907-G	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028686	206-1-PT1-1908-H	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028701	206-1-PT1-1909-K	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028715	206-1-PT1-1910-L	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100036887	206-1-PZH2-0336	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100036905	206-1-PZH2-0337	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100036944	206-1-PZL2-0120	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100030016	206-1-TE1-0206	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element
-1007	1100025391	206-1-TE1-0209	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element
-1007	1100039420	206-1-XCV1-0708	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030104	206-1-XCV1-0712	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030189	206-1-XCV1-0738	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030257	206-1-XCV1-0742	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030264	206-1-XCV1-0768	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030489	206-1-XCV1-0812	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030497	206-1-XCV1-0838	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030584	206-1-XCV1-0842	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100108160	206-2-FZL6-0404-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100108168	206-2-FZL6-0414-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100108178	206-2-FZL6-0424-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch
-1007	1100038253	206-2-HCV1-0308	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
-1007	1100122373	206-2-LPV1-0322	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
+1007	1100031485	206-1-PCV1-0001	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75405	50572
+1007	1100031499	206-1-PCV1-0002	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75407	50574
+1007	1100031515	206-1-PCV1-0003	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75409	50576
+1007	1100031529	206-1-PCV1-0004	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75411	50578
+1007	1100031544	206-1-PCV1-0005	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75413	50580
+1007	1100031560	206-1-PCV1-0006	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75415	50582
+1007	1100031576	206-1-PCV1-0007	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75417	50584
+1007	1100031590	206-1-PCV1-0008	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75419	50586
+1007	1100038500	206-1-PPV1-0243	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75401	50568
+1007	1100028552	206-1-PT1-0243	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75360	50527
+1007	1100028567	206-1-PT1-0244	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75362	50529
+1007	1100028731	206-1-PT1-0307	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75374	50541
+1007	1100028657	206-1-PT1-1906-F	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75364	50531
+1007	1100028671	206-1-PT1-1907-G	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75366	50533
+1007	1100028686	206-1-PT1-1908-H	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75368	50535
+1007	1100028701	206-1-PT1-1909-K	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75370	50537
+1007	1100028715	206-1-PT1-1910-L	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75372	50539
+1007	1100036887	206-1-PZH2-0336	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75354	50521
+1007	1100036905	206-1-PZH2-0337	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75356	50523
+1007	1100036944	206-1-PZL2-0120	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75358	50525
+1007	1100030016	206-1-TE1-0206	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element	75378	50545
+1007	1100025391	206-1-TE1-0209	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element	75376	50543
+1007	1100039420	206-1-XCV1-0708	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75397	50564
+1007	1100030104	206-1-XCV1-0712	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75383	50550
+1007	1100030189	206-1-XCV1-0738	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75385	50552
+1007	1100030257	206-1-XCV1-0742	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75387	50554
+1007	1100030264	206-1-XCV1-0768	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75388	50555
+1007	1100030489	206-1-XCV1-0812	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75391	50558
+1007	1100030497	206-1-XCV1-0838	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75392	50559
+1007	1100030584	206-1-XCV1-0842	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75395	50562
+1007	1100108160	206-2-FZL6-0404-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75346	50513
+1007	1100108168	206-2-FZL6-0414-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75348	50515
+1007	1100108178	206-2-FZL6-0424-B	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Flow Switch	75350	50517
+1007	1100038253	206-2-HCV1-0308	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75399	50566
+1007	1100122373	206-2-LPV1-0322	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75403	50570
 1007	1100039466	206-2-LZH1-03212	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Nuclear Radiation Level Switch
 1007	1100039490	206-2-LZH1-0413-2	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Nuclear Radiation Level Switch
-1007	1100031492	206-2-PCV1-0001	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031507	206-2-PCV1-0002	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031522	206-2-PCV1-0003	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031536	206-2-PCV1-0004	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031552	206-2-PCV1-0005	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031568	206-2-PCV1-0006	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031583	206-2-PCV1-0007	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100031598	206-2-PCV1-0008	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator
-1007	1100038488	206-2-PPV1-0243	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
-1007	1100028559	206-2-PT1-0243	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028575	206-2-PT1-0244	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028738	206-2-PT1-0307	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028664	206-2-PT1-1906-F	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028678	206-2-PT1-1907-G	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028693	206-2-PT1-1908-H	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028708	206-2-PT1-1909-K	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100028723	206-2-PT1-1910-L	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter
-1007	1100036896	206-2-PZH2-0336	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100036914	206-2-PZH2-0337	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100036952	206-2-PZL2-0120	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch
-1007	1100030023	206-2-TE1-0206	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element
-1007	1100025399	206-2-TE1-0209	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element
-1007	1100038694	206-2-XCV1-0708	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve
-1007	1100030150	206-2-XCV1-0712	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030218	206-2-XCV1-0738	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030312	206-2-XCV1-0742	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030319	206-2-XCV1-0768	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030540	206-2-XCV1-0812	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030547	206-2-XCV1-0838	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100030613	206-2-XCV1-0842	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator
-1007	1100102169	206-PCV-2501-1	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102170	206-PCV-2501-2	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102171	206-PCV-2501-3	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102172	206-PCV-2501-4	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102173	206-PCV-2501-5	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102174	206-PCV-2501-6	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102175	206-PCV-2501-7	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102176	206-PCV-2501-8	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100102177	206-PCV-2501-9	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve
-1007	1100202796	206-XZV6-1901	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve
-1007	1100202797	206-XZV6-1904	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve
-1007	1100202798	206-XZV6-1907	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve
-1010	1100026949	207-PT-213-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1010	1100026958	207-PT-213-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1010	1100026968	207-PT-213-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1010	1100026977	207-PT-213-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1010	1100026987	207-PT-213-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1010	1100106807	207-TE-212-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1010	1100106808	207-TE-212-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1010	1100106809	207-TE-212-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1010	1100106810	207-TE-212-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1010	1100106811	207-TE-212-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1010	1100107972	207-UV-205-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107977	207-UV-206-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107967	207-UV-211-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107982	207-UV-212-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107987	207-UV-213-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107995	207-UV-216-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100107962	207-UV-217-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100108000	207-UV-223-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1010	1100108008	207-UV-225-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1014	1100053768	212-FT-1004	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Flow Transmitter
-1014	1100175562	212-LT-1081A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter
-1014	1100175563	212-LT-1081B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter
-1014	1100175564	212-LT-1081C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter
-1014	1100121851	212-PT-1028	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100121663	212-PT-1038-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100189847	212-PT-1071	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100121710	212-PT-1200	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100121711	212-PT-1201	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100121712	212-PT-1202	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100121694	212-PT-1211	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100122460	212-PT-1212	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1014	1100052507	212-TE-1095	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1014	1100052522	212-TE-1096	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1014	1100052536	212-TE-1098	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1014	1100052549	212-TE-1100	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1014	1100121648	212-ZV-1008-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1014	1100121651	212-ZV-1008-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1014	1100121654	212-ZV-1008-C	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1014	1100121657	212-ZV-1008-D	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Mechanical Position Switch
-1001	1100019293	214-FIC-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1001	1100019325	214-FIC-4008	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1001	1100019282	214-FRC-4003-2	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1001	1100097443	214-FT-4002-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1001	1100097444	214-FT-4002-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1001	1100097445	214-FT-4002-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1001	1100018834	214-FV-1219	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100018959	214-FV-1255-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100019231	214-FV-3261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1001	1100001976	214-LT-5004-A3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter
-1001	1100001988	214-LT-5004-B3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter
+1007	1100031492	206-2-PCV1-0001	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75406	50573
+1007	1100031507	206-2-PCV1-0002	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75408	50575
+1007	1100031522	206-2-PCV1-0003	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75410	50577
+1007	1100031536	206-2-PCV1-0004	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75412	50579
+1007	1100031552	206-2-PCV1-0005	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75414	50581
+1007	1100031568	206-2-PCV1-0006	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75416	50583
+1007	1100031583	206-2-PCV1-0007	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75418	50585
+1007	1100031598	206-2-PCV1-0008	Deluge Sistemleri	DELUGE SISTEMI	Pneumatic-Hydraulic Actuator	75420	50587
+1007	1100038488	206-2-PPV1-0243	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75400	50567
+1007	1100028559	206-2-PT1-0243	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75361	50528
+1007	1100028575	206-2-PT1-0244	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75363	50530
+1007	1100028738	206-2-PT1-0307	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75375	50542
+1007	1100028664	206-2-PT1-1906-F	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75365	50532
+1007	1100028678	206-2-PT1-1907-G	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75367	50534
+1007	1100028693	206-2-PT1-1908-H	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75369	50536
+1007	1100028708	206-2-PT1-1909-K	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75371	50538
+1007	1100028723	206-2-PT1-1910-L	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Transmitter	75373	50540
+1007	1100036896	206-2-PZH2-0336	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75355	50522
+1007	1100036914	206-2-PZH2-0337	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75357	50524
+1007	1100036952	206-2-PZL2-0120	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	Pressure Switch	75359	50526
+1007	1100030023	206-2-TE1-0206	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element	75379	50546
+1007	1100025399	206-2-TE1-0209	Acil Durdurma Sistemleri (ESD)	OPER. HAZOP/LOPA	TC Temperature Element	75377	50544
+1007	1100038694	206-2-XCV1-0708	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Instrument Control Valve	75402	50569
+1007	1100030150	206-2-XCV1-0712	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75384	50551
+1007	1100030218	206-2-XCV1-0738	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75386	50553
+1007	1100030312	206-2-XCV1-0742	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75389	50556
+1007	1100030319	206-2-XCV1-0768	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75390	50557
+1007	1100030540	206-2-XCV1-0812	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75393	50560
+1007	1100030547	206-2-XCV1-0838	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75394	50561
+1007	1100030613	206-2-XCV1-0842	Acil Durum İzolasyon Vanaları	OPER. HAZOP/LOPA	Pneumatic-Hydraulic Actuator	75396	50563
+1007	1100102169	206-PCV-2501-1	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75422	50589
+1007	1100102170	206-PCV-2501-2	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75423	50590
+1007	1100102171	206-PCV-2501-3	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75424	50591
+1007	1100102172	206-PCV-2501-4	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75425	50592
+1007	1100102173	206-PCV-2501-5	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75426	50593
+1007	1100102174	206-PCV-2501-6	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75427	50594
+1007	1100102175	206-PCV-2501-7	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75428	50595
+1007	1100102176	206-PCV-2501-8	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75429	50596
+1007	1100102177	206-PCV-2501-9	Deluge Sistemleri	DELUGE SISTEMI	Self-Operated Control Valve	75430	50597
+1007	1100202796	206-XZV6-1901	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve	75380	50547
+1007	1100202797	206-XZV6-1904	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve	75381	50548
+1007	1100202798	206-XZV6-1907	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Miscellaneous Instrument Valve	75382	50549
+1010	1100026949	207-PT-213-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	75435	50602
+1010	1100026958	207-PT-213-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	75436	50603
+1010	1100026968	207-PT-213-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	75437	50604
+1010	1100026977	207-PT-213-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	75438	50605
+1010	1100026987	207-PT-213-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	75439	50606
+1010	1100106807	207-TE-212-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	75440	50607
+1010	1100106808	207-TE-212-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	75441	50608
+1010	1100106809	207-TE-212-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	75442	50609
+1010	1100106810	207-TE-212-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	75443	50610
+1010	1100106811	207-TE-212-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	75444	50611
+1010	1100107972	207-UV-205-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75447	50614
+1010	1100107977	207-UV-206-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75448	50615
+1010	1100107967	207-UV-211-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75446	50613
+1010	1100107982	207-UV-212-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75449	50616
+1010	1100107987	207-UV-213-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75450	50617
+1010	1100107995	207-UV-216-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75451	50618
+1010	1100107962	207-UV-217-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75445	50612
+1010	1100108000	207-UV-223-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75452	50619
+1010	1100108008	207-UV-225-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75453	50620
+1014	1100053768	212-FT-1004	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Flow Transmitter	75454	50621
+1014	1100175562	212-LT-1081A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	75455	50622
+1014	1100175563	212-LT-1081B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	75456	50623
+1014	1100175564	212-LT-1081C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	75457	50624
+1014	1100121851	212-PT-1028	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76173	51274
+1014	1100121663	212-PT-1038-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76168	51269
+1014	1100189847	212-PT-1071	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76175	51276
+1014	1100121710	212-PT-1200	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76170	51271
+1014	1100121711	212-PT-1201	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76171	51272
+1014	1100121712	212-PT-1202	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76172	51273
+1014	1100121694	212-PT-1211	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76169	51270
+1014	1100122460	212-PT-1212	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	76174	51275
+1014	1100052507	212-TE-1095	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	76176	51277
+1014	1100052522	212-TE-1096	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	75458	50625
+1014	1100052536	212-TE-1098	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	76177	51278
+1014	1100052549	212-TE-1100	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	76178	51279
+1014	1100121648	212-ZV-1008-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75460	50627
+1014	1100121651	212-ZV-1008-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75461	50628
+1014	1100121654	212-ZV-1008-C	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75462	50629
+1014	1100121657	212-ZV-1008-D	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Mechanical Position Switch	75459	50626
+1001	1100019293	214-FIC-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74418	49877
+1001	1100019325	214-FIC-4008	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74419	49878
+1001	1100019282	214-FRC-4003-2	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74417	49876
+1001	1100097443	214-FT-4002-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74437	49896
+1001	1100097444	214-FT-4002-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74438	49897
+1001	1100097445	214-FT-4002-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74439	49898
+1001	1100018834	214-FV-1219	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74401	49860
+1001	1100018959	214-FV-1255-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74402	49861
+1001	1100019231	214-FV-3261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74416	49875
+1001	1100001976	214-LT-5004-A3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	76270	51309
+1001	1100001988	214-LT-5004-B3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	76271	51410
 1001	1100012559	214-LZH-3004	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012568	214-LZH-3004-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012575	214-LZH-3004-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012584	214-LZH-3004-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
+1001	1100012568	214-LZH-3004-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76272	51411
+1001	1100012575	214-LZH-3004-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76273	51412
+1001	1100012584	214-LZH-3004-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76274	51413
 1001	1100012592	214-LZH-3005	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012601	214-LZH-3005-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012609	214-LZH-3005-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012618	214-LZH-3005-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
+1001	1100012601	214-LZH-3005-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76275	51414
+1001	1100012609	214-LZH-3005-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76276	51415
+1001	1100012618	214-LZH-3005-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76277	51416
 1001	1100012626	214-LZH-3006	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012635	214-LZH-3006-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012644	214-LZH-3006-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
-1001	1100012651	214-LZH-3006-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
+1001	1100012635	214-LZH-3006-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76278	51417
+1001	1100012644	214-LZH-3006-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76279	51418
+1001	1100012651	214-LZH-3006-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch	76280	51419
 1001	1100012708	214-LZH-5004-A2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100012724	214-LZH-5004-B2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100012742	214-LZHH-5004-A1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100012750	214-LZHH-5004-B1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100021110	214-PCV-2001-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
-1001	1100108864	214-PCV-2001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter
+1001	1100108864	214-PCV-2001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74440	49899
 1001	1100021118	214-PCV-2002-1-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
-1001	1100108865	214-PCV-2002-1-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter
-1001	1100108868	214-PCV-2002-2-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve
-1001	1100108866	214-PCV-2002-2-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter
+1001	1100108865	214-PCV-2002-1-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74441	49900
+1001	1100108868	214-PCV-2002-2-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve	74474	49933
+1001	1100108866	214-PCV-2002-2-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74442	49901
 1001	1100021283	214-PCV-4001-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
-1001	1100108867	214-PCV-4001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter
-1001	1100021920	214-PIC-5011-A-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve
-1001	1100021930	214-PIC-5011-B-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve
-1001	1100015695	214-PZL-9002-1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch
-1001	1100015703	214-PZL-9002-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch
-1001	1100015710	214-PZL-9002-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch
-1001	1100096205	214-TE-2011-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096206	214-TE-2011-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096207	214-TE-2011-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096516	214-TE-4002-A2-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096517	214-TE-4002-A2-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096518	214-TE-4002-A3-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096519	214-TE-4002-A3-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096520	214-TE-4002-A4-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096521	214-TE-4002-A4-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096522	214-TE-4002-A5-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096523	214-TE-4002-A5-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096524	214-TE-4002-A6-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096525	214-TE-4002-A6-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096526	214-TE-4002-A7-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096527	214-TE-4002-A7-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096529	214-TE-4005-B2-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096530	214-TE-4005-B2-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096531	214-TE-4005-B3-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096532	214-TE-4005-B3-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096533	214-TE-4005-B4-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096534	214-TE-4005-B4-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096535	214-TE-4005-B5-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096536	214-TE-4005-B5-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096537	214-TE-4005-B6-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096538	214-TE-4005-B6-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096539	214-TE-4005-B7-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100096540	214-TE-4005-B7-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1001	1100161202	214-TZAHH-4002-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161203	214-TZAHH-4002-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161204	214-TZAHH-4002-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161205	214-TZAHH-4002-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161206	214-TZAHH-4002-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161207	214-TZAHH-4002-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161214	214-TZAHH-4005-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161215	214-TZAHH-4005-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161216	214-TZAHH-4005-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161217	214-TZAHH-4005-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161218	214-TZAHH-4005-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161219	214-TZAHH-4005-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161226	214-TZAHH-4008-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161227	214-TZAHH-4008-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161228	214-TZAHH-4008-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161229	214-TZAHH-4008-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161230	214-TZAHH-4008-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161231	214-TZAHH-4008-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161232	214-TZAHH-4008-8	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100161233	214-TZAHH-4008-9	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element
-1001	1100023338	214-UV-1200	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023345	214-UV-1201	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023399	214-UV-1260	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023408	214-UV-1261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100009093	214-XSOV-2901	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1001	1100009100	214-XSOV-2902	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1001	1100009123	214-XSOV-3951	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1001	1100009131	214-XSOV-3952	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1001	1100023253	214-XV-1601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023574	214-XV-4500	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023596	214-XV-4504	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023604	214-XV-4601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023612	214-XV-4602	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023628	214-XV-4605	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100023284	214-XZV-3007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1001	1100024245	214-XZV-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100024252	214-XZV-4006	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100024259	214-XZV-4007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve
-1001	1100009238	214-XZVS-4018	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1002	1100033129	215-FRALT-102-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033141	215-FRALT-102-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033150	215-FRALT-102-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033161	215-FRALT-108-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033172	215-FRALT-108-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033183	215-FRALT-108-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033194	215-FRALT-205-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033204	215-FRALT-205-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033215	215-FRALT-205-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033226	215-FRALT-212-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033236	215-FRALT-212-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033247	215-FRALT-212-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033289	215-FRALT-509-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033300	215-FRALT-509-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033310	215-FRALT-509-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100043688	215-FRALV-405	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1002	1100033377	215-FRCALT-107-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033388	215-FRCALT-107-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033399	215-FRCALT-107-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033495	215-FRCALT-509-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033506	215-FRCALT-509-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100033516	215-FRCALT-509-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter
-1002	1100111507	215-HSV-202	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
+1001	1100108867	214-PCV-4001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74443	49902
+1001	1100021920	214-PIC-5011-A-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve	74472	49931
+1001	1100021930	214-PIC-5011-B-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve	74473	49932
+1001	1100015695	214-PZL-9002-1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch	76381	51420
+1001	1100015703	214-PZL-9002-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch	76382	51421
+1001	1100015710	214-PZL-9002-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Switch	76383	51422
+1001	1100096205	214-TE-2011-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76404	51443
+1001	1100096206	214-TE-2011-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76405	51444
+1001	1100096207	214-TE-2011-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76406	51445
+1001	1100096516	214-TE-4002-A2-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76407	51446
+1001	1100096517	214-TE-4002-A2-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76408	51447
+1001	1100096518	214-TE-4002-A3-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76409	51448
+1001	1100096519	214-TE-4002-A3-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76410	51449
+1001	1100096520	214-TE-4002-A4-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76411	51450
+1001	1100096521	214-TE-4002-A4-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76412	51451
+1001	1100096522	214-TE-4002-A5-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76413	51452
+1001	1100096523	214-TE-4002-A5-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76414	51453
+1001	1100096524	214-TE-4002-A6-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76415	51454
+1001	1100096525	214-TE-4002-A6-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76416	51455
+1001	1100096526	214-TE-4002-A7-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76417	51456
+1001	1100096527	214-TE-4002-A7-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76418	51457
+1001	1100096529	214-TE-4005-B2-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76419	51458
+1001	1100096530	214-TE-4005-B2-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76420	51459
+1001	1100096531	214-TE-4005-B3-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76421	51460
+1001	1100096532	214-TE-4005-B3-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76422	51461
+1001	1100096533	214-TE-4005-B4-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76423	51462
+1001	1100096534	214-TE-4005-B4-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76424	51463
+1001	1100096535	214-TE-4005-B5-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76425	51464
+1001	1100096536	214-TE-4005-B5-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76426	51465
+1001	1100096537	214-TE-4005-B6-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76427	51466
+1001	1100096538	214-TE-4005-B6-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76428	51467
+1001	1100096539	214-TE-4005-B7-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76429	51468
+1001	1100096540	214-TE-4005-B7-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	76430	51469
+1001	1100161202	214-TZAHH-4002-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76384	51423
+1001	1100161203	214-TZAHH-4002-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76385	51424
+1001	1100161204	214-TZAHH-4002-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76386	51425
+1001	1100161205	214-TZAHH-4002-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76387	51426
+1001	1100161206	214-TZAHH-4002-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76388	51427
+1001	1100161207	214-TZAHH-4002-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76389	51428
+1001	1100161214	214-TZAHH-4005-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76390	51429
+1001	1100161215	214-TZAHH-4005-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76391	51430
+1001	1100161216	214-TZAHH-4005-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76392	51431
+1001	1100161217	214-TZAHH-4005-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76393	51432
+1001	1100161218	214-TZAHH-4005-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76394	51433
+1001	1100161219	214-TZAHH-4005-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76395	51434
+1001	1100161226	214-TZAHH-4008-2	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76396	51435
+1001	1100161227	214-TZAHH-4008-3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76397	51436
+1001	1100161228	214-TZAHH-4008-4	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76398	51437
+1001	1100161229	214-TZAHH-4008-5	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76399	51438
+1001	1100161230	214-TZAHH-4008-6	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76400	51439
+1001	1100161231	214-TZAHH-4008-7	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76401	51440
+1001	1100161232	214-TZAHH-4008-8	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76402	51441
+1001	1100161233	214-TZAHH-4008-9	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Temperature Element	76403	51442
+1001	1100023338	214-UV-1200	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74404	49863
+1001	1100023345	214-UV-1201	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74405	49864
+1001	1100023399	214-UV-1260	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74406	49865
+1001	1100023408	214-UV-1261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74407	49866
+1001	1100009093	214-XSOV-2901	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74421	49880
+1001	1100009100	214-XSOV-2902	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74422	49881
+1001	1100009123	214-XSOV-3951	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74423	49882
+1001	1100009131	214-XSOV-3952	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74424	49883
+1001	1100023253	214-XV-1601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74403	49862
+1001	1100023574	214-XV-4500	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74408	49867
+1001	1100023596	214-XV-4504	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74409	49868
+1001	1100023604	214-XV-4601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74410	49869
+1001	1100023612	214-XV-4602	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74411	49870
+1001	1100023628	214-XV-4605	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74412	49871
+1001	1100023284	214-XZV-3007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74420	49879
+1001	1100024245	214-XZV-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74413	49872
+1001	1100024252	214-XZV-4006	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74414	49873
+1001	1100024259	214-XZV-4007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74415	49874
+1001	1100009238	214-XZVS-4018	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74425	49884
+1002	1100033129	215-FRALT-102-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74436	49895
+1002	1100033141	215-FRALT-102-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76261	51300
+1002	1100033150	215-FRALT-102-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76262	51301
+1002	1100033161	215-FRALT-108-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74444	49903
+1002	1100033172	215-FRALT-108-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74445	49904
+1002	1100033183	215-FRALT-108-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74446	49905
+1002	1100033194	215-FRALT-205-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76263	51302
+1002	1100033204	215-FRALT-205-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76264	51303
+1002	1100033215	215-FRALT-205-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76265	51304
+1002	1100033226	215-FRALT-212-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76266	51305
+1002	1100033236	215-FRALT-212-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74447	49906
+1002	1100033247	215-FRALT-212-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74448	49907
+1002	1100033289	215-FRALT-509-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74449	49908
+1002	1100033300	215-FRALT-509-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74450	49909
+1002	1100033310	215-FRALT-509-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74451	49910
+1002	1100043688	215-FRALV-405	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74426	49885
+1002	1100033377	215-FRCALT-107-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74452	49911
+1002	1100033388	215-FRCALT-107-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74453	49912
+1002	1100033399	215-FRCALT-107-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74454	49913
+1002	1100033495	215-FRCALT-509-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74455	49914
+1002	1100033506	215-FRCALT-509-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74456	49915
+1002	1100033516	215-FRCALT-509-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74457	49916
+1002	1100111507	215-HSV-202	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	74475	49934
 1002	1100097765	215-PC-401	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
 1002	1100097783	215-PC-603	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
 1002	1100097784	215-PC-701	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
-1002	1100111647	215-PDRCV-501	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1002	1100043843	215-PIALV-415	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1002	1100043905	215-PIALV-555	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve
-1002	1100111539	215-PICV-464-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator
-1002	1100111541	215-PICV-464-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator
-1002	1100111624	215-PICV-572-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator
-1002	1100111628	215-PICV-572-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator
-1002	1100111557	215-TIT-460	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD-TC Temperature Transmitter Switch
-1002	1100124837	215-XZV-101	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
-1002	1100124838	215-XZV-401	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
-1002	1100130940	215-XZV-701	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve
-1008	1100025246	219-HPV-U901	Deluge Sistemleri	DELUGE SISTEMI	Miscellaneous Instrument Valve
-1008	1100025255	219-HPV-U902	Deluge Sistemleri	DELUGE SISTEMI	Miscellaneous Instrument Valve
-1008	1100015813	219-PIT-A201	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015824	219-PIT-A202	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015859	219-PIT-A213	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015881	219-PIT-A261	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015911	219-PIT-A271	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015941	219-PIT-A282	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100015954	219-PIT-A292	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100016041	219-PIT-B132	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter
-1008	1100016011	219-PT-B105	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Transducer
-1008	1100016022	219-PT-B113	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Transducer
-1008	1100008137	219-TE-A605-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008145	219-TE-A605-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008152	219-TE-A605-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008159	219-TE-A605-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008166	219-TE-A605-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008174	219-TE-A605-F	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element
-1008	1100008243	219-TE-B150-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008250	219-TE-B150-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008264	219-TE-B152-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008272	219-TE-B152-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008286	219-TE-B154-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008294	219-TE-B154-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008308	219-TE-B156-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008316	219-TE-B156-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008330	219-TE-B162-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008337	219-TE-B162-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008351	219-TE-B164-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008359	219-TE-B164-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008374	219-TE-B166-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008381	219-TE-B166-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008394	219-TE-B168-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100008401	219-TE-B168-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element
-1008	1100017050	219-TT-A261-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter
-1008	1100017111	219-TT-A269-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter
-1008	1100017140	219-TT-A279-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter
-1008	1100017170	219-TT-A291-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter
-1008	1100014001	219-VE-A601-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014008	219-VE-A601-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014016	219-VE-A601-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014023	219-VE-A601-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014032	219-VE-A601-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014039	219-VE-A601-F	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014045	219-VXE-A602	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100014053	219-VYE-A602	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor
-1008	1100018908	219-XEV-A201-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100018915	219-XEV-A201-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100019028	219-XEV-E301-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100019035	219-XEV-E301-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100019043	219-XEV-E302-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100019050	219-XEV-E302-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve
-1008	1100202792	219-XHS-B101-C	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Emergency Shut Down
-1000	1100196652	278-KPT-0600	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196659	278-KPT-0601	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196665	278-KPT-0602	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196671	278-KPT-0603	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196678	278-KPT-0604	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196685	278-KPT-0605	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196691	278-KPT-0606	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196697	278-KPT-0607	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196704	278-KPT-0608	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196711	278-KPT-0609	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196718	278-KPT-0610	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196723	278-KPT-0611	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196728	278-KPT-0612	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196733	278-KPT-0613	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196738	278-KPT-0614	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196744	278-KPT-0615	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196750	278-KPT-0616	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196755	278-KPT-0617	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196760	278-KPT-0618	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196766	278-KPT-0619	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196772	278-KPT-0620	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196777	278-KPT-0621	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196782	278-KPT-0622	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100196788	278-KPT-0625	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter
-1000	1100194242	278-LT-56001	Acil Durdurma Sistemleri (ESD)	PG OLAY DEĞERLENDİRME	Level Transmitter
-1000	1100194243	278-LT-56002	Acil Durdurma Sistemleri (ESD)	PG OLAY DEĞERLENDİRME	Level Transmitter
+1002	1100111647	215-PDRCV-501	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74429	49888
+1002	1100043843	215-PIALV-415	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74427	49886
+1002	1100043905	215-PIALV-555	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74428	49887
+1002	1100111539	215-PICV-464-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator	74385	49844
+1002	1100111541	215-PICV-464-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator	74386	49845
+1002	1100111624	215-PICV-572-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator	74387	49846
+1002	1100111628	215-PICV-572-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Pneumatic-Hydraulic Actuator	74388	49847
+1002	1100111557	215-TIT-460	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD-TC Temperature Transmitter Switch	74362	49821
+1002	1100124837	215-XZV-101	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	74476	49935
+1002	1100124838	215-XZV-401	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	74477	49936
+1002	1100130940	215-XZV-701	Basınç Boşaltma Sistemleri	BASINÇ BOŞALTMA VANASI	Instrument Control Valve	74478	49937
+1008	1100025246	219-HPV-U901	Deluge Sistemleri	DELUGE SISTEMI	Miscellaneous Instrument Valve	74479	49938
+1008	1100025255	219-HPV-U902	Deluge Sistemleri	DELUGE SISTEMI	Miscellaneous Instrument Valve	74480	49939
+1008	1100015813	219-PIT-A201	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74460	49919
+1008	1100015824	219-PIT-A202	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74461	49920
+1008	1100015859	219-PIT-A213	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74462	49921
+1008	1100015881	219-PIT-A261	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74463	49922
+1008	1100015911	219-PIT-A271	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74464	49923
+1008	1100015941	219-PIT-A282	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74465	49924
+1008	1100015954	219-PIT-A292	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74466	49925
+1008	1100016041	219-PIT-B132	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Pressure Transmitter	74467	49926
+1008	1100016011	219-PT-B105	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Transducer	74458	49917
+1008	1100016022	219-PT-B113	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Transducer	74459	49918
+1008	1100008137	219-TE-A605-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74363	49822
+1008	1100008145	219-TE-A605-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74364	49823
+1008	1100008152	219-TE-A605-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74365	49824
+1008	1100008159	219-TE-A605-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74366	49825
+1008	1100008166	219-TE-A605-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74367	49826
+1008	1100008174	219-TE-A605-F	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	RTD Temperature Element	74368	49827
+1008	1100008243	219-TE-B150-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74369	49828
+1008	1100008250	219-TE-B150-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74370	49829
+1008	1100008264	219-TE-B152-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74371	49830
+1008	1100008272	219-TE-B152-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74372	49831
+1008	1100008286	219-TE-B154-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74373	49832
+1008	1100008294	219-TE-B154-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74374	49833
+1008	1100008308	219-TE-B156-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74375	49834
+1008	1100008316	219-TE-B156-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74376	49835
+1008	1100008330	219-TE-B162-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74377	49836
+1008	1100008337	219-TE-B162-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74378	49837
+1008	1100008351	219-TE-B164-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74379	49838
+1008	1100008359	219-TE-B164-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74380	49839
+1008	1100008374	219-TE-B166-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74381	49840
+1008	1100008381	219-TE-B166-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74382	49841
+1008	1100008394	219-TE-B168-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74383	49842
+1008	1100008401	219-TE-B168-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	TC Temperature Element	74384	49843
+1008	1100017050	219-TT-A261-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter	74468	49927
+1008	1100017111	219-TT-A269-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter	74469	49928
+1008	1100017140	219-TT-A279-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter	74470	49929
+1008	1100017170	219-TT-A291-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Filled-System Temperature Transmitter	74471	49930
+1008	1100014001	219-VE-A601-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74389	49848
+1008	1100014008	219-VE-A601-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74390	49849
+1008	1100014016	219-VE-A601-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74391	49850
+1008	1100014023	219-VE-A601-D	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74392	49851
+1008	1100014032	219-VE-A601-E	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74393	49852
+1008	1100014039	219-VE-A601-F	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74394	49853
+1008	1100014045	219-VXE-A602	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74395	49854
+1008	1100014053	219-VYE-A602	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Vibration Sensor	74396	49855
+1008	1100018908	219-XEV-A201-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74430	49889
+1008	1100018915	219-XEV-A201-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74431	49890
+1008	1100019028	219-XEV-E301-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74432	49891
+1008	1100019035	219-XEV-E301-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74433	49892
+1008	1100019043	219-XEV-E302-A	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74434	49893
+1008	1100019050	219-XEV-E302-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74435	49894
+1008	1100202792	219-XHS-B101-C	Acil Durdurma Sistemleri (ESD)	OPR. HAZOP/LOPA	Emergency Shut Down	74361	49820
+1000	1100196652	278-KPT-0600	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75325	50492
+1000	1100196659	278-KPT-0601	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75326	50493
+1000	1100196665	278-KPT-0602	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75327	50494
+1000	1100196671	278-KPT-0603	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75328	50495
+1000	1100196678	278-KPT-0604	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75329	50496
+1000	1100196685	278-KPT-0605	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75330	50497
+1000	1100196691	278-KPT-0606	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75331	50498
+1000	1100196697	278-KPT-0607	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75332	50499
+1000	1100196704	278-KPT-0608	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	76182	51282
+1000	1100196711	278-KPT-0609	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75333	50500
+1000	1100196718	278-KPT-0610	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	76183	51283
+1000	1100196723	278-KPT-0611	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75334	50501
+1000	1100196728	278-KPT-0612	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75335	50502
+1000	1100196733	278-KPT-0613	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75336	50503
+1000	1100196738	278-KPT-0614	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75337	50504
+1000	1100196744	278-KPT-0615	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75338	50505
+1000	1100196750	278-KPT-0616	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75339	50506
+1000	1100196755	278-KPT-0617	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	76184	51284
+1000	1100196760	278-KPT-0618	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	76185	51285
+1000	1100196766	278-KPT-0619	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75340	50507
+1000	1100196772	278-KPT-0620	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75341	50508
+1000	1100196777	278-KPT-0621	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75342	50509
+1000	1100196782	278-KPT-0622	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75343	50510
+1000	1100196788	278-KPT-0625	Deluge Sistemleri	DELUGE SISTEMI	Pressure Transmitter	75344	50511
+1000	1100194242	278-LT-56001	Acil Durdurma Sistemleri (ESD)	PG OLAY DEĞERLENDİRME	Level Transmitter	76180	51280
+1000	1100194243	278-LT-56002	Acil Durdurma Sistemleri (ESD)	PG OLAY DEĞERLENDİRME	Level Transmitter	76181	51281
