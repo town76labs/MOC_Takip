@@ -729,9 +729,12 @@ function isInSCEV2ReportingPeriod(
     company === 'STAR' ? row.plannedCompletionDate : null,
   ].filter((date): date is Date => date instanceof Date);
 
-  return (
-    dates.length > 0 &&
-    dates.every((date) => date.getFullYear() >= SCE_V2_REPORTING_START_YEAR)
+  if (dates.length === 0) {
+    return row.maintenanceStatus === 'shutdown_deferred';
+  }
+
+  return dates.every(
+    (date) => date.getFullYear() >= SCE_V2_REPORTING_START_YEAR,
   );
 }
 
