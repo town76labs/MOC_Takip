@@ -27,6 +27,7 @@ type SAPField =
   | 'maintenanceStartDate'
   | 'maintenanceEndDate'
   | 'plannedCompletionDate'
+  | 'revision'
   | 'tagNo'
   | 'maintenanceItemNo'
   | 'maintenancePlanNo';
@@ -68,6 +69,7 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
     'planlanan bitis termini',
     'planlanan bitiş termini',
   ],
+  revision: ['revizyon'],
   tagNo: ['teknik birim'],
   maintenanceItemNo: ['bakim kalemi', 'bakım kalemi'],
   maintenancePlanNo: ['bakim plani', 'bakım planı'],
@@ -166,7 +168,11 @@ export async function parseSCEV2SAPExcel(
       'maintenanceItemNo',
       'maintenancePlanNo',
     ];
-    if (company === 'STAR') required.push('plannedCompletionDate');
+    if (company === 'STAR') {
+      required.push('plannedCompletionDate');
+    } else {
+      required.push('revision');
+    }
     const missing = required.filter((field) => sheet.fieldMap[field] === undefined);
     if (missing.length > 0) {
       return {
@@ -352,6 +358,7 @@ function parseSAPRow(
     equipmentDescription: text('equipmentDescription'),
     notificationNo: text('notificationNo'),
     orderNo,
+    revision: text('revision'),
     userStatus,
     maintenanceStartDate: parseDate(value('maintenanceStartDate')),
     maintenanceEndDate: parseDate(value('maintenanceEndDate')),
@@ -593,6 +600,7 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
       equipmentDescription: info.equipmentType,
       notificationNo: '',
       orderNo: '',
+      revision: '',
       userStatus: 'Sipariş Bulunamadı',
       maintenanceStartDate: null,
       maintenanceEndDate: null,
@@ -672,6 +680,7 @@ function buildSCEPetkimInventoryRows(
       equipmentDescription: info.sceReason || info.equipmentType,
       notificationNo: latestSource?.notificationNo ?? '',
       orderNo: latestSource?.orderNo ?? '',
+      revision: latestSource?.revision ?? '',
       userStatus: 'Sipariş Bulunamadı',
       maintenanceStartDate: null,
       maintenanceEndDate: null,
@@ -769,6 +778,7 @@ function completenessScore(row: SCEV2Row) {
     Number(Boolean(row.maintenanceStartDate)) +
     Number(Boolean(row.maintenanceEndDate)) +
     Number(Boolean(row.plannedCompletionDate)) +
+    Number(Boolean(row.revision)) +
     Number(Boolean(row.tagNo)) +
     Number(Boolean(row.equipmentDescription))
   );

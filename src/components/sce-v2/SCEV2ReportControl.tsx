@@ -194,7 +194,8 @@ export function SCEV2ReportControl({
           </div>
           <p className="text-xs leading-5 text-slate-500">
             Listede ekipman ve tag numarası, bakım planı, sipariş, bakım durumu,
-            Petkim duruş bilgisi, deferral/overdue ve kalibrasyon raporu bilgileri bulunur.
+            Petkim revizyon ve duruş bilgisi, deferral/overdue ve kalibrasyon
+            raporu bilgileri bulunur.
           </p>
           <button
             type="button"
@@ -238,6 +239,7 @@ function downloadFilteredExcel(
     'Bakım Periyodu': row.maintenancePeriod,
     ...(company === 'PETKIM'
       ? {
+          Revizyon: row.revision,
           'Duruş Gereklilik / Yapılabilirlik': row.shutdownRequirement,
           'Duruş Açıklaması': row.shutdownExplanation,
         }
@@ -263,13 +265,15 @@ function downloadFilteredExcel(
   const workbook = XLSX.utils.book_new();
   const listSheet = XLSX.utils.json_to_sheet(data);
   listSheet['!autofilter'] = {
-    ref: listSheet['!ref'] ?? `A1:AE${Math.max(rows.length + 1, 2)}`,
+    ref: listSheet['!ref'] ?? `A1:AF${Math.max(rows.length + 1, 2)}`,
   };
   listSheet['!cols'] = [
     { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 24 },
     { wch: 38 }, { wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
     { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
-    ...(company === 'PETKIM' ? [{ wch: 34 }, { wch: 70 }] : []),
+    ...(company === 'PETKIM'
+      ? [{ wch: 16 }, { wch: 34 }, { wch: 70 }]
+      : []),
     { wch: 28 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 18 },
     { wch: 16 }, { wch: 34 }, { wch: 40 }, { wch: 20 }, { wch: 20 },
     { wch: 24 }, { wch: 32 }, { wch: 18 }, { wch: 18 },

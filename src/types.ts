@@ -164,6 +164,7 @@ export interface SCEV2Row {
   equipmentDescription: string;
   notificationNo: string;
   orderNo: string;
+  revision: string;
   userStatus: string;
   maintenanceStartDate: Date | null;
   maintenanceEndDate: Date | null;

@@ -812,7 +812,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Petkim SCE Sipariş Son Durum Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                  hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi ve Bakım planı sütunları beklenir."
+                  hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi, Bakım planı ve Revizyon sütunları beklenir."
                   fileMeta={sceV2File}
                   loading={sceV2Loading}
                   error={sceV2Error}

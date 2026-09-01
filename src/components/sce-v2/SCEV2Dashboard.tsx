@@ -36,6 +36,7 @@ import { SCEV2ReportControl } from './SCEV2ReportControl';
 type DashboardFilter =
   | 'all'
   | SCEV2MaintenanceStatus
+  | 'not_in_program'
   | 'deferral_started'
   | 'deferral_required'
   | 'deferral_overdue'
@@ -240,6 +241,7 @@ export function SCEV2Dashboard({
             row.equipmentDescription,
             row.orderNo,
             row.notificationNo,
+            row.revision,
             row.userStatus,
             row.maintenancePlanNo,
             row.maintenanceItemNo,
@@ -426,6 +428,31 @@ export function SCEV2Dashboard({
             activeFilter={filter}
             onSelect={selectDashboardFilter}
           />
+          {company === 'PETKIM' && (
+            <button
+              type="button"
+              aria-pressed={filter === 'not_in_program'}
+              onClick={() => selectDashboardFilter('not_in_program')}
+              className={`mt-3 w-full rounded-xl border px-3 py-2.5 text-left transition ${
+                filter === 'not_in_program'
+                  ? 'border-violet-400/45 bg-violet-500/15 ring-1 ring-violet-400/20'
+                  : 'border-white/[0.08] bg-white/[0.025] hover:border-violet-400/25 hover:bg-violet-500/[0.06]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-violet-400" />
+                <span className="text-xs font-medium text-white/70">
+                  Programa Girmeyenler
+                </span>
+                <span className="ml-auto text-sm font-semibold text-violet-200">
+                  {metrics.notInProgram}
+                </span>
+              </div>
+              <div className="mt-1 pl-[18px] text-[11px] text-white/35">
+                Sipariş kaydı yok · Revizyon alanı boş
+              </div>
+            </button>
+          )}
         </ModernChartCard>
 
         <ModernChartCard
@@ -685,7 +712,7 @@ export function SCEV2Dashboard({
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Ekipman, tag, sipariş veya plan ara..."
+                  placeholder="Ekipman, tag, sipariş, plan veya revizyon ara..."
                   className="input pl-9"
                 />
               </label>
@@ -1241,7 +1268,7 @@ function ShutdownRequirementBadge({ value }: { value: string }) {
       ? 'bg-red-500/15 text-red-300'
       : clean === 'durus gerekli degil' || clean === 'durus gerekli degildir'
         ? 'bg-emerald-500/15 text-emerald-300'
-        : clean === 'durusta yapilabilir'
+        : clean === 'durusta yapilabilir' || clean === 'durusta yapilacak'
           ? 'bg-amber-500/15 text-amber-300'
           : clean === 'yapilabilir'
             ? 'bg-sky-500/15 text-sky-300'
@@ -1353,6 +1380,12 @@ function EquipmentDetailModal({
             <DetailItem label="Bakım Kalemi" value={row.maintenanceItemNo} />
             <DetailItem label="Sipariş Numarası" value={row.orderNo} />
             <DetailItem label="Bildirim Numarası" value={row.notificationNo} />
+            {row.company === 'PETKIM' && (
+              <DetailItem
+                label="Revizyon / Program Haftası"
+                value={formatRevision(row.revision)}
+              />
+            )}
             <DetailItem label="Bakım Periyodu" value={row.maintenancePeriod} />
             <DetailItem label="SAP Kullanıcı Durumu" value={row.userStatus} />
             {row.company === 'PETKIM' && (
@@ -1485,6 +1518,7 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     orderNotFound: rows.filter(
       (row) => row.maintenanceStatus === 'order_not_found',
     ).length,
+    notInProgram: rows.filter(isNotInProgram).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter(
       (row) => row.deferralStatus === 'required',
@@ -1519,6 +1553,7 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
   ) {
     return row.maintenanceStatus === filter;
   }
+  if (filter === 'not_in_program') return isNotInProgram(row);
   if (filter === 'deferral_started') return row.deferralStatus === 'started';
   if (filter === 'deferral_required') return row.deferralStatus === 'required';
   if (filter === 'deferral_overdue') return row.deferralIsOverdue;
@@ -1552,6 +1587,7 @@ function filterLabel(filter: DashboardFilter) {
     shutdown_deferred: 'Duruşa ertelenenler',
     maintenance_not_completed: 'Bakımı yapılmayanlar',
     order_not_found: 'Sipariş kaydı bulunmayanlar',
+    not_in_program: 'Programa girmeyenler',
     deferral_started: 'Deferral başlatılanlar',
     deferral_required: 'Deferral başlatılması gerekenler',
     deferral_overdue: 'Deferral overdue olanlar',
@@ -1560,6 +1596,18 @@ function filterLabel(filter: DashboardFilter) {
     calibration_unknown: 'Kalibrasyon raporu bilgisi beklenenler',
   };
   return labels[filter];
+}
+
+function isNotInProgram(row: SCEV2DashboardRow) {
+  return row.maintenanceStatus === 'order_not_found' && !row.revision.trim();
+}
+
+function formatRevision(value: string) {
+  const clean = value.trim();
+  if (!clean) return 'Programa alınmadı';
+  const match = clean.match(/^W(\d{4})(\d{2})$/i);
+  if (!match) return clean;
+  return `${clean} · ${match[1]} / ${Number(match[2])}. hafta`;
 }
 
 function maintenanceLabel(status: SCEV2MaintenanceStatus) {
