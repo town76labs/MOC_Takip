@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -84,11 +85,13 @@ export function SCEV2Dashboard({
   company,
   selectedFactories,
   selectedConsoleScopes,
+  selectedRevisionWeeks,
   onClearScopeFilters,
 }: {
   company: 'PETKIM' | 'STAR';
   selectedFactories: string[];
   selectedConsoleScopes: string[];
+  selectedRevisionWeeks: string[];
   onClearScopeFilters: () => void;
 }) {
   const petkimRows = useDataStore((state) => state.sceV2Rows);
@@ -134,9 +137,16 @@ export function SCEV2Dashboard({
           (selectedConsoleScopes.length === 0 ||
             selectedConsoleScopes.includes(row.consoleName)) &&
           (selectedFactories.length === 0 ||
-            selectedFactories.includes(row.factory)),
+            selectedFactories.includes(row.factory)) &&
+          (selectedRevisionWeeks.length === 0 ||
+            selectedRevisionWeeks.includes(row.revision?.trim() ?? '')),
       ),
-    [allRows, selectedConsoleScopes, selectedFactories],
+    [
+      allRows,
+      selectedConsoleScopes,
+      selectedFactories,
+      selectedRevisionWeeks,
+    ],
   );
   const rows = useMemo(
     () =>
@@ -173,19 +183,17 @@ export function SCEV2Dashboard({
       color: '#64748b',
       filter: 'order_not_found',
     },
-  ];
-  const maintenancePieData: ChartDatum[] =
-    company === 'PETKIM'
+    ...(company === 'PETKIM'
       ? [
-          ...maintenanceChartData,
           {
             name: 'Programa Girmeyenler',
             value: metrics.notInProgram,
             color: '#a78bfa',
-            filter: 'not_in_program',
+            filter: 'not_in_program' as const,
           },
         ]
-      : maintenanceChartData;
+      : []),
+  ];
   const deferralChartData: ChartDatum[] = [
     {
       name: 'Başlatıldı',
@@ -281,6 +289,11 @@ export function SCEV2Dashboard({
   );
   const activeExcelFilterLabel = [
     reportScopeLabel,
+    selectedRevisionWeeks.length > 0
+      ? `Bakım programı: ${selectedRevisionWeeks
+          .map(formatRevisionWeekOption)
+          .join(', ')}`
+      : '',
     filterLabel(filter),
     selectedEquipmentType ? `Ekipman tipi: ${selectedEquipmentType}` : '',
     search ? `Arama: ${search}` : '',
@@ -407,7 +420,7 @@ export function SCEV2Dashboard({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={maintenancePieData}
+                  data={maintenanceChartData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -417,7 +430,7 @@ export function SCEV2Dashboard({
                   paddingAngle={3}
                   stroke="transparent"
                 >
-                  {maintenancePieData.map((item) => (
+                  {maintenanceChartData.map((item) => (
                     <Cell
                       key={item.name}
                       fill={item.color}
@@ -440,31 +453,6 @@ export function SCEV2Dashboard({
             activeFilter={filter}
             onSelect={selectDashboardFilter}
           />
-          {company === 'PETKIM' && (
-            <button
-              type="button"
-              aria-pressed={filter === 'not_in_program'}
-              onClick={() => selectDashboardFilter('not_in_program')}
-              className={`mt-3 w-full rounded-xl border px-3 py-2.5 text-left transition ${
-                filter === 'not_in_program'
-                  ? 'border-violet-400/45 bg-violet-500/15 ring-1 ring-violet-400/20'
-                  : 'border-white/[0.08] bg-white/[0.025] hover:border-violet-400/25 hover:bg-violet-500/[0.06]'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-violet-400" />
-                <span className="text-xs font-medium text-white/70">
-                  Programa Girmeyenler
-                </span>
-                <span className="ml-auto text-sm font-semibold text-violet-200">
-                  {metrics.notInProgram}
-                </span>
-              </div>
-              <div className="mt-1 pl-[18px] text-[11px] text-white/35">
-                Sipariş kaydı yok · Revizyon alanı boş
-              </div>
-            </button>
-          )}
         </ModernChartCard>
 
         <ModernChartCard
@@ -889,6 +877,10 @@ export function SCEV2ScopeSelector({
   selectedFactories,
   onFactoryToggle,
   onAllFactories,
+  revisionWeekOptions,
+  selectedRevisionWeeks,
+  onRevisionWeekToggle,
+  onAllRevisionWeeks,
 }: {
   selectedCompany: 'PETKIM' | 'STAR';
   onCompanyChange: (company: 'PETKIM' | 'STAR') => void;
@@ -900,6 +892,10 @@ export function SCEV2ScopeSelector({
   selectedFactories: string[];
   onFactoryToggle: (factory: string) => void;
   onAllFactories: () => void;
+  revisionWeekOptions: string[];
+  selectedRevisionWeeks: string[];
+  onRevisionWeekToggle: (week: string) => void;
+  onAllRevisionWeeks: () => void;
 }) {
   const hasScopeOptions =
     selectedCompany === 'STAR'
@@ -909,8 +905,8 @@ export function SCEV2ScopeSelector({
     factoryGroups?.filter((group) => selectedGroups.includes(group.name)) ?? [];
 
   return (
-    <section className="card overflow-hidden">
-      <div className="grid grid-cols-2 gap-px bg-white/10">
+    <section className="card relative z-20 overflow-visible">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-t-lg bg-white/10">
         <button
           type="button"
           aria-pressed={selectedCompany === 'PETKIM'}
@@ -959,7 +955,13 @@ export function SCEV2ScopeSelector({
 
       {hasScopeOptions && (
         <div className="border-t border-white/10 bg-black/20 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div
+            className={`mb-3 gap-3 ${
+              selectedCompany === 'PETKIM'
+                ? 'grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)_auto] lg:items-start'
+                : 'flex items-center justify-between'
+            }`}
+          >
             <div>
               <h3 className="text-sm font-semibold text-white">
                 {selectedCompany === 'PETKIM'
@@ -972,8 +974,16 @@ export function SCEV2ScopeSelector({
                   : 'Konsola tıklayın; bağlı U-xxx üniteleri altında açılsın.'}
               </p>
             </div>
+            {selectedCompany === 'PETKIM' && (
+              <RevisionWeekMultiSelect
+                options={revisionWeekOptions}
+                selected={selectedRevisionWeeks}
+                onToggle={onRevisionWeekToggle}
+                onAll={onAllRevisionWeeks}
+              />
+            )}
             <span
-              className={`hidden rounded-md px-2 py-1 text-xs sm:inline ${
+              className={`hidden rounded-md px-2 py-1 text-xs sm:inline lg:justify-self-end ${
                 selectedCompany === 'PETKIM'
                   ? 'bg-sky-500/10 text-sky-300'
                   : 'bg-red-500/10 text-red-300'
@@ -1114,6 +1124,91 @@ export function SCEV2ScopeSelector({
         </div>
       )}
     </section>
+  );
+}
+
+function RevisionWeekMultiSelect({
+  options,
+  selected,
+  onToggle,
+  onAll,
+}: {
+  options: string[];
+  selected: string[];
+  onToggle: (week: string) => void;
+  onAll: () => void;
+}) {
+  const summary =
+    selected.length === 0
+      ? 'Tüm haftalar'
+      : selected.length === 1
+        ? formatRevisionWeekOption(selected[0])
+        : `${selected.length} hafta seçili`;
+
+  return (
+    <div className="relative min-w-0">
+      <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-white/80">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-400/15">
+          <CalendarDays size={15} />
+        </span>
+        <span>Haftalık Bakım Programı</span>
+      </div>
+
+      <details className="group relative">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-cyan-400/20 bg-cyan-500/[0.06] px-3 py-2 text-xs text-white/60 transition hover:border-cyan-400/35 hover:bg-cyan-500/[0.1] focus:outline-none focus:ring-2 focus:ring-cyan-400/25 [&::-webkit-details-marker]:hidden">
+          <span className="truncate">{summary}</span>
+          <ChevronDown
+            size={15}
+            className="shrink-0 text-white/40 transition group-open:rotate-180"
+          />
+        </summary>
+
+        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[280px] rounded-xl border border-white/10 bg-[#111827] p-3 shadow-2xl shadow-black/60">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+              Program Haftaları
+            </span>
+            <button
+              type="button"
+              aria-pressed={selected.length === 0}
+              onClick={onAll}
+              className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition ${
+                selected.length === 0
+                  ? 'border-cyan-400/50 bg-cyan-500/20 text-cyan-100'
+                  : 'border-white/10 bg-white/[0.04] text-white/50 hover:border-cyan-400/25 hover:text-white'
+              }`}
+            >
+              Tüm Haftalar
+            </button>
+          </div>
+          <div className="max-h-60 space-y-1.5 overflow-y-auto pr-1">
+            {options.map((week) => {
+              const active = selected.includes(week);
+              return (
+                <button
+                  key={week}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onToggle(week)}
+                  className={`w-full rounded-lg border px-2.5 py-2 text-left transition ${
+                    active
+                      ? 'border-cyan-400/50 bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/15'
+                      : 'border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-cyan-400/25 hover:text-white'
+                  }`}
+                >
+                  <span className="block text-xs font-medium">
+                    {formatRevisionWeekOption(week)}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] text-white/30">
+                    {week}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </details>
+    </div>
   );
 }
 
@@ -1614,11 +1709,22 @@ function filterLabel(filter: DashboardFilter) {
 }
 
 function isNotInProgram(row: SCEV2DashboardRow) {
-  return row.maintenanceStatus === 'order_not_found' && !row.revision.trim();
+  return (
+    row.maintenanceStatus === 'order_not_found' &&
+    Boolean(row.maintenancePlanNo?.trim()) &&
+    !row.revision?.trim()
+  );
+}
+
+function formatRevisionWeekOption(value: string) {
+  const clean = value.trim();
+  const match = clean.match(/^W(\d{4})(\d{2})$/i);
+  if (!match) return clean;
+  return `${match[1]} / ${Number(match[2])}. hafta`;
 }
 
 function formatRevision(value: string) {
-  const clean = value.trim();
+  const clean = value?.trim() ?? '';
   if (!clean) return 'Programa alınmadı';
   const match = clean.match(/^W(\d{4})(\d{2})$/i);
   if (!match) return clean;

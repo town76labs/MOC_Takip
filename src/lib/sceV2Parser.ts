@@ -134,6 +134,7 @@ const SCE_V2_REPORTING_START_YEAR = 2026;
 const EXCLUDED_MAINTENANCE_TEXTS = [
   'tgs periyodik bakimi',
   'sil bakim plani',
+  'enerji kritik',
 ];
 
 export async function parseSCEV2SAPExcel(
@@ -755,7 +756,10 @@ function isInSCEV2ReportingPeriod(
   ].filter((date): date is Date => date instanceof Date);
 
   if (dates.length === 0) {
-    return row.maintenanceStatus === 'shutdown_deferred';
+    return (
+      row.maintenanceStatus === 'shutdown_deferred' ||
+      (company === 'PETKIM' && Boolean(row.revision.trim()))
+    );
   }
 
   return dates.every(

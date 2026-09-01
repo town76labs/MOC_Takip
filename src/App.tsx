@@ -67,6 +67,17 @@ const AUTH_USERS = [
   { username: 'mehmet.zevker', password: 'zevker.123' },
 ] as const;
 
+function compareRevisionWeeks(left: string, right: string) {
+  const weekValue = (value: string) => {
+    const match = value.match(/^W(\d{4})(\d{2})$/i);
+    return match ? Number(match[1]) * 100 + Number(match[2]) : Infinity;
+  };
+  return (
+    weekValue(left) - weekValue(right) ||
+    left.localeCompare(right, 'tr', { numeric: true })
+  );
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
@@ -218,6 +229,8 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [sceV2SelectedFactories, setSceV2SelectedFactories] = useState<
     string[]
   >([]);
+  const [sceV2SelectedRevisionWeeks, setSceV2SelectedRevisionWeeks] =
+    useState<string[]>([]);
   const [sceV2SelectedConsoles, setSceV2SelectedConsoles] = useState<string[]>(
     [],
   );
@@ -237,6 +250,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
     setSceV2SelectedCompany(company);
     setSceV2SelectedFactories([]);
     setSceV2SelectedConsoles([]);
+    setSceV2SelectedRevisionWeeks([]);
   }
 
   function toggleSCEV2Factory(factory: string) {
@@ -246,6 +260,16 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         : current.includes(factory)
           ? current.filter((item) => item !== factory)
           : [...current, factory],
+    );
+  }
+
+  function toggleSCEV2RevisionWeek(week: string) {
+    setSceV2SelectedRevisionWeeks((current) =>
+      current.length === 0
+        ? [week]
+        : current.includes(week)
+          ? current.filter((item) => item !== week)
+          : [...current, week].sort(compareRevisionWeeks),
     );
   }
 
@@ -728,6 +752,13 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         .filter((factory) => !SCE_V2_FACTORY_OPTIONS.includes(factory))
         .sort((a, b) => a.localeCompare(b, 'tr', { numeric: true })),
     ];
+    const petkimRevisionWeeks = [
+      ...new Set(
+        sceV2Rows
+          .map((row) => row.revision?.trim() ?? '')
+          .filter((revision) => /^W\d{6}$/i.test(revision)),
+      ),
+    ].sort(compareRevisionWeeks);
     const showSCEV2Uploads = sceV2UploadsOpen;
 
     return (
@@ -798,12 +829,14 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   onFile={(file) => {
                     setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                     return uploadSCEV2Star(file);
                   }}
                   onClear={() => {
                     clearSCEV2Star();
                     setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                   }}
                   accentColorClass="from-red-500 to-red-800"
                   surfaceClassName="upload-panel-dark"
@@ -812,17 +845,19 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Petkim SCE Sipariş Son Durum Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                  hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi, Bakım planı ve Revizyon sütunları beklenir."
+                  hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Enerji Kritik açıklamalı işler kapsam dışıdır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi, Bakım planı ve Revizyon sütunları beklenir."
                   fileMeta={sceV2File}
                   loading={sceV2Loading}
                   error={sceV2Error}
                   onFile={(file) => {
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                     return uploadSCEV2(file);
                   }}
                   onClear={() => {
                     clearSCEV2();
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                   }}
                   accentColorClass="from-cyan-400 to-sky-700"
                   surfaceClassName="upload-panel-dark"
@@ -915,6 +950,12 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               selectedFactories={sceV2SelectedFactories}
               onFactoryToggle={toggleSCEV2Factory}
               onAllFactories={() => setSceV2SelectedFactories([])}
+              revisionWeekOptions={isSCEV2Star ? [] : petkimRevisionWeeks}
+              selectedRevisionWeeks={
+                isSCEV2Star ? [] : sceV2SelectedRevisionWeeks
+              }
+              onRevisionWeekToggle={toggleSCEV2RevisionWeek}
+              onAllRevisionWeeks={() => setSceV2SelectedRevisionWeeks([])}
             />
           </div>
 
@@ -944,9 +985,11 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   company="STAR"
                   selectedFactories={sceV2SelectedFactories}
                   selectedConsoleScopes={sceV2SelectedConsoles}
+                  selectedRevisionWeeks={[]}
                   onClearScopeFilters={() => {
                     setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                   }}
                 />
               )}
@@ -971,13 +1014,17 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 </div>
               ) : (
                 <SCEV2Dashboard
-                  key={sceV2SelectedFactories.join('|') || 'all'}
+                  key={`${sceV2SelectedFactories.join('|') || 'all'}-${
+                    sceV2SelectedRevisionWeeks.join('|') || 'all-weeks'
+                  }`}
                   company="PETKIM"
                   selectedFactories={sceV2SelectedFactories}
                   selectedConsoleScopes={[]}
+                  selectedRevisionWeeks={sceV2SelectedRevisionWeeks}
                   onClearScopeFilters={() => {
                     setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
+                    setSceV2SelectedRevisionWeeks([]);
                   }}
                 />
               )}
