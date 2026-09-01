@@ -174,6 +174,18 @@ export function SCEV2Dashboard({
       filter: 'order_not_found',
     },
   ];
+  const maintenancePieData: ChartDatum[] =
+    company === 'PETKIM'
+      ? [
+          ...maintenanceChartData,
+          {
+            name: 'Programa Girmeyenler',
+            value: metrics.notInProgram,
+            color: '#a78bfa',
+            filter: 'not_in_program',
+          },
+        ]
+      : maintenanceChartData;
   const deferralChartData: ChartDatum[] = [
     {
       name: 'Başlatıldı',
@@ -395,7 +407,7 @@ export function SCEV2Dashboard({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={maintenanceChartData}
+                  data={maintenancePieData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -405,7 +417,7 @@ export function SCEV2Dashboard({
                   paddingAngle={3}
                   stroke="transparent"
                 >
-                  {maintenanceChartData.map((item) => (
+                  {maintenancePieData.map((item) => (
                     <Cell
                       key={item.name}
                       fill={item.color}
@@ -1516,7 +1528,8 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
       (row) => row.maintenanceStatus === 'maintenance_not_completed',
     ).length,
     orderNotFound: rows.filter(
-      (row) => row.maintenanceStatus === 'order_not_found',
+      (row) =>
+        row.maintenanceStatus === 'order_not_found' && !isNotInProgram(row),
     ).length,
     notInProgram: rows.filter(isNotInProgram).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
@@ -1545,11 +1558,13 @@ function percent(value: number, total: number) {
 
 function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
   if (filter === 'all') return true;
+  if (filter === 'order_not_found') {
+    return row.maintenanceStatus === filter && !isNotInProgram(row);
+  }
   if (
     filter === 'completed' ||
     filter === 'shutdown_deferred' ||
-    filter === 'maintenance_not_completed' ||
-    filter === 'order_not_found'
+    filter === 'maintenance_not_completed'
   ) {
     return row.maintenanceStatus === filter;
   }
