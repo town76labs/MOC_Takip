@@ -132,15 +132,15 @@ Bakim Yeri	Ekipman	Teknik Tanitici Numarasi	SCE Grubu	SCE Sebebi	Ekipman Tipi	Ba
 1014	1100121651	212-ZV-1008-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75461	50628	Duruş Gerekir	S/D anında tam kapatıyor, program tarafından kontrol edildiği için duruşta DCS'ten komut verilemez, ilgili logicte yazılımsal olarak değişiklikler yapılması gerekir.
 1014	1100121654	212-ZV-1008-C	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	75462	50629	Duruş Gerekir	S/D anında tam açıyor, program tarafından kontrol edildiği için duruşta DCS'ten komut verilemez, ilgili logicte yazılımsal olarak değişiklikler yapılması gerekir.
 1014	1100121657	212-ZV-1008-D	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Mechanical Position Switch	75459	50626	Duruş Gerekir	S/D anında tam açıyor 3 dk sonra kapatıyor, program tarafından kontrol edildiği için duruşta DCS'ten komut verilemez, ilgili logicte yazılımsal olarak değişiklikler yapılması gerekir.
-1001	1100019293	214-FIC-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74418	49877
-1001	1100019325	214-FIC-4008	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74419	49878
-1001	1100019282	214-FRC-4003-2	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74417	49876
-1001	1100097443	214-FT-4002-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74437	49896
-1001	1100097444	214-FT-4002-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74438	49897
-1001	1100097445	214-FT-4002-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74439	49898
+1001	1100019293	214-FIC-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74418	49877	Duruşta yapılacak
+1001	1100019325	214-FIC-4008	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74419	49878	Duruşta yapılacak
+1001	1100019282	214-FRC-4003-2	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74417	49876	Duruşta yapılacak
+1001	1100097443	214-FT-4002-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74437	49896	Duruşta yapılacak
+1001	1100097444	214-FT-4002-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74438	49897	Duruşta yapılacak
+1001	1100097445	214-FT-4002-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74439	49898	Duruşta yapılacak
 1001	1100018834	214-FV-1219	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74401	49860
 1001	1100018959	214-FV-1255-B	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74402	49861
-1001	1100019231	214-FV-3261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74416	49875
+1001	1100019231	214-FV-3261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74416	49875	Duruşta yapılacak
 1001	1100001976	214-LT-5004-A3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	76270	51309
 1001	1100001988	214-LT-5004-B3	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Level Transmitter	76271	51410
 1001	1100012559	214-LZH-3004	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
@@ -160,7 +160,7 @@ Bakim Yeri	Ekipman	Teknik Tanitici Numarasi	SCE Grubu	SCE Sebebi	Ekipman Tipi	Ba
 1001	1100012742	214-LZHH-5004-A1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100012750	214-LZHH-5004-B1	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Level Switch
 1001	1100021110	214-PCV-2001-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
-1001	1100108864	214-PCV-2001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74440	49899
+1001	1100108864	214-PCV-2001-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74440	49899	Duruşta yapılacak
 1001	1100021118	214-PCV-2002-1-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Self-Operated Control Valve
 1001	1100108865	214-PCV-2002-1-TX	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Differential Pressure Flow Transmitter	74441	49900
 1001	1100108868	214-PCV-2002-2-CV	Inert Örtüleme Sistemleri	AZOT ÖRTÜ SISTEMI	Instrument Control Valve	74474	49933
@@ -223,21 +223,21 @@ Bakim Yeri	Ekipman	Teknik Tanitici Numarasi	SCE Grubu	SCE Sebebi	Ekipman Tipi	Ba
 1001	1100023345	214-UV-1201	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74405	49864
 1001	1100023399	214-UV-1260	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74406	49865
 1001	1100023408	214-UV-1261	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74407	49866
-1001	1100009093	214-XSOV-2901	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74421	49880
-1001	1100009100	214-XSOV-2902	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74422	49881
-1001	1100009123	214-XSOV-3951	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74423	49882
-1001	1100009131	214-XSOV-3952	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74424	49883
-1001	1100023253	214-XV-1601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74403	49862
-1001	1100023574	214-XV-4500	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74408	49867
-1001	1100023596	214-XV-4504	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74409	49868
-1001	1100023604	214-XV-4601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74410	49869
-1001	1100023612	214-XV-4602	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74411	49870
-1001	1100023628	214-XV-4605	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74412	49871
-1001	1100023284	214-XZV-3007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74420	49879
-1001	1100024245	214-XZV-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74413	49872
-1001	1100024252	214-XZV-4006	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74414	49873
-1001	1100024259	214-XZV-4007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74415	49874
-1001	1100009238	214-XZVS-4018	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74425	49884
+1001	1100009093	214-XSOV-2901	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74421	49880	Duruşta yapılacak
+1001	1100009100	214-XSOV-2902	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74422	49881	Duruşta yapılacak
+1001	1100009123	214-XSOV-3951	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74423	49882	Duruşta yapılacak
+1001	1100009131	214-XSOV-3952	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74424	49883	Duruşta yapılacak
+1001	1100023253	214-XV-1601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74403	49862	Duruşta yapılacak
+1001	1100023574	214-XV-4500	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74408	49867	Duruşta yapılacak
+1001	1100023596	214-XV-4504	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74409	49868	Duruşta yapılacak
+1001	1100023604	214-XV-4601	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74410	49869	Duruşta yapılacak
+1001	1100023612	214-XV-4602	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74411	49870	Duruşta yapılacak
+1001	1100023628	214-XV-4605	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74412	49871	Duruşta yapılacak
+1001	1100023284	214-XZV-3007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Control Valve	74420	49879	Duruşta yapılacak
+1001	1100024245	214-XZV-4005	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74413	49872	Duruşta yapılacak
+1001	1100024252	214-XZV-4006	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74414	49873	Duruşta yapılacak
+1001	1100024259	214-XZV-4007	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Automated Block Valve	74415	49874	Duruşta yapılacak
+1001	1100009238	214-XZVS-4018	Acil Durum İzolasyon Vanaları	HAZOP/LOPA EKIPMANI	Instrument Solenoid Valve	74425	49884	Duruşta yapılacak
 1002	1100033129	215-FRALT-102-A	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	74436	49895
 1002	1100033141	215-FRALT-102-B	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76261	51300
 1002	1100033150	215-FRALT-102-C	Acil Durdurma Sistemleri (ESD)	HAZOP/LOPA EKIPMANI	Differential Pressure Flow Transmitter	76262	51301

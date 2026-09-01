@@ -190,12 +190,14 @@ export async function parseSCEV2SAPExcel(
         ),
       )
       .filter((row): row is SCEV2Row => row !== null)
-      .filter((row) => !isExcludedMaintenanceText(row))
-      .filter((row) => isInSCEV2ReportingPeriod(row, company));
+      .filter((row) => !isExcludedMaintenanceText(row));
+    const reportingRows = parsed.filter((row) =>
+      isInSCEV2ReportingPeriod(row, company),
+    );
     const data =
       company === 'STAR'
-        ? buildSCEStarInventoryRows(parsed)
-        : buildSCEPetkimInventoryRows(parsed);
+        ? buildSCEStarInventoryRows(reportingRows)
+        : buildSCEPetkimInventoryRows(reportingRows, parsed);
 
     if (data.length === 0) {
       return {
@@ -606,7 +608,10 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
   });
 }
 
-function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
+function buildSCEPetkimInventoryRows(
+  rows: SCEV2Row[],
+  sourceRows: SCEV2Row[],
+) {
   const latestByEquipment = new Map<string, SCEV2Row>();
   for (const row of deduplicateSAPRows(rows)) {
     const key = normalizeKey(row.equipmentNo);
@@ -616,9 +621,20 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
       latestByEquipment.set(key, row);
     }
   }
+  const latestSourceByEquipment = new Map<string, SCEV2Row>();
+  for (const row of deduplicateSAPRows(sourceRows)) {
+    const key = normalizeKey(row.equipmentNo);
+    if (!key) continue;
+    const current = latestSourceByEquipment.get(key);
+    if (!current || compareInventoryRowRecency(row, current) > 0) {
+      latestSourceByEquipment.set(key, row);
+    }
+  }
 
   return getAllSCEPetkimEquipmentInfo().map((info) => {
-    const latest = latestByEquipment.get(normalizeKey(info.equipmentNo));
+    const equipmentKey = normalizeKey(info.equipmentNo);
+    const latest = latestByEquipment.get(equipmentKey);
+    const latestSource = latestSourceByEquipment.get(equipmentKey);
     const businessArea = info.tagNo.match(/^(\d{3})/)?.[1] ?? '';
     const factory = resolvePetkimInventoryFactory(businessArea);
 
@@ -654,8 +670,8 @@ function buildSCEPetkimInventoryRows(rows: SCEV2Row[]) {
       equipmentNo: info.equipmentNo,
       tagNo: info.tagNo,
       equipmentDescription: info.sceReason || info.equipmentType,
-      notificationNo: '',
-      orderNo: '',
+      notificationNo: latestSource?.notificationNo ?? '',
+      orderNo: latestSource?.orderNo ?? '',
       userStatus: 'Sipariş Bulunamadı',
       maintenanceStartDate: null,
       maintenanceEndDate: null,
