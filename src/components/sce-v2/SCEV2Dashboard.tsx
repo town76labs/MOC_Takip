@@ -370,7 +370,7 @@ export function SCEV2Dashboard({
           <MetricButton
             label="Bakımı Tamamlanan"
             value={metrics.completed}
-            note="KPLI veya SHTM"
+            note="KPLI, SHTM veya TYTE"
             color="emerald"
             active={filter === 'completed'}
             onClick={() => selectDashboardFilter('completed')}

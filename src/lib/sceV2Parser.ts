@@ -24,6 +24,7 @@ type SAPField =
   | 'equipmentNo'
   | 'equipmentDescription'
   | 'userStatus'
+  | 'systemStatus'
   | 'maintenanceStartDate'
   | 'maintenanceEndDate'
   | 'plannedCompletionDate'
@@ -54,6 +55,7 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
   equipmentNo: ['ekipman'],
   equipmentDescription: ['tanim', 'tanım', 'kisa metin', 'kısa metin'],
   userStatus: ['kullanici drm', 'kullanıcı drm', 'kullanici durumu'],
+  systemStatus: ['islem sistem durumu', 'işlem sistem durumu', 'sistem durumu'],
   maintenanceStartDate: [
     'yurutme bsl tarihi',
     'yürütme bşl tarihi',
@@ -326,6 +328,7 @@ function parseSAPRow(
   if (!equipmentNo && !orderNo && !tagNo) return null;
 
   const userStatus = text('userStatus');
+  const systemStatus = text('systemStatus');
   const starInfo =
     company === 'STAR' ? getSCEStarEquipmentInfo(equipmentNo) : undefined;
   const unit =
@@ -369,7 +372,7 @@ function parseSAPRow(
     maintenancePeriod: '5 Yıl',
     shutdownRequirement: '',
     shutdownExplanation: '',
-    maintenanceStatus: resolveMaintenanceStatus(userStatus),
+    maintenanceStatus: resolveMaintenanceStatus(userStatus, systemStatus),
     raw: Object.fromEntries(
       Object.entries(fieldMap).map(([field, column]) => [
         field,
@@ -435,10 +438,20 @@ function resolveFactory(value: string) {
   return FACTORY_BY_BUSINESS_AREA[value.trim()] ?? 'DIGER';
 }
 
-function resolveMaintenanceStatus(value: string): SCEV2MaintenanceStatus {
-  const clean = normalize(value);
-  if (clean.includes('kpli') || clean.includes('shtm')) return 'completed';
-  if (clean.includes('bek')) return 'shutdown_deferred';
+function resolveMaintenanceStatus(
+  userStatus: string,
+  systemStatus: string,
+): SCEV2MaintenanceStatus {
+  const cleanUserStatus = normalize(userStatus);
+  const cleanSystemStatus = normalize(systemStatus);
+  if (
+    cleanUserStatus.includes('kpli') ||
+    cleanUserStatus.includes('shtm') ||
+    cleanSystemStatus.split(/\s+/).includes('tyte')
+  ) {
+    return 'completed';
+  }
+  if (cleanUserStatus.includes('bek')) return 'shutdown_deferred';
   return 'maintenance_not_completed';
 }
 
