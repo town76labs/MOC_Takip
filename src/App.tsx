@@ -33,6 +33,7 @@ import { SATExportDashboard } from './components/sat/SATExportDashboard';
 import { SATBudgetOverviewDashboard } from './components/sat/SATBudgetOverviewDashboard';
 import { RCADashboard } from './components/rca/RCADashboard';
 import {
+  EnergyCriticalScopeSelector,
   SCEV2Dashboard,
   SCEV2ScopeSelector,
 } from './components/sce-v2/SCEV2Dashboard';
@@ -69,7 +70,8 @@ const AUTH_USERS = [
 
 function compareRevisionWeeks(left: string, right: string) {
   const weekValue = (value: string) => {
-    const match = value.match(/^W(\d{4})(\d{2})$/i);
+    const match = value.match(/^W(\d{4})(\d{2})$/i) ??
+      value.match(/^(\d{4})-(\d{2})X?$/i);
     return match ? Number(match[1]) * 100 + Number(match[2]) : Infinity;
   };
   return (
@@ -197,6 +199,42 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const sceV2DeferralError = useDataStore((s) => s.sceV2DeferralError);
   const uploadSCEV2Deferral = useDataStore((s) => s.uploadSCEV2Deferral);
   const clearSCEV2Deferral = useDataStore((s) => s.clearSCEV2Deferral);
+  const energyCriticalRows = useDataStore((s) => s.energyCriticalRows);
+  const energyCriticalFile = useDataStore((s) => s.energyCriticalFile);
+  const energyCriticalLoading = useDataStore((s) => s.energyCriticalLoading);
+  const energyCriticalError = useDataStore((s) => s.energyCriticalError);
+  const uploadEnergyCritical = useDataStore((s) => s.uploadEnergyCritical);
+  const clearEnergyCritical = useDataStore((s) => s.clearEnergyCritical);
+  const energyCriticalControlFile = useDataStore(
+    (s) => s.energyCriticalControlFile,
+  );
+  const energyCriticalControlLoading = useDataStore(
+    (s) => s.energyCriticalControlLoading,
+  );
+  const energyCriticalControlError = useDataStore(
+    (s) => s.energyCriticalControlError,
+  );
+  const uploadEnergyCriticalControl = useDataStore(
+    (s) => s.uploadEnergyCriticalControl,
+  );
+  const clearEnergyCriticalControl = useDataStore(
+    (s) => s.clearEnergyCriticalControl,
+  );
+  const energyCriticalDeferralFile = useDataStore(
+    (s) => s.energyCriticalDeferralFile,
+  );
+  const energyCriticalDeferralLoading = useDataStore(
+    (s) => s.energyCriticalDeferralLoading,
+  );
+  const energyCriticalDeferralError = useDataStore(
+    (s) => s.energyCriticalDeferralError,
+  );
+  const uploadEnergyCriticalDeferral = useDataStore(
+    (s) => s.uploadEnergyCriticalDeferral,
+  );
+  const clearEnergyCriticalDeferral = useDataStore(
+    (s) => s.clearEnergyCriticalDeferral,
+  );
   const rcaFile = useDataStore((s) => s.rcaFile);
   const rcaLoading = useDataStore((s) => s.rcaLoading);
   const rcaError = useDataStore((s) => s.rcaError);
@@ -223,6 +261,8 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [uploadsOpen, setUploadsOpen] = useState(false);
   const [sceUploadsOpen, setSceUploadsOpen] = useState(false);
   const [sceV2UploadsOpen, setSceV2UploadsOpen] = useState(false);
+  const [energyCriticalUploadsOpen, setEnergyCriticalUploadsOpen] =
+    useState(false);
   const [sceV2SelectedCompany, setSceV2SelectedCompany] = useState<
     'PETKIM' | 'STAR'
   >('PETKIM');
@@ -234,6 +274,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   const [sceV2SelectedConsoles, setSceV2SelectedConsoles] = useState<string[]>(
     [],
   );
+  const [energyCriticalSelectedAreas, setEnergyCriticalSelectedAreas] =
+    useState<string[]>([]);
+  const [energyCriticalSelectedRevisionWeeks, setEnergyCriticalSelectedRevisionWeeks] =
+    useState<string[]>([]);
   const [sceActiveView, setSceActiveView] = useState<'overview' | 'details'>(
     'overview',
   );
@@ -265,6 +309,28 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
   function toggleSCEV2RevisionWeek(week: string) {
     setSceV2SelectedRevisionWeeks((current) =>
+      current.length === 0
+        ? [week]
+        : current.includes(week)
+          ? current.filter((item) => item !== week)
+          : [...current, week].sort(compareRevisionWeeks),
+    );
+  }
+
+  function toggleEnergyCriticalArea(businessArea: string) {
+    setEnergyCriticalSelectedAreas((current) =>
+      current.length === 0
+        ? [businessArea]
+        : current.includes(businessArea)
+          ? current.filter((item) => item !== businessArea)
+          : [...current, businessArea].sort((left, right) =>
+              left.localeCompare(right, 'tr', { numeric: true }),
+            ),
+    );
+  }
+
+  function toggleEnergyCriticalRevisionWeek(week: string) {
+    setEnergyCriticalSelectedRevisionWeeks((current) =>
       current.length === 0
         ? [week]
         : current.includes(week)
@@ -759,6 +825,13 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
           .filter((revision) => /^W\d{6}$/i.test(revision)),
       ),
     ].sort(compareRevisionWeeks);
+    const starRevisionWeeks = [
+      ...new Set(
+        sceV2StarRows
+          .map((row) => row.revision?.trim() ?? '')
+          .filter((revision) => /^W\d{6}$/i.test(revision)),
+      ),
+    ].sort(compareRevisionWeeks);
     const showSCEV2Uploads = sceV2UploadsOpen;
 
     return (
@@ -822,7 +895,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Star SCE Sipariş Son Durum Excel'i"
                   subtitle="Star üniteleri, ekipmanları ve periyodik bakım siparişleri"
-                  hint="K, M ve AD tarihleri birlikte kontrol edilir; bu alanlardaki mevcut tarihlerden biri bile 2026 öncesiyse kayıt alınmaz. TGS Periyodik Bakımı ve SIL BAKIM PLANI satırları hariç tutulur."
+                  hint="37week_PlnSTAR formatı kullanılır. Ekipman, Teknik birim, kullanıcı ve sistem durumları, fiili tarihler, Bakım kalemi, Bakım planı, Planlanan bitiş termini, Planlanan tarih ve Revizyon sütunları beklenir. Tamamlanmamış işlerde Planlanan tarih overdue takibinde kullanılır."
                   fileMeta={sceV2StarFile}
                   loading={sceV2StarLoading}
                   error={sceV2StarError}
@@ -845,7 +918,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <FileUpload
                   title="Petkim SCE Sipariş Son Durum Excel'i"
                   subtitle="Ekipman, teknik birim, sipariş ve bakım durumları"
-                  hint="Fiili yürütme tarihi 2026 ve sonrası olan kayıtlar alınır. Enerji Kritik açıklamalı işler kapsam dışıdır. Ekipman, Teknik birim, Kullanıcı drm., fiili yürütme tarihleri, Bakım kalemi, Bakım planı ve Revizyon sütunları beklenir."
+                  hint="37week_Pln formatı kullanılır. Enerji Kritik açıklamalı işler kapsam dışıdır. Ekipman, Teknik birim, kullanıcı ve sistem durumları, fiili yürütme tarihleri, Bakım kalemi, Bakım planı, Planlanan tarih ve Revizyon sütunları beklenir. Tamamlanmamış işlerde Planlanan tarih overdue takibinde kullanılır."
                   fileMeta={sceV2File}
                   loading={sceV2Loading}
                   error={sceV2Error}
@@ -950,10 +1023,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
               selectedFactories={sceV2SelectedFactories}
               onFactoryToggle={toggleSCEV2Factory}
               onAllFactories={() => setSceV2SelectedFactories([])}
-              revisionWeekOptions={isSCEV2Star ? [] : petkimRevisionWeeks}
-              selectedRevisionWeeks={
-                isSCEV2Star ? [] : sceV2SelectedRevisionWeeks
+              revisionWeekOptions={
+                isSCEV2Star ? starRevisionWeeks : petkimRevisionWeeks
               }
+              selectedRevisionWeeks={sceV2SelectedRevisionWeeks}
               onRevisionWeekToggle={toggleSCEV2RevisionWeek}
               onAllRevisionWeeks={() => setSceV2SelectedRevisionWeeks([])}
             />
@@ -981,11 +1054,11 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                 <SCEV2Dashboard
                   key={`star-${sceV2SelectedConsoles.join('|') || 'all'}-${
                     sceV2SelectedFactories.join('|') || 'all'
-                  }`}
+                  }-${sceV2SelectedRevisionWeeks.join('|') || 'all-weeks'}`}
                   company="STAR"
                   selectedFactories={sceV2SelectedFactories}
                   selectedConsoleScopes={sceV2SelectedConsoles}
-                  selectedRevisionWeeks={[]}
+                  selectedRevisionWeeks={sceV2SelectedRevisionWeeks}
                   onClearScopeFilters={() => {
                     setSceV2SelectedConsoles([]);
                     setSceV2SelectedFactories([]);
@@ -1208,6 +1281,25 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   }
 
   if (appMode === 'energy') {
+    const businessAreaOptions = [
+      ...new Set(
+        energyCriticalRows
+          .map((row) => row.businessArea?.trim() ?? '')
+          .filter(Boolean),
+      ),
+    ].sort((left, right) =>
+      left.localeCompare(right, 'tr', { numeric: true }),
+    );
+    const revisionWeekOptions = [
+      ...new Set(
+        energyCriticalRows
+          .map((row) => row.revision?.trim() ?? '')
+          .filter(Boolean),
+      ),
+    ].sort(compareRevisionWeeks);
+    const showEnergyCriticalUploads =
+      !energyCriticalFile || energyCriticalUploadsOpen;
+
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
@@ -1227,25 +1319,149 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Yasal Bakımlar
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setEnergyCriticalUploadsOpen((open) => !open)}
+                aria-expanded={energyCriticalUploadsOpen}
+                className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30 sm:inline-flex"
+              >
+                <FileSpreadsheet size={16} />
+                Enerji Kritik Excel Dosyaları
+                <ChevronDown
+                  size={16}
+                  className={`transition ${
+                    energyCriticalUploadsOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setAppMode('legal')}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30"
-            >
-              <ArrowLeft size={16} />
-              Yasal Bakımlar
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setEnergyCriticalUploadsOpen((open) => !open)}
+                aria-expanded={energyCriticalUploadsOpen}
+                aria-label="Enerji Kritik Excel dosyaları panelini aç veya kapat"
+                className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/10 p-2 text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30 sm:hidden"
+              >
+                <FileSpreadsheet size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAppMode('legal')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+              >
+                <ArrowLeft size={16} />
+                Yasal Bakımlar
+              </button>
+            </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="card p-10 text-center">
-            <h2 className="text-lg font-semibold text-white">
-              Enerji Kritik Ekipmanlar Dashboard
-            </h2>
-          </div>
+          {showEnergyCriticalUploads && (
+            <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <FileUpload
+                title="IW37N Kritik Sipariş Son Durum Excel'i"
+                subtitle="Enerji kritik ekipmanların güncel SAP bakım ve sipariş durumları"
+                hint="İşletme alanı, ekipman, sipariş, kullanıcı ve sistem durumları, fiili tarihler, bakım kalemi, bakım planı, Planlanan tarih ve revizyon sütunları beklenir. Tamamlanmamış işlerde Planlanan tarih gecikme takibinde kullanılır; sistem durumunda TYTE bulunan işler tamamlanmış kabul edilir."
+                fileMeta={energyCriticalFile}
+                loading={energyCriticalLoading}
+                error={energyCriticalError}
+                onFile={(file) => {
+                  setEnergyCriticalSelectedAreas([]);
+                  setEnergyCriticalSelectedRevisionWeeks([]);
+                  return uploadEnergyCritical(file);
+                }}
+                onClear={() => {
+                  clearEnergyCritical();
+                  setEnergyCriticalSelectedAreas([]);
+                  setEnergyCriticalSelectedRevisionWeeks([]);
+                }}
+                accentColorClass="from-amber-400 to-orange-700"
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="Enerji Kritik Kontrol Excel'i"
+                subtitle="Kalibrasyon raporu ve doküman takibi"
+                hint="Ekipman No üzerinden eşleştirilir; Sipariş No tabanlı kontrol dosyaları da desteklenir. SCE kontrol verilerinden ayrı tutulur."
+                fileMeta={energyCriticalControlFile}
+                loading={energyCriticalControlLoading}
+                error={energyCriticalControlError}
+                onFile={uploadEnergyCriticalControl}
+                onClear={clearEnergyCriticalControl}
+                accentColorClass="from-yellow-400 to-amber-700"
+                surfaceClassName="upload-panel-dark"
+              />
+              <FileUpload
+                title="Enerji Kritik Deferral PM Excel'i"
+                subtitle="Duruş erteleme ve overdue takibi"
+                hint="Main Work Center değeri ENS olan kayıtlar Equipment ID üzerinden eşleştirilir. Bakım Erteleme Başlat ve Overdue Date alanları Enerji Kritik için ayrı işlenir."
+                fileMeta={energyCriticalDeferralFile}
+                loading={energyCriticalDeferralLoading}
+                error={energyCriticalDeferralError}
+                onFile={uploadEnergyCriticalDeferral}
+                onClear={clearEnergyCriticalDeferral}
+                accentColorClass="from-orange-400 to-red-700"
+                surfaceClassName="upload-panel-dark"
+              />
+            </section>
+          )}
+
+          {energyCriticalFile && (
+            <div className="mb-6">
+              <EnergyCriticalScopeSelector
+                businessAreaOptions={businessAreaOptions}
+                selectedBusinessAreas={energyCriticalSelectedAreas}
+                onBusinessAreaToggle={toggleEnergyCriticalArea}
+                onAllBusinessAreas={() => setEnergyCriticalSelectedAreas([])}
+                revisionWeekOptions={revisionWeekOptions}
+                selectedRevisionWeeks={energyCriticalSelectedRevisionWeeks}
+                onRevisionWeekToggle={toggleEnergyCriticalRevisionWeek}
+                onAllRevisionWeeks={() =>
+                  setEnergyCriticalSelectedRevisionWeeks([])
+                }
+              />
+            </div>
+          )}
+
+          {!energyCriticalFile ? (
+            <div className="card mx-auto max-w-3xl p-10 text-center">
+              <BatteryCharging
+                size={36}
+                className="mx-auto mb-4 text-amber-300"
+                strokeWidth={1.8}
+              />
+              <h2 className="text-lg font-semibold text-white">
+                Başlamak için IW37N Kritik Excel dosyasını yükleyin
+              </h2>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/50">
+                Dosya, gömülü Enerji Kritik envanteriyle eşleştirilir. Kontrol
+                ve deferral dosyalarını hazır olduğunda ayrıca
+                yükleyebilirsiniz.
+              </p>
+            </div>
+          ) : (
+            <SCEV2Dashboard
+              key={`energy-${
+                energyCriticalSelectedAreas.join('|') || 'all-areas'
+              }-${
+                energyCriticalSelectedRevisionWeeks.join('|') || 'all-weeks'
+              }`}
+              company="ENERGY"
+              selectedFactories={energyCriticalSelectedAreas}
+              selectedConsoleScopes={[]}
+              selectedRevisionWeeks={energyCriticalSelectedRevisionWeeks}
+              onClearScopeFilters={() => {
+                setEnergyCriticalSelectedAreas([]);
+                setEnergyCriticalSelectedRevisionWeeks([]);
+              }}
+            />
+          )}
         </main>
+
+        <footer className="mx-auto max-w-[1440px] px-4 py-6 text-center text-xs text-white/35 sm:px-6 lg:px-8">
+          Veriler tamamen tarayıcıda işlenir · sunucuya hiçbir veri gönderilmez.
+        </footer>
       </div>
     );
   }

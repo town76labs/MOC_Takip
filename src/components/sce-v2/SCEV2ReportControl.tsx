@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
-import type { SCEV2DashboardRow } from '../../types';
+import type { SCEV2Company, SCEV2DashboardRow } from '../../types';
 import {
   downloadSCEV2ReportPdf,
   type SCEV2ReportType,
 } from '../../lib/sceV2ReportPdf';
+import { energyCriticalFactoryLabel } from '../../lib/energyCriticalFactories';
 import { formatDate } from '../../lib/normalize';
 import { Modal } from '../common/Modal';
 
 interface SCEV2ReportControlProps {
   rows: SCEV2DashboardRow[];
   excelRows: SCEV2DashboardRow[];
-  company: 'PETKIM' | 'STAR';
+  company: SCEV2Company;
   scopeLabel: string;
   activeFilterLabel: string;
 }
@@ -47,7 +48,23 @@ export function SCEV2ReportControl({
   const [excelOpen, setExcelOpen] = useState(false);
   const [type, setType] = useState<SCEV2ReportType>('executive');
   const [generating, setGenerating] = useState(false);
-  const companyLabel = company === 'STAR' ? 'Star' : 'Petkim';
+  const companyLabel = getCompanyLabel(company);
+  const reportLabel =
+    company === 'ENERGY'
+      ? 'Enerji/Çevre Kritik Ekipman Bakımları'
+      : `${companyLabel} SCE`;
+  const primaryClasses =
+    company === 'STAR'
+      ? 'bg-gradient-to-r from-red-500 to-rose-700 hover:from-red-400 hover:to-rose-600 focus:ring-red-400/35'
+      : company === 'ENERGY'
+        ? 'bg-gradient-to-r from-amber-500 to-orange-700 hover:from-amber-400 hover:to-orange-600 focus:ring-amber-400/35'
+        : 'bg-gradient-to-r from-sky-500 to-cyan-600 hover:from-sky-400 hover:to-cyan-500 focus:ring-sky-400/35';
+  const secondaryClasses =
+    company === 'STAR'
+      ? 'border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 focus:ring-red-400/30'
+      : company === 'ENERGY'
+        ? 'border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 focus:ring-amber-400/30'
+        : 'border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 focus:ring-sky-400/30';
 
   async function createReport() {
     setGenerating(true);
@@ -57,7 +74,7 @@ export function SCEV2ReportControl({
       setReportOpen(false);
     } catch (error) {
       console.error(error);
-      window.alert('SCE PDF raporu oluşturulamadı. Lütfen tekrar deneyin.');
+      window.alert(`${reportLabel} PDF raporu oluşturulamadı. Lütfen tekrar deneyin.`);
     } finally {
       setGenerating(false);
     }
@@ -69,7 +86,7 @@ export function SCEV2ReportControl({
       setExcelOpen(false);
     } catch (error) {
       console.error(error);
-      window.alert('SCE Excel listesi oluşturulamadı. Lütfen tekrar deneyin.');
+      window.alert(`${reportLabel} Excel listesi oluşturulamadı. Lütfen tekrar deneyin.`);
     }
   }
 
@@ -80,34 +97,26 @@ export function SCEV2ReportControl({
           type="button"
           onClick={() => setReportOpen(true)}
           disabled={rows.length === 0}
-          className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${
-            company === 'STAR'
-              ? 'bg-gradient-to-r from-red-500 to-rose-700 hover:from-red-400 hover:to-rose-600 focus:ring-red-400/35'
-              : 'bg-gradient-to-r from-sky-500 to-cyan-600 hover:from-sky-400 hover:to-cyan-500 focus:ring-sky-400/35'
-          }`}
+          className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${primaryClasses}`}
         >
           <FileText size={16} />
-          {companyLabel} PDF Raporları
+          {reportLabel} PDF Raporları
         </button>
         <button
           type="button"
           onClick={() => setExcelOpen(true)}
           disabled={excelRows.length === 0}
-          className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${
-            company === 'STAR'
-              ? 'border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 focus:ring-red-400/30'
-              : 'border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 focus:ring-sky-400/30'
-          }`}
+          className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${secondaryClasses}`}
         >
           <FileSpreadsheet size={16} />
-          {companyLabel} Excel Listesi
+          {reportLabel} Excel Listesi
         </button>
       </div>
 
       <Modal
         open={reportOpen}
         onClose={() => !generating && setReportOpen(false)}
-        title={`${companyLabel} SCE PDF Raporları`}
+        title={`${reportLabel} PDF Raporları`}
         widthClass="max-w-2xl"
       >
         <div className="space-y-5">
@@ -137,7 +146,9 @@ export function SCEV2ReportControl({
                     active
                       ? company === 'STAR'
                         ? 'border-red-400 bg-red-950/70 ring-2 ring-red-400/30'
-                        : 'border-sky-400 bg-sky-950/70 ring-2 ring-sky-400/30'
+                        : company === 'ENERGY'
+                          ? 'border-amber-400 bg-amber-950/70 ring-2 ring-amber-400/30'
+                          : 'border-sky-400 bg-sky-950/70 ring-2 ring-sky-400/30'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
@@ -145,7 +156,9 @@ export function SCEV2ReportControl({
                     {option.title}
                   </span>
                   <span className="mt-2 block text-xs leading-5 text-slate-500">
-                    {option.description}
+                    {option.type === 'detailed'
+                      ? 'Yönetici özetine ek olarak overdue, yaklaşan overdue ve diğer aksiyon gerektiren ekipman listeleri.'
+                      : option.description}
                   </span>
                 </button>
               );
@@ -159,7 +172,9 @@ export function SCEV2ReportControl({
             className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-50 ${
               company === 'STAR'
                 ? 'bg-red-600 hover:bg-red-500'
-                : 'bg-sky-600 hover:bg-sky-500'
+                : company === 'ENERGY'
+                  ? 'bg-amber-600 hover:bg-amber-500'
+                  : 'bg-sky-600 hover:bg-sky-500'
             }`}
           >
             {generating ? (
@@ -175,7 +190,7 @@ export function SCEV2ReportControl({
       <Modal
         open={excelOpen}
         onClose={() => setExcelOpen(false)}
-        title={`${companyLabel} SCE Excel Listesi`}
+        title={`${reportLabel} Excel Listesi`}
         widthClass="max-w-xl"
       >
         <div className="space-y-5">
@@ -193,9 +208,9 @@ export function SCEV2ReportControl({
             </p>
           </div>
           <p className="text-xs leading-5 text-slate-500">
-            Listede ekipman ve tag numarası, bakım planı, sipariş, bakım durumu,
-            Petkim revizyon ve duruş bilgisi, deferral/overdue ve kalibrasyon
-            raporu bilgileri bulunur.
+            Listede ekipman ve tag numarası, bakım planı, sipariş, revizyon,
+            bakım durumu, deferral/overdue ve kalibrasyon raporu bilgileri
+            bulunur.
           </p>
           <button
             type="button"
@@ -204,7 +219,9 @@ export function SCEV2ReportControl({
             className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
               company === 'STAR'
                 ? 'bg-red-600 hover:bg-red-500'
-                : 'bg-sky-600 hover:bg-sky-500'
+                : company === 'ENERGY'
+                  ? 'bg-amber-600 hover:bg-amber-500'
+                  : 'bg-sky-600 hover:bg-sky-500'
             }`}
           >
             <FileSpreadsheet size={17} />
@@ -218,28 +235,42 @@ export function SCEV2ReportControl({
 
 function downloadFilteredExcel(
   rows: SCEV2DashboardRow[],
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
   scopeLabel: string,
   activeFilterLabel: string,
 ) {
-  const companyLabel = company === 'STAR' ? 'Star' : 'Petkim';
+  const companyLabel = getCompanyLabel(company);
   const data = rows.map((row) => ({
     Şirket: companyLabel,
-    'Fabrika / Ünite': company === 'STAR' ? row.unit : factoryLabel(row.factory),
+    'Fabrika / Ünite':
+      company === 'STAR'
+        ? row.unit
+        : company === 'ENERGY'
+          ? energyCriticalFactoryLabel(row.businessArea)
+          : factoryLabel(row.factory),
     Konsol: company === 'STAR' ? row.consoleName : '',
     'Ekipman No': row.equipmentNo,
     'Tag No / Teknik Birim': row.tagNo,
     'Ekipman Tanımı': row.equipmentDescription,
     'Ekipman Tipi': row.equipmentType,
     'Kategori Tipi': row.categoryType,
+    ...(company !== 'STAR'
+      ? {
+          'Gömülü Bakım Kalemi Tanımı': row.raw.masterMaintenanceDescription,
+          'Sorumlu İşyeri': row.raw.masterWorkCenter,
+          'Planlama Grubu': row.raw.masterPlannerGroup,
+          'Gömülü Listedeki Son Sipariş': row.raw.masterLastOrder,
+          'Masraf Yeri': row.raw.masterCostCenter,
+        }
+      : {}),
     'Sipariş No': row.orderNo,
     'Bildirim No': row.notificationNo,
     'Bakım Plan No': row.maintenancePlanNo,
     'Bakım Kalemi': row.maintenanceItemNo,
     'Bakım Periyodu': row.maintenancePeriod,
+    Revizyon: row.revision,
     ...(company === 'PETKIM'
       ? {
-          Revizyon: row.revision,
           'Duruş Gereklilik / Yapılabilirlik': row.shutdownRequirement,
           'Duruş Açıklaması': row.shutdownExplanation,
         }
@@ -257,6 +288,8 @@ function downloadFilteredExcel(
     'Bakım Başlangıç Tarihi': formatDate(row.maintenanceStartDate),
     'Bakım Bitiş Tarihi': formatDate(row.maintenanceEndDate),
     'Planlanan Tamamlanma Tarihi': formatDate(row.plannedCompletionDate),
+    'Planlanan Tarih': formatDate(row.maintenanceDeadlineDate),
+    'Planlanan Tarih Durumu': maintenanceDeadlineLabel(row),
     'Kontrol Notu': row.controlNote,
     'Kontrol Eden': row.controlUpdatedBy,
     'Kontrol Tarihi': formatDate(row.controlUpdatedAt),
@@ -269,11 +302,14 @@ function downloadFilteredExcel(
   };
   listSheet['!cols'] = [
     { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 24 },
-    { wch: 38 }, { wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
-    { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
-    ...(company === 'PETKIM'
-      ? [{ wch: 16 }, { wch: 34 }, { wch: 70 }]
+    { wch: 38 }, { wch: 34 }, { wch: 16 },
+    ...(company !== 'STAR'
+      ? [{ wch: 40 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 18 }]
       : []),
+    { wch: 16 }, { wch: 16 },
+    { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
+    { wch: 16 },
+    ...(company === 'PETKIM' ? [{ wch: 34 }, { wch: 70 }] : []),
     { wch: 28 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 18 },
     { wch: 16 }, { wch: 34 }, { wch: 40 }, { wch: 20 }, { wch: 20 },
     { wch: 24 }, { wch: 32 }, { wch: 18 }, { wch: 18 },
@@ -292,8 +328,16 @@ function downloadFilteredExcel(
   XLSX.utils.book_append_sheet(workbook, infoSheet, 'Filtre Bilgisi');
   XLSX.writeFile(
     workbook,
-    `${slugify(`SCE-${companyLabel}-${activeFilterLabel}`)}.xlsx`,
+    `${slugify(
+      `${company === 'ENERGY' ? 'Enerji-Kritik' : `SCE-${companyLabel}`}-${activeFilterLabel}`,
+    )}.xlsx`,
   );
+}
+
+function getCompanyLabel(company: SCEV2Company) {
+  if (company === 'STAR') return 'Star';
+  if (company === 'ENERGY') return 'Enerji Kritik';
+  return 'Petkim';
 }
 
 function maintenanceLabel(row: SCEV2DashboardRow) {
@@ -301,6 +345,16 @@ function maintenanceLabel(row: SCEV2DashboardRow) {
   if (row.maintenanceStatus === 'shutdown_deferred') return 'Duruşa Ertelendi';
   if (row.maintenanceStatus === 'order_not_found') return 'Sipariş Kaydı Yok';
   return 'Bakımı Yapılmadı';
+}
+
+function maintenanceDeadlineLabel(row: SCEV2DashboardRow) {
+  return {
+    not_applicable: 'Uygulanmaz',
+    completed: 'Tamamlandı',
+    overdue: 'Overdue',
+    due_soon: 'Overdue Yaklaşıyor',
+    on_track: 'Takviminde',
+  }[row.maintenanceDeadlineStatus];
 }
 
 function deferralLabel(row: SCEV2DashboardRow) {

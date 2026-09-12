@@ -2,6 +2,7 @@ import type {
   SCEV2ControlRow,
   SCEV2DashboardRow,
   SCEV2DeferralRow,
+  SCEV2MaintenanceDeadlineStatus,
   SCEV2Row,
 } from '../types';
 import { isPastDue, normalize } from './normalize';
@@ -56,6 +57,7 @@ export function buildSCEV2DashboardRows(
       : null;
     return {
       ...row,
+      maintenanceDeadlineStatus: resolveMaintenanceDeadlineStatus(row),
       calibrationStatus:
         row.maintenanceStatus === 'completed'
           ? calibrationControl?.calibrationStatus ?? 'unknown'
@@ -72,6 +74,32 @@ export function buildSCEV2DashboardRows(
       deferralIsOverdue: isPastDue(deferralOverdueDate),
     };
   });
+}
+
+function resolveMaintenanceDeadlineStatus(
+  row: SCEV2Row,
+  now = new Date(),
+): SCEV2MaintenanceDeadlineStatus {
+  if (row.maintenanceStatus === 'completed') return 'completed';
+  if (!row.maintenanceDeadlineDate) return 'not_applicable';
+
+  const dueDate = startOfDay(row.maintenanceDeadlineDate);
+  const today = startOfDay(now);
+  if (dueDate.getTime() < today.getTime()) return 'overdue';
+
+  const warningDate = subtractCalendarMonth(dueDate);
+  return today.getTime() >= warningDate.getTime() ? 'due_soon' : 'on_track';
+}
+
+function startOfDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function subtractCalendarMonth(value: Date) {
+  const year = value.getFullYear();
+  const month = value.getMonth() - 1;
+  const lastDayOfTargetMonth = new Date(year, month + 1, 0).getDate();
+  return new Date(year, month, Math.min(value.getDate(), lastDayOfTargetMonth));
 }
 
 function setLatestControl(

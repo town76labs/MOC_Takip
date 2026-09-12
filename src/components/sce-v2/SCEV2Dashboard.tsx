@@ -24,13 +24,16 @@ import {
 } from 'recharts';
 import type {
   SCEV2CalibrationStatus,
+  SCEV2Company,
   SCEV2DashboardRow,
   SCEV2DeferralStatus,
+  SCEV2MaintenanceDeadlineStatus,
   SCEV2MaintenanceStatus,
 } from '../../types';
 import { useDataStore } from '../../store/dataStore';
 import { buildSCEV2DashboardRows } from '../../lib/sceV2Logic';
 import { formatDate, normalize } from '../../lib/normalize';
+import { energyCriticalFactoryLabel } from '../../lib/energyCriticalFactories';
 import { Modal } from '../common/Modal';
 import { SCEV2ReportControl } from './SCEV2ReportControl';
 
@@ -41,6 +44,8 @@ type DashboardFilter =
   | 'deferral_started'
   | 'deferral_required'
   | 'deferral_overdue'
+  | 'maintenance_overdue'
+  | 'maintenance_due_soon'
   | 'calibration_shared'
   | 'calibration_not_shared'
   | 'calibration_unknown';
@@ -88,7 +93,7 @@ export function SCEV2Dashboard({
   selectedRevisionWeeks,
   onClearScopeFilters,
 }: {
-  company: 'PETKIM' | 'STAR';
+  company: SCEV2Company;
   selectedFactories: string[];
   selectedConsoleScopes: string[];
   selectedRevisionWeeks: string[];
@@ -104,6 +109,16 @@ export function SCEV2Dashboard({
   );
   const deferralRows = useDataStore((state) => state.sceV2DeferralRows);
   const deferralFile = useDataStore((state) => state.sceV2DeferralFile);
+  const energyRows = useDataStore((state) => state.energyCriticalRows);
+  const energyControlRows = useDataStore(
+    (state) => state.energyCriticalControlRows,
+  );
+  const energyDeferralRows = useDataStore(
+    (state) => state.energyCriticalDeferralRows,
+  );
+  const energyDeferralFile = useDataStore(
+    (state) => state.energyCriticalDeferralFile,
+  );
   const [selectedEquipmentType, setSelectedEquipmentType] = useState('');
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [search, setSearch] = useState('');
@@ -115,15 +130,27 @@ export function SCEV2Dashboard({
   const allRows = useMemo(
     () =>
       buildSCEV2DashboardRows(
-        company === 'STAR' ? starRows : petkimRows,
-        company === 'STAR' ? starControlRows : petkimControlRows,
-        deferralRows,
-        Boolean(deferralFile),
+        company === 'STAR'
+          ? starRows
+          : company === 'ENERGY'
+            ? energyRows
+            : petkimRows,
+        company === 'STAR'
+          ? starControlRows
+          : company === 'ENERGY'
+            ? energyControlRows
+            : petkimControlRows,
+        company === 'ENERGY' ? energyDeferralRows : deferralRows,
+        Boolean(company === 'ENERGY' ? energyDeferralFile : deferralFile),
       ),
     [
       company,
       deferralFile,
       deferralRows,
+      energyControlRows,
+      energyDeferralFile,
+      energyDeferralRows,
+      energyRows,
       petkimControlRows,
       petkimRows,
       starControlRows,
@@ -183,7 +210,7 @@ export function SCEV2Dashboard({
       color: '#64748b',
       filter: 'order_not_found',
     },
-    ...(company === 'PETKIM'
+    ...(company !== 'ENERGY'
       ? [
           {
             name: 'Programa Girmeyenler',
@@ -263,6 +290,7 @@ export function SCEV2Dashboard({
             row.notificationNo,
             row.revision,
             row.userStatus,
+            formatDate(row.maintenanceDeadlineDate),
             row.maintenancePlanNo,
             row.maintenanceItemNo,
             row.shutdownRequirement,
@@ -286,14 +314,10 @@ export function SCEV2Dashboard({
     company,
     selectedConsoleScopes,
     selectedFactories,
+    selectedRevisionWeeks,
   );
   const activeExcelFilterLabel = [
     reportScopeLabel,
-    selectedRevisionWeeks.length > 0
-      ? `Bakım programı: ${selectedRevisionWeeks
-          .map(formatRevisionWeekOption)
-          .join(', ')}`
-      : '',
     filterLabel(filter),
     selectedEquipmentType ? `Ekipman tipi: ${selectedEquipmentType}` : '',
     search ? `Arama: ${search}` : '',
@@ -324,13 +348,20 @@ export function SCEV2Dashboard({
         <div className="border-b border-white/10 p-5 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-lg ring-1 ${
+                  company === 'ENERGY'
+                    ? 'bg-amber-500/15 text-amber-300 ring-amber-400/20'
+                    : 'bg-sky-500/15 text-sky-300 ring-sky-400/20'
+                }`}
+              >
                 <ShieldAlert size={21} strokeWidth={1.8} />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">
-                  {company === 'STAR' ? 'Star' : 'Petkim'} SCE Periyodik
-                  Bakım Takibi
+                  {company === 'ENERGY'
+                    ? 'Enerji Kritik Ekipmanlar Bakım Takibi'
+                    : `${company === 'STAR' ? 'Star' : 'Petkim'} SCE Periyodik Bakım Takibi`}
                 </h2>
               </div>
             </div>
@@ -354,14 +385,16 @@ export function SCEV2Dashboard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-px bg-white/10 md:grid-cols-3 xl:grid-cols-4">
           <MetricButton
             label="Toplam Ekipman"
             value={rows.length}
             note={
               company === 'STAR'
                 ? `${metrics.orderNotFound} sipariş kaydı yok`
-                : 'Tekilleştirilmiş kayıt'
+                : company === 'ENERGY'
+                  ? 'Gömülü kritik ekipman envanteri'
+                  : 'Tekilleştirilmiş kayıt'
             }
             color="slate"
             active={filter === 'all'}
@@ -390,6 +423,22 @@ export function SCEV2Dashboard({
             color="rose"
             active={filter === 'maintenance_not_completed'}
             onClick={() => selectDashboardFilter('maintenance_not_completed')}
+          />
+          <MetricButton
+            label="Overdue"
+            value={metrics.maintenanceOverdue}
+            note="Planlanan tarihi geçti"
+            color="red"
+            active={filter === 'maintenance_overdue'}
+            onClick={() => selectDashboardFilter('maintenance_overdue')}
+          />
+          <MetricButton
+            label="Overdue Yaklaşıyor"
+            value={metrics.maintenanceDueSoon}
+            note="Planlanan tarihe 1 ay kaldı"
+            color="amber"
+            active={filter === 'maintenance_due_soon'}
+            onClick={() => selectDashboardFilter('maintenance_due_soon')}
           />
           <MetricButton
             label="Deferral Başlatıldı"
@@ -457,7 +506,9 @@ export function SCEV2Dashboard({
 
         <ModernChartCard
           title="Deferral Aksiyonları"
-          subtitle="Ortak Deferral PM Excel'indeki başlatma ve overdue durumu"
+          subtitle={`${
+            company === 'ENERGY' ? 'Enerji Kritik' : 'Ortak'
+          } Deferral PM Excel'indeki başlatma ve overdue durumu`}
           accentClass="from-sky-400/25 via-red-400/10 to-transparent"
         >
           <div className="mb-2 flex items-end justify-between rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
@@ -529,7 +580,11 @@ export function SCEV2Dashboard({
         <ModernChartCard
           title="Kalibrasyon Raporları"
           subtitle={`Tamamlanan bakımların ${
-            company === 'STAR' ? 'Star' : 'Petkim'
+            company === 'STAR'
+              ? 'Star'
+              : company === 'ENERGY'
+                ? 'Enerji Kritik'
+                : 'Petkim'
           } kontrol Excel'indeki durumu`}
           accentClass="from-emerald-400/20 via-slate-400/10 to-rose-400/15"
         >
@@ -576,7 +631,7 @@ export function SCEV2Dashboard({
         </ModernChartCard>
       </section>
 
-      {filter !== 'all' && (
+      {company !== 'ENERGY' && filter !== 'all' && (
         <section className="card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -742,10 +797,14 @@ export function SCEV2Dashboard({
                 {company === 'STAR' && (
                   <th className="px-4 py-3 font-medium">Ünite / Konsol</th>
                 )}
+                {company === 'ENERGY' && (
+                  <th className="px-4 py-3 font-medium">Fabrika</th>
+                )}
                 <th className="px-4 py-3 font-medium">Ekipman Tipi</th>
                 <th className="px-4 py-3 font-medium">Sipariş</th>
                 <th className="px-4 py-3 font-medium">Kullanıcı Durumu</th>
                 <th className="px-4 py-3 font-medium">Bakım Durumu</th>
+                <th className="px-4 py-3 font-medium">Planlanan Tarih</th>
                 {company === 'PETKIM' && (
                   <th className="px-4 py-3 font-medium">Duruş Bilgisi</th>
                 )}
@@ -775,6 +834,13 @@ export function SCEV2Dashboard({
                       </div>
                     </td>
                   )}
+                  {company === 'ENERGY' && (
+                    <td className="px-4 py-3 font-medium text-amber-200/75">
+                      {row.businessArea
+                        ? energyCriticalFactoryLabel(row.businessArea)
+                        : 'Belirsiz'}
+                    </td>
+                  )}
                   <td className="max-w-64 px-4 py-3 text-xs text-white/60">
                     {row.equipmentType || '—'}
                   </td>
@@ -786,6 +852,14 @@ export function SCEV2Dashboard({
                   </td>
                   <td className="px-4 py-3">
                     <MaintenanceBadge status={row.maintenanceStatus} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="mb-1.5 text-xs text-white/55">
+                      {formatDate(row.maintenanceDeadlineDate)}
+                    </div>
+                    <MaintenanceDeadlineBadge
+                      status={row.maintenanceDeadlineStatus}
+                    />
                   </td>
                   {company === 'PETKIM' && (
                     <td className="max-w-72 px-4 py-3">
@@ -955,13 +1029,7 @@ export function SCEV2ScopeSelector({
 
       {hasScopeOptions && (
         <div className="border-t border-white/10 bg-black/20 p-4">
-          <div
-            className={`mb-3 gap-3 ${
-              selectedCompany === 'PETKIM'
-                ? 'grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)_auto] lg:items-start'
-                : 'flex items-center justify-between'
-            }`}
-          >
+          <div className="mb-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)_auto] lg:items-start">
             <div>
               <h3 className="text-sm font-semibold text-white">
                 {selectedCompany === 'PETKIM'
@@ -974,14 +1042,13 @@ export function SCEV2ScopeSelector({
                   : 'Konsola tıklayın; bağlı U-xxx üniteleri altında açılsın.'}
               </p>
             </div>
-            {selectedCompany === 'PETKIM' && (
-              <RevisionWeekMultiSelect
-                options={revisionWeekOptions}
-                selected={selectedRevisionWeeks}
-                onToggle={onRevisionWeekToggle}
-                onAll={onAllRevisionWeeks}
-              />
-            )}
+            <RevisionWeekMultiSelect
+              options={revisionWeekOptions}
+              selected={selectedRevisionWeeks}
+              onToggle={onRevisionWeekToggle}
+              onAll={onAllRevisionWeeks}
+              accent={selectedCompany === 'STAR' ? 'red' : 'cyan'}
+            />
             <span
               className={`hidden rounded-md px-2 py-1 text-xs sm:inline lg:justify-self-end ${
                 selectedCompany === 'PETKIM'
@@ -1127,16 +1194,97 @@ export function SCEV2ScopeSelector({
   );
 }
 
+export function EnergyCriticalScopeSelector({
+  businessAreaOptions,
+  selectedBusinessAreas,
+  onBusinessAreaToggle,
+  onAllBusinessAreas,
+  revisionWeekOptions,
+  selectedRevisionWeeks,
+  onRevisionWeekToggle,
+  onAllRevisionWeeks,
+}: {
+  businessAreaOptions: string[];
+  selectedBusinessAreas: string[];
+  onBusinessAreaToggle: (businessArea: string) => void;
+  onAllBusinessAreas: () => void;
+  revisionWeekOptions: string[];
+  selectedRevisionWeeks: string[];
+  onRevisionWeekToggle: (week: string) => void;
+  onAllRevisionWeeks: () => void;
+}) {
+  return (
+    <section className="card relative z-20 overflow-visible border-amber-400/15">
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)_auto] lg:items-start">
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            Enerji Kritik Fabrikaları
+          </h3>
+          <p className="mt-0.5 text-xs text-white/40">
+            Bir veya birden fazla fabrika seçebilirsiniz.
+          </p>
+        </div>
+        <RevisionWeekMultiSelect
+          options={revisionWeekOptions}
+          selected={selectedRevisionWeeks}
+          onToggle={onRevisionWeekToggle}
+          onAll={onAllRevisionWeeks}
+          accent="amber"
+        />
+        <span className="hidden rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-300 sm:inline lg:justify-self-end">
+          {selectedBusinessAreas.length === 0
+            ? 'Tüm fabrikalar'
+            : `${selectedBusinessAreas.length} fabrika seçili`}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2 border-t border-white/10 px-4 py-3">
+        <button
+          type="button"
+          aria-pressed={selectedBusinessAreas.length === 0}
+          onClick={onAllBusinessAreas}
+          className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+            selectedBusinessAreas.length === 0
+              ? 'border-amber-400/60 bg-amber-500 text-black shadow-lg shadow-amber-950/30'
+              : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-amber-400/30 hover:text-white'
+          }`}
+        >
+          Tümü
+        </button>
+        {businessAreaOptions.map((businessArea) => {
+          const active = selectedBusinessAreas.includes(businessArea);
+          return (
+            <button
+              key={businessArea}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onBusinessAreaToggle(businessArea)}
+              className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition ${
+                active
+                  ? 'border-amber-400/60 bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/20'
+                  : 'border-white/10 bg-white/[0.04] text-white/55 hover:border-amber-400/30 hover:text-white'
+              }`}
+            >
+              {energyCriticalFactoryLabel(businessArea)}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function RevisionWeekMultiSelect({
   options,
   selected,
   onToggle,
   onAll,
+  accent = 'cyan',
 }: {
   options: string[];
   selected: string[];
   onToggle: (week: string) => void;
   onAll: () => void;
+  accent?: 'cyan' | 'amber' | 'red';
 }) {
   const summary =
     selected.length === 0
@@ -1148,14 +1296,30 @@ function RevisionWeekMultiSelect({
   return (
     <div className="relative min-w-0">
       <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-white/80">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-400/15">
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-1 ${
+            accent === 'amber'
+              ? 'bg-amber-500/10 text-amber-300 ring-amber-400/15'
+              : accent === 'red'
+                ? 'bg-red-500/10 text-red-300 ring-red-400/15'
+                : 'bg-cyan-500/10 text-cyan-300 ring-cyan-400/15'
+          }`}
+        >
           <CalendarDays size={15} />
         </span>
         <span>Haftalık Bakım Programı</span>
       </div>
 
       <details className="group relative">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-cyan-400/20 bg-cyan-500/[0.06] px-3 py-2 text-xs text-white/60 transition hover:border-cyan-400/35 hover:bg-cyan-500/[0.1] focus:outline-none focus:ring-2 focus:ring-cyan-400/25 [&::-webkit-details-marker]:hidden">
+        <summary
+          className={`flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs text-white/60 transition focus:outline-none focus:ring-2 [&::-webkit-details-marker]:hidden ${
+            accent === 'amber'
+              ? 'border-amber-400/20 bg-amber-500/[0.06] hover:border-amber-400/35 hover:bg-amber-500/[0.1] focus:ring-amber-400/25'
+              : accent === 'red'
+                ? 'border-red-400/20 bg-red-500/[0.06] hover:border-red-400/35 hover:bg-red-500/[0.1] focus:ring-red-400/25'
+                : 'border-cyan-400/20 bg-cyan-500/[0.06] hover:border-cyan-400/35 hover:bg-cyan-500/[0.1] focus:ring-cyan-400/25'
+          }`}
+        >
           <span className="truncate">{summary}</span>
           <ChevronDown
             size={15}
@@ -1174,8 +1338,16 @@ function RevisionWeekMultiSelect({
               onClick={onAll}
               className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition ${
                 selected.length === 0
-                  ? 'border-cyan-400/50 bg-cyan-500/20 text-cyan-100'
-                  : 'border-white/10 bg-white/[0.04] text-white/50 hover:border-cyan-400/25 hover:text-white'
+                  ? accent === 'amber'
+                    ? 'border-amber-400/50 bg-amber-500/20 text-amber-100'
+                    : accent === 'red'
+                      ? 'border-red-400/50 bg-red-500/20 text-red-100'
+                      : 'border-cyan-400/50 bg-cyan-500/20 text-cyan-100'
+                  : accent === 'amber'
+                    ? 'border-white/10 bg-white/[0.04] text-white/50 hover:border-amber-400/25 hover:text-white'
+                    : accent === 'red'
+                      ? 'border-white/10 bg-white/[0.04] text-white/50 hover:border-red-400/25 hover:text-white'
+                      : 'border-white/10 bg-white/[0.04] text-white/50 hover:border-cyan-400/25 hover:text-white'
               }`}
             >
               Tüm Haftalar
@@ -1192,8 +1364,16 @@ function RevisionWeekMultiSelect({
                   onClick={() => onToggle(week)}
                   className={`w-full rounded-lg border px-2.5 py-2 text-left transition ${
                     active
-                      ? 'border-cyan-400/50 bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/15'
-                      : 'border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-cyan-400/25 hover:text-white'
+                      ? accent === 'amber'
+                        ? 'border-amber-400/50 bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/15'
+                        : accent === 'red'
+                          ? 'border-red-400/50 bg-red-500/15 text-red-100 ring-1 ring-red-400/15'
+                          : 'border-cyan-400/50 bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/15'
+                      : accent === 'amber'
+                        ? 'border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-amber-400/25 hover:text-white'
+                        : accent === 'red'
+                          ? 'border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-red-400/25 hover:text-white'
+                          : 'border-white/[0.08] bg-white/[0.025] text-white/55 hover:border-cyan-400/25 hover:text-white'
                   }`}
                 >
                   <span className="block text-xs font-medium">
@@ -1410,6 +1590,40 @@ function DeferralBadge({ status }: { status: SCEV2DeferralStatus }) {
   );
 }
 
+function MaintenanceDeadlineBadge({
+  status,
+}: {
+  status: SCEV2MaintenanceDeadlineStatus;
+}) {
+  const config = {
+    not_applicable: {
+      label: 'Uygulanmaz',
+      className: 'bg-white/[0.04] text-white/30',
+    },
+    completed: {
+      label: 'Tamamlandı',
+      className: 'bg-emerald-500/15 text-emerald-300',
+    },
+    overdue: {
+      label: 'Overdue',
+      className: 'bg-red-500/15 text-red-300',
+    },
+    due_soon: {
+      label: 'Overdue Yaklaşıyor',
+      className: 'bg-amber-500/15 text-amber-300',
+    },
+    on_track: {
+      label: 'Takviminde',
+      className: 'bg-emerald-500/15 text-emerald-300',
+    },
+  }[status];
+  return (
+    <span className={`rounded-md px-2 py-1 text-xs font-medium ${config.className}`}>
+      {config.label}
+    </span>
+  );
+}
+
 function CalibrationBadge({ status }: { status: SCEV2CalibrationStatus }) {
   const config = {
     shared: {
@@ -1452,7 +1666,7 @@ function EquipmentDetailModal({
     >
       {row && (
         <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <DetailStatus
               icon={<Wrench size={18} />}
               label="Bakım Durumu"
@@ -1471,6 +1685,18 @@ function EquipmentDetailModal({
               value={calibrationLabel(row.calibrationStatus)}
               className="text-emerald-300"
             />
+            <DetailStatus
+              icon={<CalendarDays size={18} />}
+              label="Planlanan Tarih Durumu"
+              value={maintenanceDeadlineLabel(row.maintenanceDeadlineStatus)}
+              className={
+                row.maintenanceDeadlineStatus === 'overdue'
+                  ? 'text-red-300'
+                  : row.maintenanceDeadlineStatus === 'due_soon'
+                    ? 'text-amber-300'
+                    : 'text-emerald-300'
+              }
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
@@ -1482,17 +1708,21 @@ function EquipmentDetailModal({
                 <DetailItem label="Konsol" value={row.consoleName} />
               </>
             )}
+            {row.company === 'ENERGY' && (
+              <DetailItem
+                label="Fabrika"
+                value={energyCriticalFactoryLabel(row.businessArea)}
+              />
+            )}
             <DetailItem label="Ekipman Tipi" value={row.equipmentType} />
             <DetailItem label="Bakım Planı" value={row.maintenancePlanNo} />
             <DetailItem label="Bakım Kalemi" value={row.maintenanceItemNo} />
             <DetailItem label="Sipariş Numarası" value={row.orderNo} />
             <DetailItem label="Bildirim Numarası" value={row.notificationNo} />
-            {row.company === 'PETKIM' && (
-              <DetailItem
-                label="Revizyon / Program Haftası"
-                value={formatRevision(row.revision)}
-              />
-            )}
+            <DetailItem
+              label="Revizyon / Program Haftası"
+              value={formatRevision(row.revision)}
+            />
             <DetailItem label="Bakım Periyodu" value={row.maintenancePeriod} />
             <DetailItem label="SAP Kullanıcı Durumu" value={row.userStatus} />
             {row.company === 'PETKIM' && (
@@ -1521,7 +1751,11 @@ function EquipmentDetailModal({
               label="Son Bakım Yapıldığı Tarih"
               value={formatDate(row.maintenanceEndDate)}
             />
-            {row.company === 'STAR' && (
+            <DetailItem
+              label="Planlanan Tarih"
+              value={formatDate(row.maintenanceDeadlineDate)}
+            />
+            {row.company !== 'PETKIM' && (
               <>
                 <DetailItem
                   label="Planlanan Bitiş Termini"
@@ -1545,6 +1779,34 @@ function EquipmentDetailModal({
                 />
               </>
             )}
+            {row.company === 'ENERGY' && (
+              <>
+                <DetailItem
+                  label="Gömülü Teknik Nesne Tanımı"
+                  value={row.raw.masterTechnicalObjectDescription}
+                />
+                <DetailItem
+                  label="Gömülü Bakım Kalemi Tanımı"
+                  value={row.raw.masterMaintenanceDescription}
+                />
+                <DetailItem
+                  label="Sorumlu İşyeri"
+                  value={row.raw.masterWorkCenter}
+                />
+                <DetailItem
+                  label="Planlama Grubu"
+                  value={row.raw.masterPlannerGroup}
+                />
+                <DetailItem
+                  label="Gömülü Listedeki Son Sipariş"
+                  value={row.raw.masterLastOrder}
+                />
+                <DetailItem
+                  label="Masraf Yeri"
+                  value={row.raw.masterCostCenter}
+                />
+              </>
+            )}
           </div>
 
           {row.equipmentDescription && (
@@ -1562,7 +1824,12 @@ function EquipmentDetailModal({
             <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-sky-200">
                 <CalendarDays size={17} />
-                {row.company === 'STAR' ? 'Star' : 'Petkim'} Kontrol Kaydı
+                {row.company === 'STAR'
+                  ? 'Star'
+                  : row.company === 'ENERGY'
+                    ? 'Enerji Kritik'
+                    : 'Petkim'}{' '}
+                Kontrol Kaydı
               </div>
               <div className="mt-3 text-sm text-white/70">
                 {row.controlNote || 'Açıklama girilmemiş.'}
@@ -1615,12 +1882,17 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function buildMetrics(rows: SCEV2DashboardRow[]) {
   return {
-    completed: rows.filter((row) => row.maintenanceStatus === 'completed').length,
+    completed: rows.filter(
+      (row) => row.maintenanceStatus === 'completed' && !isNotInProgram(row),
+    ).length,
     shutdownDeferred: rows.filter(
-      (row) => row.maintenanceStatus === 'shutdown_deferred',
+      (row) =>
+        row.maintenanceStatus === 'shutdown_deferred' && !isNotInProgram(row),
     ).length,
     notCompleted: rows.filter(
-      (row) => row.maintenanceStatus === 'maintenance_not_completed',
+      (row) =>
+        row.maintenanceStatus === 'maintenance_not_completed' &&
+        !isNotInProgram(row),
     ).length,
     orderNotFound: rows.filter(
       (row) =>
@@ -1632,6 +1904,12 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
       (row) => row.deferralStatus === 'required',
     ).length,
     deferralOverdue: rows.filter((row) => row.deferralIsOverdue).length,
+    maintenanceOverdue: rows.filter(
+      (row) => row.maintenanceDeadlineStatus === 'overdue',
+    ).length,
+    maintenanceDueSoon: rows.filter(
+      (row) => row.maintenanceDeadlineStatus === 'due_soon',
+    ).length,
     calibrationShared: rows.filter(
       (row) => row.calibrationStatus === 'shared',
     ).length,
@@ -1661,12 +1939,18 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
     filter === 'shutdown_deferred' ||
     filter === 'maintenance_not_completed'
   ) {
-    return row.maintenanceStatus === filter;
+    return row.maintenanceStatus === filter && !isNotInProgram(row);
   }
   if (filter === 'not_in_program') return isNotInProgram(row);
   if (filter === 'deferral_started') return row.deferralStatus === 'started';
   if (filter === 'deferral_required') return row.deferralStatus === 'required';
   if (filter === 'deferral_overdue') return row.deferralIsOverdue;
+  if (filter === 'maintenance_overdue') {
+    return row.maintenanceDeadlineStatus === 'overdue';
+  }
+  if (filter === 'maintenance_due_soon') {
+    return row.maintenanceDeadlineStatus === 'due_soon';
+  }
   if (filter === 'calibration_shared') return row.calibrationStatus === 'shared';
   if (filter === 'calibration_not_shared') {
     return row.calibrationStatus === 'not_shared';
@@ -1676,13 +1960,15 @@ function matchesFilter(row: SCEV2DashboardRow, filter: DashboardFilter) {
 
 function compareRows(a: SCEV2DashboardRow, b: SCEV2DashboardRow) {
   const priority = (row: SCEV2DashboardRow) => {
-    if (row.deferralIsOverdue) return 0;
-    if (row.deferralStatus === 'required') return 1;
-    if (row.maintenanceStatus === 'maintenance_not_completed') return 2;
-    if (row.maintenanceStatus === 'order_not_found') return 3;
-    if (row.calibrationStatus === 'not_shared') return 4;
-    if (row.maintenanceStatus === 'shutdown_deferred') return 5;
-    return 6;
+    if (row.maintenanceDeadlineStatus === 'overdue') return 0;
+    if (row.deferralIsOverdue) return 1;
+    if (row.maintenanceDeadlineStatus === 'due_soon') return 2;
+    if (row.deferralStatus === 'required') return 3;
+    if (row.maintenanceStatus === 'maintenance_not_completed') return 4;
+    if (row.maintenanceStatus === 'order_not_found') return 5;
+    if (row.calibrationStatus === 'not_shared') return 6;
+    if (row.maintenanceStatus === 'shutdown_deferred') return 7;
+    return 8;
   };
   return (
     priority(a) - priority(b) ||
@@ -1701,6 +1987,8 @@ function filterLabel(filter: DashboardFilter) {
     deferral_started: 'Deferral başlatılanlar',
     deferral_required: 'Deferral başlatılması gerekenler',
     deferral_overdue: 'Deferral overdue olanlar',
+    maintenance_overdue: 'Planlanan tarihi geçenler',
+    maintenance_due_soon: 'Bir ay içinde overdue olacaklar',
     calibration_shared: 'Kalibrasyon raporu paylaşılanlar',
     calibration_not_shared: 'Kalibrasyon raporu paylaşılmayanlar',
     calibration_unknown: 'Kalibrasyon raporu bilgisi beklenenler',
@@ -1709,6 +1997,9 @@ function filterLabel(filter: DashboardFilter) {
 }
 
 function isNotInProgram(row: SCEV2DashboardRow) {
+  if (row.company === 'STAR') {
+    return Boolean(row.maintenancePlanNo?.trim()) && !row.revision?.trim();
+  }
   return (
     row.maintenanceStatus === 'order_not_found' &&
     Boolean(row.maintenancePlanNo?.trim()) &&
@@ -1718,17 +2009,25 @@ function isNotInProgram(row: SCEV2DashboardRow) {
 
 function formatRevisionWeekOption(value: string) {
   const clean = value.trim();
-  const match = clean.match(/^W(\d{4})(\d{2})$/i);
+  const match = parseRevisionWeek(clean);
   if (!match) return clean;
-  return `${match[1]} / ${Number(match[2])}. hafta`;
+  return `${match.year} / ${match.week}. hafta`;
 }
 
 function formatRevision(value: string) {
   const clean = value?.trim() ?? '';
   if (!clean) return 'Programa alınmadı';
-  const match = clean.match(/^W(\d{4})(\d{2})$/i);
+  const match = parseRevisionWeek(clean);
   if (!match) return clean;
-  return `${clean} · ${match[1]} / ${Number(match[2])}. hafta`;
+  return `${clean} · ${match.year} / ${match.week}. hafta`;
+}
+
+function parseRevisionWeek(value: string) {
+  const match =
+    value.match(/^W(\d{4})(\d{2})$/i) ??
+    value.match(/^(\d{4})-(\d{2})X?$/i);
+  if (!match) return null;
+  return { year: match[1], week: Number(match[2]) };
 }
 
 function maintenanceLabel(status: SCEV2MaintenanceStatus) {
@@ -1737,6 +2036,16 @@ function maintenanceLabel(status: SCEV2MaintenanceStatus) {
     shutdown_deferred: 'Duruşa Ertelendi',
     maintenance_not_completed: 'Bakımı Yapılmadı',
     order_not_found: 'Sipariş Kaydı Yok',
+  }[status];
+}
+
+function maintenanceDeadlineLabel(status: SCEV2MaintenanceDeadlineStatus) {
+  return {
+    not_applicable: 'Uygulanmaz',
+    completed: 'Tamamlandı',
+    overdue: 'Overdue',
+    due_soon: 'Overdue Yaklaşıyor',
+    on_track: 'Takviminde',
   }[status];
 }
 
@@ -1758,10 +2067,18 @@ function calibrationLabel(status: SCEV2CalibrationStatus) {
 }
 
 function buildReportScopeLabel(
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
   selectedConsoleScopes: string[],
   selectedFactories: string[],
+  selectedRevisionWeeks: string[],
 ) {
+  const programWeeks =
+    selectedRevisionWeeks.length > 0
+      ? ` · Bakım Programı: ${selectedRevisionWeeks
+          .map(formatRevisionWeekOption)
+          .join(', ')}`
+      : '';
+
   if (company === 'STAR') {
     const consoles =
       selectedConsoleScopes.length > 0
@@ -1771,7 +2088,15 @@ function buildReportScopeLabel(
       selectedFactories.length > 0
         ? ` · ${selectedFactories.join(', ')}`
         : '';
-    return `Star · ${consoles}${units}`;
+    return `Star · ${consoles}${units}${programWeeks}`;
+  }
+
+  if (company === 'ENERGY') {
+    const businessAreas =
+      selectedFactories.length > 0
+        ? selectedFactories.map(energyCriticalFactoryLabel).join(', ')
+        : 'Tüm Fabrikalar';
+    return `Enerji Kritik · ${businessAreas}${programWeeks}`;
   }
 
   const factories =
@@ -1780,5 +2105,5 @@ function buildReportScopeLabel(
           .map((factory) => FACTORY_LABELS[factory] ?? factory)
           .join(', ')
       : 'Tüm Fabrikalar';
-  return `Petkim · ${factories}`;
+  return `Petkim · ${factories}${programWeeks}`;
 }

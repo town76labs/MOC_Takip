@@ -28,6 +28,7 @@ type SAPField =
   | 'maintenanceStartDate'
   | 'maintenanceEndDate'
   | 'plannedCompletionDate'
+  | 'maintenanceDeadlineDate'
   | 'revision'
   | 'tagNo'
   | 'maintenanceItemNo'
@@ -71,6 +72,7 @@ const SAP_ALIASES: Record<SAPField, string[]> = {
     'planlanan bitis termini',
     'planlanan bitiş termini',
   ],
+  maintenanceDeadlineDate: ['planlanan tarih'],
   revision: ['revizyon'],
   tagNo: ['teknik birim'],
   maintenanceItemNo: ['bakim kalemi', 'bakım kalemi'],
@@ -172,9 +174,13 @@ export async function parseSCEV2SAPExcel(
       'maintenancePlanNo',
     ];
     if (company === 'STAR') {
-      required.push('plannedCompletionDate');
+      required.push(
+        'plannedCompletionDate',
+        'maintenanceDeadlineDate',
+        'revision',
+      );
     } else {
-      required.push('revision');
+      required.push('maintenanceDeadlineDate', 'revision');
     }
     const missing = required.filter((field) => sheet.fieldMap[field] === undefined);
     if (missing.length > 0) {
@@ -205,7 +211,7 @@ export async function parseSCEV2SAPExcel(
     );
     const data =
       company === 'STAR'
-        ? buildSCEStarInventoryRows(reportingRows)
+        ? buildSCEStarInventoryRows(reportingRows, parsed)
         : buildSCEPetkimInventoryRows(reportingRows, parsed);
 
     if (data.length === 0) {
@@ -231,14 +237,20 @@ export async function parseSCEV2SAPExcel(
 
 export async function parseSCEV2ControlExcel(
   file: File,
-  company: 'PETKIM' | 'STAR' = 'PETKIM',
+  company: 'PETKIM' | 'STAR' | 'ENERGY' = 'PETKIM',
 ): Promise<{ data: SCEV2ControlRow[]; error?: ParseError }> {
+  const companyLabel =
+    company === 'STAR'
+      ? 'Star'
+      : company === 'ENERGY'
+        ? 'Enerji Kritik'
+        : 'Petkim';
   try {
     if (file.size === 0) {
       return {
         data: [],
         error: {
-          message: `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol dosyası boş.`,
+          message: `${companyLabel} kontrol dosyası boş.`,
         },
       };
     }
@@ -260,7 +272,7 @@ export async function parseSCEV2ControlExcel(
           message:
             company === 'STAR'
               ? 'Star kontrol dosyasında Ekipman No veya Tag No sütunu bulunamadı.'
-              : 'Petkim kontrol dosyasında Ekipman No veya Sipariş No sütunu bulunamadı.',
+              : `${companyLabel} kontrol dosyasında Ekipman No veya Sipariş No sütunu bulunamadı.`,
           details: [
             company === 'STAR'
               ? 'Beklenen temel başlıklar: Ekipman No, Tag No, Kalibrasyon Raporu, PDF Sayısı ve Toplam Doküman.'
@@ -277,7 +289,7 @@ export async function parseSCEV2ControlExcel(
         data: [],
         error: {
           message:
-            `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.`,
+            `${companyLabel} kontrol dosyasında Kalibrasyon Raporu veya Deferral Durumu sütunu bulunamadı.`,
           foundHeaders: sheet.headers,
         },
       };
@@ -296,7 +308,7 @@ export async function parseSCEV2ControlExcel(
           message:
             company === 'STAR'
               ? 'Star kontrol dosyasında eşleştirilecek ekipman veya Tag bulunamadı.'
-              : 'Petkim kontrol dosyasında eşleştirilecek ekipman veya sipariş bulunamadı.',
+              : `${companyLabel} kontrol dosyasında eşleştirilecek ekipman veya sipariş bulunamadı.`,
         },
       };
     }
@@ -306,7 +318,7 @@ export async function parseSCEV2ControlExcel(
       data: [],
       error: {
         message:
-          `${company === 'STAR' ? 'Star' : 'Petkim'} kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.`,
+          `${companyLabel} kontrol Excel dosyası okunamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir.`,
       },
     };
   }
@@ -367,6 +379,7 @@ function parseSAPRow(
     maintenanceStartDate: parseDate(value('maintenanceStartDate')),
     maintenanceEndDate: parseDate(value('maintenanceEndDate')),
     plannedCompletionDate: parseDate(value('plannedCompletionDate')),
+    maintenanceDeadlineDate: parseDate(value('maintenanceDeadlineDate')),
     maintenanceItemNo: text('maintenanceItemNo'),
     maintenancePlanNo: text('maintenancePlanNo'),
     maintenancePeriod: '5 Yıl',
@@ -566,9 +579,12 @@ function deduplicateSAPRows(rows: SCEV2Row[]) {
   return [...bestByKey.values()];
 }
 
-function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
+function buildSCEStarInventoryRows(
+  rows: SCEV2Row[],
+  sourceRows: SCEV2Row[],
+) {
   const latestByEquipment = new Map<string, SCEV2Row>();
-  for (const row of rows) {
+  for (const row of deduplicateSAPRows(rows)) {
     const key = normalizeKey(row.equipmentNo);
     if (!key) continue;
     const current = latestByEquipment.get(key);
@@ -576,9 +592,20 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
       latestByEquipment.set(key, row);
     }
   }
+  const latestSourceByEquipment = new Map<string, SCEV2Row>();
+  for (const row of deduplicateSAPRows(sourceRows)) {
+    const key = normalizeKey(row.equipmentNo);
+    if (!key) continue;
+    const current = latestSourceByEquipment.get(key);
+    if (!current || compareInventoryRowRecency(row, current) > 0) {
+      latestSourceByEquipment.set(key, row);
+    }
+  }
 
   return getAllSCEStarEquipmentInfo().map((info) => {
-    const latest = latestByEquipment.get(normalizeKey(info.equipmentNo));
+    const equipmentKey = normalizeKey(info.equipmentNo);
+    const latest = latestByEquipment.get(equipmentKey);
+    const latestSource = latestSourceByEquipment.get(equipmentKey);
     const unit = info.sourceUnit ? `U-${info.sourceUnit}` : 'U-BELIRSIZ';
     const equipmentType = [info.categoryType, info.equipmentType]
       .filter(Boolean)
@@ -612,20 +639,21 @@ function buildSCEStarInventoryRows(rows: SCEV2Row[]) {
       equipmentNo: info.equipmentNo,
       tagNo: info.tagNo,
       equipmentDescription: info.equipmentType,
-      notificationNo: '',
-      orderNo: '',
-      revision: '',
+      notificationNo: latestSource?.notificationNo ?? '',
+      orderNo: latestSource?.orderNo ?? '',
+      revision: latestSource?.revision ?? '',
       userStatus: 'Sipariş Bulunamadı',
       maintenanceStartDate: null,
       maintenanceEndDate: null,
-      plannedCompletionDate: null,
-      maintenanceItemNo: '',
-      maintenancePlanNo: '',
+      plannedCompletionDate: latestSource?.plannedCompletionDate ?? null,
+      maintenanceDeadlineDate: latestSource?.maintenanceDeadlineDate ?? null,
+      maintenanceItemNo: latestSource?.maintenanceItemNo ?? '',
+      maintenancePlanNo: latestSource?.maintenancePlanNo ?? '',
       maintenancePeriod: '5 Yıl',
       shutdownRequirement: '',
       shutdownExplanation: '',
       maintenanceStatus: 'order_not_found' as const,
-      raw: {},
+      raw: latestSource?.raw ?? {},
     };
   });
 }
@@ -699,6 +727,7 @@ function buildSCEPetkimInventoryRows(
       maintenanceStartDate: null,
       maintenanceEndDate: null,
       plannedCompletionDate: null,
+      maintenanceDeadlineDate: latestSource?.maintenanceDeadlineDate ?? null,
       maintenanceItemNo: info.maintenanceItemNo,
       maintenancePlanNo: info.maintenancePlanNo,
       maintenancePeriod: '5 Yıl',
@@ -722,9 +751,11 @@ function resolvePetkimInventoryFactory(businessArea: string) {
 function compareInventoryRowRecency(candidate: SCEV2Row, current: SCEV2Row) {
   const candidateDate =
     candidate.plannedCompletionDate?.getTime() ??
+    candidate.maintenanceDeadlineDate?.getTime() ??
     latestMaintenanceTimestamp(candidate);
   const currentDate =
     current.plannedCompletionDate?.getTime() ??
+    current.maintenanceDeadlineDate?.getTime() ??
     latestMaintenanceTimestamp(current);
   const candidateOrder = numericKey(candidate.orderNo);
   const currentOrder = numericKey(current.orderNo);
@@ -766,6 +797,7 @@ function isInSCEV2ReportingPeriod(
     row.maintenanceStartDate,
     row.maintenanceEndDate,
     company === 'STAR' ? row.plannedCompletionDate : null,
+    row.maintenanceDeadlineDate ?? null,
   ].filter((date): date is Date => date instanceof Date);
 
   if (dates.length === 0) {
@@ -795,6 +827,7 @@ function completenessScore(row: SCEV2Row) {
     Number(Boolean(row.maintenanceStartDate)) +
     Number(Boolean(row.maintenanceEndDate)) +
     Number(Boolean(row.plannedCompletionDate)) +
+    Number(Boolean(row.maintenanceDeadlineDate)) +
     Number(Boolean(row.revision)) +
     Number(Boolean(row.tagNo)) +
     Number(Boolean(row.equipmentDescription))

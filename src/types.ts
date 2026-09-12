@@ -149,10 +149,19 @@ export type SCEV2CalibrationStatus =
   | 'unknown'
   | 'not_applicable';
 
+export type SCEV2MaintenanceDeadlineStatus =
+  | 'not_applicable'
+  | 'completed'
+  | 'overdue'
+  | 'due_soon'
+  | 'on_track';
+
+export type SCEV2Company = 'PETKIM' | 'STAR' | 'ENERGY';
+
 export interface SCEV2Row {
   rowId: string;
   sourceRow: number;
-  company: 'PETKIM' | 'STAR';
+  company: SCEV2Company;
   factory: string;
   businessArea: string;
   unit: string;
@@ -169,6 +178,7 @@ export interface SCEV2Row {
   maintenanceStartDate: Date | null;
   maintenanceEndDate: Date | null;
   plannedCompletionDate: Date | null;
+  maintenanceDeadlineDate?: Date | null;
   maintenanceItemNo: string;
   maintenancePlanNo: string;
   maintenancePeriod: string;
@@ -213,6 +223,7 @@ export interface SCEV2DeferralRow {
 export interface SCEV2DashboardRow extends SCEV2Row {
   calibrationStatus: SCEV2CalibrationStatus;
   deferralStatus: SCEV2DeferralStatus;
+  maintenanceDeadlineStatus: SCEV2MaintenanceDeadlineStatus;
   controlNote: string;
   controlUpdatedBy: string;
   controlUpdatedAt: Date | null;

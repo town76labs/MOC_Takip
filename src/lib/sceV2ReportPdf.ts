@@ -5,14 +5,15 @@ import type {
   TDocumentDefinitions,
   TVirtualFileSystem,
 } from 'pdfmake/interfaces';
-import type { SCEV2DashboardRow } from '../types';
+import type { SCEV2Company, SCEV2DashboardRow } from '../types';
+import { energyCriticalFactoryLabel } from './energyCriticalFactories';
 import { formatDate } from './normalize';
 
 export type SCEV2ReportType = 'executive' | 'detailed';
 
 interface SCEV2ReportOptions {
   rows: SCEV2DashboardRow[];
-  company: 'PETKIM' | 'STAR';
+  company: SCEV2Company;
   type: SCEV2ReportType;
   scopeLabel: string;
 }
@@ -42,7 +43,9 @@ const COLORS = {
   green: '#059669',
   amber: '#d97706',
   rose: '#e11d48',
+  purple: '#8b5cf6',
   gray: '#64748b',
+  white: '#ffffff',
 };
 
 const FACTORY_LABELS: Record<string, string> = {
@@ -89,7 +92,7 @@ export async function downloadSCEV2ReportPdf(options: SCEV2ReportOptions) {
   await pdfMake
     .createPdf(buildSCEV2ReportDefinition(options))
     .download(
-      `${slugify(`sce-${companyLabel(options.company)}-${reportName}`)}.pdf`,
+      `${slugify(`${reportTitle(options.company)}-${reportName}`)}.pdf`,
     );
 }
 
@@ -105,7 +108,7 @@ export function buildSCEV2ReportDefinition({
     pageOrientation: 'landscape',
     pageMargins: [30, 34, 30, 34],
     info: {
-      title: `SCE ${companyLabel(company)} ${reportName}`,
+      title: `${reportTitle(company)} - ${reportName}`,
       author: 'Enstrüman Bakım Müdürlüğü',
       subject: scopeLabel,
     },
@@ -115,7 +118,7 @@ export function buildSCEV2ReportDefinition({
     footer: (currentPage, pageCount) => ({
       columns: [
         {
-          text: `Enstrüman Bakım Müdürlüğü · SCE · ${companyLabel(company)}`,
+          text: `Enstrüman Bakım Müdürlüğü · ${reportProductLabel(company)}`,
           alignment: 'left',
         },
         { text: `${currentPage} / ${pageCount}`, alignment: 'right' },
@@ -129,18 +132,32 @@ export function buildSCEV2ReportDefinition({
 
 function buildReportContent(
   rows: SCEV2DashboardRow[],
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
   type: SCEV2ReportType,
   scopeLabel: string,
 ): Content[] {
   const metrics = buildMetrics(rows);
-  const accent = company === 'STAR' ? COLORS.star : COLORS.sky;
+  const accent =
+    company === 'STAR'
+      ? COLORS.star
+      : company === 'ENERGY'
+        ? COLORS.amber
+        : COLORS.sky;
   const completionRows = buildCompletionRows(rows, company);
   const statusDistribution: DistributionRow[] = [
     { label: 'Bakımı Tamamlanan', value: metrics.completed, color: COLORS.green },
     { label: 'Duruşa Ertelenen', value: metrics.deferred, color: COLORS.amber },
     { label: 'Bakımı Yapılmayan', value: metrics.notCompleted, color: COLORS.rose },
     { label: 'Sipariş Kaydı Yok', value: metrics.orderNotFound, color: COLORS.gray },
+    ...(company !== 'ENERGY'
+      ? [
+          {
+            label: 'Programa Girmeyenler',
+            value: metrics.notInProgram,
+            color: COLORS.purple,
+          },
+        ]
+      : []),
   ];
 
   const content: Content[] = [
@@ -151,7 +168,9 @@ function buildReportContent(
         formatNumber(metrics.total),
         company === 'STAR'
           ? `${formatNumber(metrics.orderNotFound)} sipariş kaydı yok`
-          : 'Tekilleştirilmiş kayıt',
+          : company === 'ENERGY'
+            ? 'Gömülü kritik ekipman envanteri'
+            : 'Tekilleştirilmiş kayıt',
       ],
       [
         'Bakımı Tamamlanan',
@@ -161,130 +180,291 @@ function buildReportContent(
       ['Duruşa Ertelenen', formatNumber(metrics.deferred), 'BEK içeren kayıt'],
       ['Bakımı Yapılmayan', formatNumber(metrics.notCompleted), 'Aksiyon gerekli'],
     ], accent),
+    kpiGrid(
+      [
+        [
+          'Overdue',
+          formatNumber(metrics.maintenanceOverdue),
+          'Planlanan tarihi geçmiş, tamamlanmamış',
+        ],
+        [
+          'Overdue Yaklaşıyor',
+          formatNumber(metrics.maintenanceDueSoon),
+          'Planlanan tarihe bir ay veya daha az kaldı',
+        ],
+      ],
+      accent,
+    ),
     {
       columns: [
         {
-          width: 250,
+          width: '*',
           stack: [
             sectionTitle('Genel Bakım Durumu'),
-            vectorBarChart(statusDistribution, metrics.total, 220),
+            vectorBarChart(statusDistribution, metrics.total, 330),
           ],
         },
         { width: 18, text: '' },
         {
           width: '*',
           stack: [
-            sectionTitle(
-              company === 'STAR'
-                ? 'Konsol Bazlı Tamamlanma Oranları'
-                : 'Fabrika Bazlı Tamamlanma Oranları',
+            sectionTitle('Planlanan Tarih Takibi'),
+            vectorBarChart(
+              [
+                {
+                  label: 'Overdue',
+                  value: metrics.maintenanceOverdue,
+                  color: COLORS.rose,
+                },
+                {
+                  label: 'Overdue Yaklaşıyor',
+                  value: metrics.maintenanceDueSoon,
+                  color: COLORS.amber,
+                },
+                {
+                  label: 'Takviminde',
+                  value: metrics.maintenanceOnTrack,
+                  color: COLORS.green,
+                },
+              ],
+              metrics.maintenanceOverdue +
+                metrics.maintenanceDueSoon +
+                metrics.maintenanceOnTrack,
+              330,
             ),
-            completionChart(completionRows, 420, accent),
           ],
         },
       ],
     },
   ];
 
-  const followUpStack: Content[] = [controlStatusOverview(metrics)];
+  content.push(
+    buildMaintenanceOverviewPage(
+      rows,
+      completionRows,
+      accent,
+      metrics,
+      company,
+    ),
+  );
+
   if (type === 'detailed') {
-    const equipmentTypes = buildEquipmentTypeCompletionRows(rows);
     const actionRows = rows
       .filter((row) => row.maintenanceStatus !== 'completed')
       .sort(compareActionRows);
-    followUpStack.push(
-      {
-        text: 'Ekipman Tipi Tamamlanma Oranları',
-        style: 'section',
-      },
-      {
-        text: 'Her ekipman tipi için tamamlanan / toplam ekipman adedi ve tamamlanma yüzdesi',
-        style: 'small',
-        margin: [0, 0, 0, 8],
-      },
-      completionChart(equipmentTypes, 500, accent),
+    const overdueRows = actionRows
+      .filter((row) => row.maintenanceDeadlineStatus === 'overdue')
+      .sort(compareDeadlineRows);
+    const dueSoonRows = actionRows
+      .filter((row) => row.maintenanceDeadlineStatus === 'due_soon')
+      .sort(compareDeadlineRows);
+    const otherActionRows = actionRows.filter(
+      (row) =>
+        row.maintenanceDeadlineStatus !== 'overdue' &&
+        row.maintenanceDeadlineStatus !== 'due_soon',
     );
     content.push(
       {
-        stack: followUpStack,
+        stack: [
+          {
+            text: `Overdue Ekipmanlar (${formatNumber(overdueRows.length)})`,
+            style: 'section',
+          },
+          overdueRows.length > 0
+            ? equipmentTable(overdueRows, company)
+            : emptyNote('Seçili kapsamda overdue ekipman bulunmuyor.'),
+        ],
         pageBreak: 'before',
       },
       {
-        text: 'Aksiyon Gerektiren Ekipmanlar',
-        style: 'section',
+        stack: [
+          {
+            text: `Overdue Yaklaşan Ekipmanlar (${formatNumber(dueSoonRows.length)})`,
+            style: 'section',
+          },
+          dueSoonRows.length > 0
+            ? equipmentTable(dueSoonRows, company)
+            : emptyNote('Seçili kapsamda overdue yaklaşan ekipman bulunmuyor.'),
+        ],
+        pageBreak: 'before',
       },
-      actionRows.length > 0
-        ? equipmentTable(actionRows, company)
-        : emptyNote('Seçili kapsamda aksiyon gerektiren ekipman bulunmuyor.'),
     );
-  } else {
-    content.push({ stack: followUpStack, pageBreak: 'before' });
+    if (otherActionRows.length > 0) {
+      content.push(
+        {
+          stack: [
+            {
+              text: `Diğer Aksiyon Gerektiren Ekipmanlar (${formatNumber(otherActionRows.length)})`,
+              style: 'section',
+            },
+            equipmentTable(otherActionRows, company),
+          ],
+          pageBreak: 'before',
+        },
+      );
+    }
   }
 
   return content;
 }
 
 function reportHeading(
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
   type: SCEV2ReportType,
   scopeLabel: string,
   accent: string,
 ): Content[] {
   const reportName = type === 'executive' ? 'Yönetici Özeti' : 'Detaylı Rapor';
+  return modernReportHeading(company, reportName, scopeLabel, accent);
+}
+
+function modernReportHeading(
+  company: SCEV2Company,
+  reportName: string,
+  scopeLabel: string,
+  accent: string,
+): Content[] {
+  const scopePrefix =
+    company === 'ENERGY'
+      ? /^Enerji Kritik\s*·\s*/i
+      : company === 'STAR'
+        ? /^Star\s*·\s*/i
+        : /^Petkim\s*·\s*/i;
+  const cleanScope = scopeLabel.replace(scopePrefix, '');
+  const headerAccent =
+    company === 'ENERGY'
+      ? '#fbbf24'
+      : company === 'STAR'
+        ? '#f87171'
+        : '#38bdf8';
+  const reportTone =
+    company === 'ENERGY'
+      ? '#fed7aa'
+      : company === 'STAR'
+        ? '#fecaca'
+        : '#bae6fd';
+  const scopeFill =
+    company === 'ENERGY'
+      ? '#fff7ed'
+      : company === 'STAR'
+        ? '#fef2f2'
+        : '#f0f9ff';
+  const scopeColor =
+    company === 'ENERGY'
+      ? '#b45309'
+      : company === 'STAR'
+        ? '#b91c1c'
+        : '#0369a1';
   return [
     {
-      columns: [
-        {
-          width: '*',
-          stack: [
+      table: {
+        widths: [7, '*', 178],
+        body: [
+          [
             {
-              text: 'Enstrüman Bakım Müdürlüğü',
-              style: 'eyebrow',
-              color: accent,
+              text: '',
+              fillColor: accent,
+              margin: [0, 29, 0, 29],
             },
             {
-              text: `${companyLabel(company)} SCE ${reportName}`,
-              style: 'title',
+              stack: [
+                {
+                  text: 'ENSTRÜMAN BAKIM MÜDÜRLÜĞÜ',
+                  fontSize: 7.5,
+                  bold: true,
+                  characterSpacing: 1.4,
+                  color: headerAccent,
+                },
+                {
+                  text: reportTitle(company),
+                  fontSize: 20,
+                  bold: true,
+                  color: COLORS.white,
+                  margin: [0, 5, 0, 0],
+                },
+                {
+                  text: reportName.toLocaleUpperCase('tr-TR'),
+                  fontSize: 10,
+                  bold: true,
+                  color: reportTone,
+                  margin: [0, 6, 0, 0],
+                },
+              ],
+              fillColor: '#0f172a',
+              margin: [16, 13, 10, 13],
             },
             {
-              text: `Kapsam: ${scopeLabel} · Dönem: 2026 ve sonrası`,
-              style: 'subtitle',
+              stack: [
+                {
+                  text:
+                    company === 'ENERGY'
+                      ? 'ENERJİ / ÇEVRE KRİTİK'
+                      : company === 'STAR'
+                        ? 'STAR SCE'
+                        : 'PETKİM SCE',
+                  alignment: 'right',
+                  fontSize: 9,
+                  bold: true,
+                  color: COLORS.white,
+                },
+                {
+                  text:
+                    company === 'ENERGY'
+                      ? 'BAKIM PERFORMANS RAPORU'
+                      : 'PERİYODİK BAKIM RAPORU',
+                  alignment: 'right',
+                  fontSize: 7,
+                  bold: true,
+                  color: headerAccent,
+                  margin: [0, 7, 0, 0],
+                },
+                {
+                  text: formatReportDate(new Date()),
+                  alignment: 'right',
+                  fontSize: 8,
+                  color: '#cbd5e1',
+                  margin: [0, 14, 0, 0],
+                },
+              ],
+              fillColor: '#0f172a',
+              margin: [10, 15, 14, 13],
             },
           ],
-        },
-        {
-          width: 165,
-          stack: [
-            {
-              text: `${companyLabel(company).toLocaleUpperCase('tr-TR')} · SCE`,
-              alignment: 'right',
-              bold: true,
-              color: COLORS.navy,
-            },
-            {
-              text: formatReportDate(new Date()),
-              alignment: 'right',
-              fontSize: 8,
-              color: COLORS.muted,
-              margin: [0, 6, 0, 0],
-            },
-          ],
-        },
-      ],
+        ],
+      },
+      layout: 'noBorders',
+      margin: [0, 0, 0, 7],
     },
     {
-      canvas: [
-        {
-          type: 'line',
-          x1: 0,
-          y1: 0,
-          x2: 782,
-          y2: 0,
-          lineWidth: 1.4,
-          lineColor: accent,
-        },
-      ],
-      margin: [0, 13, 0, 10],
+      table: {
+        widths: ['*'],
+        body: [
+          [
+            {
+              columns: [
+                {
+                  text: 'KAPSAM',
+                  width: 48,
+                  fontSize: 7,
+                  bold: true,
+                  color: scopeColor,
+                },
+                {
+                  text: cleanScope || 'Tüm Fabrikalar',
+                  width: '*',
+                  fontSize: 8,
+                  bold: true,
+                  color: COLORS.slate,
+                },
+              ],
+              fillColor: scopeFill,
+              margin: [12, 7, 12, 7],
+            },
+          ],
+        ],
+      },
+      layout: 'noBorders',
+      margin: [0, 0, 0, 5],
     },
   ];
 }
@@ -355,6 +535,130 @@ function completionChart(rows: CompletionRow[], width: number, accent: string): 
   };
 }
 
+function buildMaintenanceOverviewPage(
+  rows: SCEV2DashboardRow[],
+  completionRows: CompletionRow[],
+  accent: string,
+  metrics: ReturnType<typeof buildMetrics>,
+  company: SCEV2Company,
+): Content {
+  const splitIndex = Math.ceil(completionRows.length / 2);
+  return {
+    pageBreak: 'before',
+    stack: [
+      sectionTitle(
+        company === 'STAR'
+          ? 'Konsol Bazlı Tamamlanma Oranları'
+          : 'Fabrika Bazlı Tamamlanma Oranları',
+      ),
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [completionChart(completionRows.slice(0, splitIndex), 330, accent)],
+          },
+          { width: 18, text: '' },
+          {
+            width: '*',
+            stack: [completionChart(completionRows.slice(splitIndex), 330, accent)],
+          },
+        ],
+      },
+      {
+        stack: [controlStatusOverview(metrics, company)],
+        margin: [0, 5, 0, 0],
+      },
+      deadlinePreviewColumns(rows, company),
+    ],
+  };
+}
+
+function deadlinePreviewColumns(
+  rows: SCEV2DashboardRow[],
+  company: SCEV2Company,
+): Content {
+  const overdueRows = rows
+    .filter((row) => row.maintenanceDeadlineStatus === 'overdue')
+    .sort(compareDeadlineRows);
+  const dueSoonRows = rows
+    .filter((row) => row.maintenanceDeadlineStatus === 'due_soon')
+    .sort(compareDeadlineRows);
+  return {
+    columns: [
+      {
+        width: '*',
+        stack: [
+          deadlinePreviewTable(
+            'Overdue Ekipmanlar',
+            overdueRows,
+            COLORS.rose,
+            company,
+          ),
+        ],
+      },
+      { width: 18, text: '' },
+      {
+        width: '*',
+        stack: [
+          deadlinePreviewTable(
+            'Overdue Yaklaşan Ekipmanlar',
+            dueSoonRows,
+            COLORS.amber,
+            company,
+          ),
+        ],
+      },
+    ],
+    margin: [0, 8, 0, 0],
+  };
+}
+
+function deadlinePreviewTable(
+  title: string,
+  rows: SCEV2DashboardRow[],
+  color: string,
+  company: SCEV2Company,
+): Content {
+  const previewRows = rows.slice(0, 3);
+  return {
+    stack: [
+      {
+        text: `${title} (${formatNumber(rows.length)})`,
+        style: 'section',
+        color,
+      },
+      {
+        text:
+          rows.length > previewRows.length
+            ? `Planlanan tarih sırasındaki ilk ${previewRows.length} kayıt gösteriliyor.`
+            : 'Planlanan tarih sırasına göre tüm kayıtlar gösteriliyor.',
+        style: 'small',
+        margin: [0, 0, 0, 6],
+      },
+      previewRows.length > 0
+        ? standardTable(
+            [
+              company === 'STAR' ? 'Konsol / Ünite' : 'Fabrika',
+              'Tag / Ekipman',
+              'Planlanan Tarih',
+            ],
+            previewRows.map((row) => [
+              company === 'ENERGY'
+                ? energyCriticalFactoryLabel(row.businessArea) || 'Belirsiz'
+                : company === 'STAR'
+                  ? `${row.consoleName || '—'} / ${row.unit || '—'}`
+                  : FACTORY_LABELS[row.factory] ?? row.factory ?? 'Belirsiz',
+              row.tagNo || row.equipmentNo || '—',
+              formatDate(row.maintenanceDeadlineDate),
+            ]),
+            [70, 150, 75],
+          )
+        : emptyNote('Bu kategoride ekipman bulunmuyor.'),
+    ],
+    unbreakable: true,
+  };
+}
+
 function vectorBarChart(
   rows: DistributionRow[],
   total: number,
@@ -403,12 +707,34 @@ function vectorBarChart(
 
 function controlStatusOverview(
   metrics: ReturnType<typeof buildMetrics>,
+  company: SCEV2Company,
 ): Content {
   const deferralTotal = metrics.deferralStarted + metrics.deferralRequired;
   const calibrationTotal =
     metrics.calibrationShared +
     metrics.calibrationNotShared +
     metrics.calibrationUnknown;
+  const deferralRows: DistributionRow[] = [
+    {
+      label: 'Deferral Başlatıldı',
+      value: metrics.deferralStarted,
+      color: COLORS.sky,
+    },
+    {
+      label: 'Deferral Başlatılmalı',
+      value: metrics.deferralRequired,
+      color: COLORS.star,
+    },
+    ...(company === 'ENERGY'
+      ? []
+      : [
+          {
+            label: 'Overdue Aksiyon',
+            value: metrics.deferralOverdue,
+            color: COLORS.amber,
+          },
+        ]),
+  ];
   return {
     stack: [
       sectionTitle('Deferral ve Kalibrasyon Takibi'),
@@ -427,7 +753,10 @@ function controlStatusOverview(
                     color: COLORS.navy,
                   },
                   {
-                    text: `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı · Overdue: ${metrics.deferralOverdue}`,
+                    text:
+                      company === 'ENERGY'
+                        ? `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı`
+                        : `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı\nOverdue: ${metrics.deferralOverdue}`,
                     width: 82,
                     alignment: 'right',
                     fontSize: 7.5,
@@ -437,27 +766,7 @@ function controlStatusOverview(
                 ],
                 margin: [0, 0, 0, 6],
               },
-              vectorBarChart(
-                [
-                  {
-                    label: 'Deferral Başlatıldı',
-                    value: metrics.deferralStarted,
-                    color: COLORS.sky,
-                  },
-                  {
-                    label: 'Deferral Başlatılmalı',
-                    value: metrics.deferralRequired,
-                    color: COLORS.star,
-                  },
-                  {
-                    label: 'Overdue Aksiyon',
-                    value: metrics.deferralOverdue,
-                    color: COLORS.amber,
-                  },
-                ],
-                deferralTotal,
-                330,
-              ),
+              vectorBarChart(deferralRows, deferralTotal, 330),
             ],
             fillColor: '#f8fafc',
             margin: [10, 9, 10, 5],
@@ -521,9 +830,14 @@ function controlStatusOverview(
 
 function equipmentTable(
   rows: SCEV2DashboardRow[],
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
 ): Content {
-  const groupHeader = company === 'STAR' ? 'Konsol / Ünite' : 'Fabrika';
+  const groupHeader =
+    company === 'STAR'
+      ? 'Konsol / Ünite'
+      : company === 'ENERGY'
+        ? 'Fabrika'
+        : 'Fabrika';
   return standardTable(
     [
       groupHeader,
@@ -535,13 +849,17 @@ function equipmentTable(
       'Bakım Başlangıç',
       'Bakım Bitiş',
       'Bakım Durumu',
+      'Planlanan Tarih',
+      'Termin Durumu',
       'Deferral',
       'Kalibrasyon',
     ],
     rows.map((row) => [
       company === 'STAR'
         ? `${row.consoleName || '—'} / ${row.unit || '—'}`
-        : FACTORY_LABELS[row.factory] ?? row.factory,
+        : company === 'ENERGY'
+          ? energyCriticalFactoryLabel(row.businessArea) || 'Belirsiz'
+          : FACTORY_LABELS[row.factory] ?? row.factory,
       row.equipmentNo || '—',
       row.tagNo || '—',
       row.equipmentType || '—',
@@ -550,10 +868,14 @@ function equipmentTable(
       formatDate(row.maintenanceStartDate),
       formatDate(row.maintenanceEndDate),
       maintenanceLabel(row),
+      formatDate(row.maintenanceDeadlineDate),
+      maintenanceDeadlineLabel(row),
       deferralLabel(row),
       calibrationLabel(row),
     ]),
-    [60, 58, 68, 118, 56, 52, 52, 52, 62, 52, 52],
+    [
+      48, 48, 58, 70, 45, 44, 45, 45, 54, 48, 52, 45, 48,
+    ],
   );
 }
 
@@ -604,17 +926,35 @@ function emptyNote(text: string): Content {
 function buildMetrics(rows: SCEV2DashboardRow[]) {
   return {
     total: rows.length,
-    completed: rows.filter((row) => row.maintenanceStatus === 'completed').length,
-    deferred: rows.filter((row) => row.maintenanceStatus === 'shutdown_deferred').length,
+    completed: rows.filter(
+      (row) => row.maintenanceStatus === 'completed' && !isNotInProgram(row),
+    ).length,
+    deferred: rows.filter(
+      (row) =>
+        row.maintenanceStatus === 'shutdown_deferred' && !isNotInProgram(row),
+    ).length,
     notCompleted: rows.filter(
-      (row) => row.maintenanceStatus === 'maintenance_not_completed',
+      (row) =>
+        row.maintenanceStatus === 'maintenance_not_completed' &&
+        !isNotInProgram(row),
     ).length,
     orderNotFound: rows.filter(
-      (row) => row.maintenanceStatus === 'order_not_found',
+      (row) =>
+        row.maintenanceStatus === 'order_not_found' && !isNotInProgram(row),
     ).length,
+    notInProgram: rows.filter(isNotInProgram).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter((row) => row.deferralStatus === 'required').length,
     deferralOverdue: rows.filter((row) => row.deferralIsOverdue).length,
+    maintenanceOverdue: rows.filter(
+      (row) => row.maintenanceDeadlineStatus === 'overdue',
+    ).length,
+    maintenanceDueSoon: rows.filter(
+      (row) => row.maintenanceDeadlineStatus === 'due_soon',
+    ).length,
+    maintenanceOnTrack: rows.filter(
+      (row) => row.maintenanceDeadlineStatus === 'on_track',
+    ).length,
     calibrationShared: rows.filter((row) => row.calibrationStatus === 'shared').length,
     calibrationNotShared: rows.filter(
       (row) => row.calibrationStatus === 'not_shared',
@@ -625,63 +965,50 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
   };
 }
 
+function isNotInProgram(row: SCEV2DashboardRow) {
+  if (row.company === 'STAR') {
+    return Boolean(row.maintenancePlanNo?.trim()) && !row.revision?.trim();
+  }
+  return (
+    row.maintenanceStatus === 'order_not_found' &&
+    Boolean(row.maintenancePlanNo?.trim()) &&
+    !row.revision?.trim()
+  );
+}
+
 function buildCompletionRows(
   rows: SCEV2DashboardRow[],
-  company: 'PETKIM' | 'STAR',
+  company: SCEV2Company,
 ): CompletionRow[] {
   const groups = new Map<string, SCEV2DashboardRow[]>();
   for (const row of rows) {
     const key =
       company === 'STAR'
         ? row.consoleName || 'Konsol Belirsiz'
-        : (FACTORY_LABELS[row.factory] ?? row.factory) || 'Fabrika Belirsiz';
+        : company === 'ENERGY'
+          ? energyCriticalFactoryLabel(row.businessArea) || 'Fabrika Belirsiz'
+          : (FACTORY_LABELS[row.factory] ?? row.factory) || 'Fabrika Belirsiz';
     groups.set(key, [...(groups.get(key) ?? []), row]);
   }
-  return [...groups.entries()]
-    .map(([label, groupRows]) => ({
-      label,
-      total: groupRows.length,
-      completed: groupRows.filter((row) => row.maintenanceStatus === 'completed')
-        .length,
-      deferred: groupRows.filter(
-        (row) => row.maintenanceStatus === 'shutdown_deferred',
-      ).length,
-      notCompleted: groupRows.filter(
-        (row) => row.maintenanceStatus === 'maintenance_not_completed',
-      ).length,
-    }))
-    .sort((left, right) =>
-      left.label.localeCompare(right.label, 'tr', { numeric: true }),
-    );
-}
-
-function buildEquipmentTypeCompletionRows(
-  rows: SCEV2DashboardRow[],
-): CompletionRow[] {
-  const groups = new Map<string, SCEV2DashboardRow[]>();
-  for (const row of rows) {
-    const key = row.equipmentType || 'Ekipman tipi bulunamadı';
-    groups.set(key, [...(groups.get(key) ?? []), row]);
-  }
-
   return [...groups.entries()]
     .map(([label, groupRows]) => ({
       label,
       total: groupRows.length,
       completed: groupRows.filter(
-        (row) => row.maintenanceStatus === 'completed',
+        (row) => row.maintenanceStatus === 'completed' && !isNotInProgram(row),
       ).length,
       deferred: groupRows.filter(
-        (row) => row.maintenanceStatus === 'shutdown_deferred',
+        (row) =>
+          row.maintenanceStatus === 'shutdown_deferred' && !isNotInProgram(row),
       ).length,
       notCompleted: groupRows.filter(
-        (row) => row.maintenanceStatus === 'maintenance_not_completed',
+        (row) =>
+          row.maintenanceStatus === 'maintenance_not_completed' &&
+          !isNotInProgram(row),
       ).length,
     }))
-    .sort(
-      (left, right) =>
-        right.total - left.total ||
-        left.label.localeCompare(right.label, 'tr', { numeric: true }),
+    .sort((left, right) =>
+      left.label.localeCompare(right.label, 'tr', { numeric: true }),
     );
 }
 
@@ -701,6 +1028,16 @@ function deferralLabel(row: SCEV2DashboardRow) {
   return 'Gerekmez';
 }
 
+function maintenanceDeadlineLabel(row: SCEV2DashboardRow) {
+  return {
+    not_applicable: 'Uygulanmaz',
+    completed: 'Tamamlandı',
+    overdue: 'Overdue',
+    due_soon: 'Overdue Yaklaşıyor',
+    on_track: 'Takviminde',
+  }[row.maintenanceDeadlineStatus];
+}
+
 function calibrationLabel(row: SCEV2DashboardRow) {
   if (row.calibrationStatus === 'shared') return 'Paylaşıldı';
   if (row.calibrationStatus === 'not_shared') return 'Paylaşılmadı';
@@ -708,16 +1045,52 @@ function calibrationLabel(row: SCEV2DashboardRow) {
   return 'Bilgi Bekleniyor';
 }
 
-function compareActionRows(left: SCEV2DashboardRow, right: SCEV2DashboardRow) {
+function compareDeadlineRows(
+  left: SCEV2DashboardRow,
+  right: SCEV2DashboardRow,
+) {
   return (
+    (left.maintenanceDeadlineDate?.getTime() ?? Infinity) -
+      (right.maintenanceDeadlineDate?.getTime() ?? Infinity) ||
+    left.factory.localeCompare(right.factory, 'tr', { numeric: true }) ||
+    left.equipmentNo.localeCompare(right.equipmentNo, 'tr', { numeric: true })
+  );
+}
+
+function compareActionRows(left: SCEV2DashboardRow, right: SCEV2DashboardRow) {
+  const deadlinePriority = (row: SCEV2DashboardRow) => {
+    if (row.maintenanceDeadlineStatus === 'overdue') return 0;
+    if (row.maintenanceDeadlineStatus === 'due_soon') return 1;
+    return 2;
+  };
+  return (
+    deadlinePriority(left) - deadlinePriority(right) ||
     maintenanceLabel(left).localeCompare(maintenanceLabel(right), 'tr') ||
     left.factory.localeCompare(right.factory, 'tr', { numeric: true }) ||
     left.equipmentNo.localeCompare(right.equipmentNo, 'tr', { numeric: true })
   );
 }
 
-function companyLabel(company: 'PETKIM' | 'STAR') {
-  return company === 'STAR' ? 'Star' : 'Petkim';
+function companyLabel(company: SCEV2Company) {
+  if (company === 'STAR') return 'Star';
+  if (company === 'ENERGY') return 'Enerji Kritik';
+  return 'Petkim';
+}
+
+function reportProductLabel(company: SCEV2Company) {
+  return company === 'ENERGY'
+    ? 'Enerji / Çevre Kritik'
+    : `${companyLabel(company)} SCE`;
+}
+
+function reportTitle(company: SCEV2Company) {
+  if (company === 'ENERGY') {
+    return 'Enerji/Çevre Kritik Ekipman Bakımları Raporu';
+  }
+  if (company === 'PETKIM') {
+    return 'Petkim SCE Ekipman Bakımları Raporu';
+  }
+  return 'Star SCE Ekipman Bakımları Raporu';
 }
 
 function percent(value: number, total: number) {

@@ -28,6 +28,7 @@ import {
   parseSCEV2SAPExcel,
 } from '../lib/sceV2Parser';
 import { parseSCEV2DeferralExcel } from '../lib/sceV2DeferralParser';
+import { parseEnergyCriticalSAPExcel } from '../lib/energyCriticalParser';
 import { parseSATExcel } from '../lib/satParser';
 import { parseSATBudgetExcel } from '../lib/satBudgetParser';
 import {
@@ -61,6 +62,9 @@ interface DataState {
   sceV2PetkimControlRows: SCEV2ControlRow[];
   sceV2StarControlRows: SCEV2ControlRow[];
   sceV2DeferralRows: SCEV2DeferralRow[];
+  energyCriticalRows: SCEV2Row[];
+  energyCriticalControlRows: SCEV2ControlRow[];
+  energyCriticalDeferralRows: SCEV2DeferralRow[];
   rcaRows: RCARow[];
   satRows: SATRow[];
   satExportRows: SATExportRow[];
@@ -78,6 +82,9 @@ interface DataState {
   sceV2PetkimControlFile: FileMeta | null;
   sceV2StarControlFile: FileMeta | null;
   sceV2DeferralFile: FileMeta | null;
+  energyCriticalFile: FileMeta | null;
+  energyCriticalControlFile: FileMeta | null;
+  energyCriticalDeferralFile: FileMeta | null;
   rcaFile: FileMeta | null;
   satFile: FileMeta | null;
   satBudgetFile: FileMeta | null;
@@ -95,6 +102,9 @@ interface DataState {
   sceV2PetkimControlLoading: boolean;
   sceV2StarControlLoading: boolean;
   sceV2DeferralLoading: boolean;
+  energyCriticalLoading: boolean;
+  energyCriticalControlLoading: boolean;
+  energyCriticalDeferralLoading: boolean;
   rcaLoading: boolean;
   satLoading: boolean;
   satBudgetLoading: boolean;
@@ -110,6 +120,9 @@ interface DataState {
   sceV2PetkimControlError: ParseError | null;
   sceV2StarControlError: ParseError | null;
   sceV2DeferralError: ParseError | null;
+  energyCriticalError: ParseError | null;
+  energyCriticalControlError: ParseError | null;
+  energyCriticalDeferralError: ParseError | null;
   rcaError: ParseError | null;
   satError: ParseError | null;
   satBudgetError: ParseError | null;
@@ -131,6 +144,9 @@ interface DataState {
   uploadSCEV2PetkimControl: (file: File) => Promise<void>;
   uploadSCEV2StarControl: (file: File) => Promise<void>;
   uploadSCEV2Deferral: (file: File) => Promise<void>;
+  uploadEnergyCritical: (file: File) => Promise<void>;
+  uploadEnergyCriticalControl: (file: File) => Promise<void>;
+  uploadEnergyCriticalDeferral: (file: File) => Promise<void>;
   uploadRCA: (file: File) => Promise<void>;
   uploadSAT: (file: File) => Promise<void>;
   uploadSATBudget: (file: File) => Promise<void>;
@@ -146,6 +162,9 @@ interface DataState {
   clearSCEV2PetkimControl: () => void;
   clearSCEV2StarControl: () => void;
   clearSCEV2Deferral: () => void;
+  clearEnergyCritical: () => void;
+  clearEnergyCriticalControl: () => void;
+  clearEnergyCriticalDeferral: () => void;
   clearRCA: () => void;
   clearSAT: () => void;
   clearSATBudget: () => void;
@@ -167,6 +186,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2PetkimControlRows: [],
   sceV2StarControlRows: [],
   sceV2DeferralRows: [],
+  energyCriticalRows: [],
+  energyCriticalControlRows: [],
+  energyCriticalDeferralRows: [],
   rcaRows: [],
   satRows: [],
   satExportRows: [],
@@ -184,6 +206,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2PetkimControlFile: null,
   sceV2StarControlFile: null,
   sceV2DeferralFile: null,
+  energyCriticalFile: null,
+  energyCriticalControlFile: null,
+  energyCriticalDeferralFile: null,
   rcaFile: null,
   satFile: null,
   satBudgetFile: null,
@@ -199,6 +224,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2PetkimControlLoading: false,
   sceV2StarControlLoading: false,
   sceV2DeferralLoading: false,
+  energyCriticalLoading: false,
+  energyCriticalControlLoading: false,
+  energyCriticalDeferralLoading: false,
   rcaLoading: false,
   satLoading: false,
   satBudgetLoading: false,
@@ -214,6 +242,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   sceV2PetkimControlError: null,
   sceV2StarControlError: null,
   sceV2DeferralError: null,
+  energyCriticalError: null,
+  energyCriticalControlError: null,
+  energyCriticalDeferralError: null,
   rcaError: null,
   satError: null,
   satBudgetError: null,
@@ -483,6 +514,84 @@ export const useDataStore = create<DataState>((set, get) => ({
     });
   },
 
+  uploadEnergyCritical: async (file: File) => {
+    set({ energyCriticalLoading: true, energyCriticalError: null });
+    const { data, error } = await parseEnergyCriticalSAPExcel(file);
+    if (error) {
+      set({
+        energyCriticalLoading: false,
+        energyCriticalError: error,
+        energyCriticalRows: [],
+        energyCriticalFile: null,
+      });
+      return;
+    }
+    set({
+      energyCriticalLoading: false,
+      energyCriticalRows: data,
+      energyCriticalFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      energyCriticalError: null,
+    });
+  },
+
+  uploadEnergyCriticalControl: async (file: File) => {
+    set({
+      energyCriticalControlLoading: true,
+      energyCriticalControlError: null,
+    });
+    const { data, error } = await parseSCEV2ControlExcel(file, 'ENERGY');
+    if (error) {
+      set({
+        energyCriticalControlLoading: false,
+        energyCriticalControlError: error,
+        energyCriticalControlRows: [],
+        energyCriticalControlFile: null,
+      });
+      return;
+    }
+    set({
+      energyCriticalControlLoading: false,
+      energyCriticalControlRows: data,
+      energyCriticalControlFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      energyCriticalControlError: null,
+    });
+  },
+
+  uploadEnergyCriticalDeferral: async (file: File) => {
+    set({
+      energyCriticalDeferralLoading: true,
+      energyCriticalDeferralError: null,
+    });
+    const { data, error } = await parseSCEV2DeferralExcel(file);
+    if (error) {
+      set({
+        energyCriticalDeferralLoading: false,
+        energyCriticalDeferralError: error,
+        energyCriticalDeferralRows: [],
+        energyCriticalDeferralFile: null,
+      });
+      return;
+    }
+    set({
+      energyCriticalDeferralLoading: false,
+      energyCriticalDeferralRows: data,
+      energyCriticalDeferralFile: {
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date(),
+      },
+      energyCriticalDeferralError: null,
+    });
+  },
+
   uploadRCA: async (file: File) => {
     set({ rcaLoading: true, rcaError: null });
     const { data, error } = await parseRCAExcel(file);
@@ -665,6 +774,24 @@ export const useDataStore = create<DataState>((set, get) => ({
       sceV2DeferralRows: [],
       sceV2DeferralFile: null,
       sceV2DeferralError: null,
+    }),
+  clearEnergyCritical: () =>
+    set({
+      energyCriticalRows: [],
+      energyCriticalFile: null,
+      energyCriticalError: null,
+    }),
+  clearEnergyCriticalControl: () =>
+    set({
+      energyCriticalControlRows: [],
+      energyCriticalControlFile: null,
+      energyCriticalControlError: null,
+    }),
+  clearEnergyCriticalDeferral: () =>
+    set({
+      energyCriticalDeferralRows: [],
+      energyCriticalDeferralFile: null,
+      energyCriticalDeferralError: null,
     }),
   clearRCA: () =>
     set({
