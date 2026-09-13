@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+# MOC Takip Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Enstrüman Bakım Müdürlüğü için MOC, yasal bakım, SCE, Enerji Kritik, SAT,
+RCA ve merkezi mesai takibi uygulaması.
 
-Currently, two official plugins are available:
+## Yerel geliştirme
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Mesai Takibi bağlantısı için `.env.example` dosyasını `.env.local` olarak
+kopyalayın ve Supabase proje URL'si ile publishable anahtarını girin.
+`service_role` anahtarı tarayıcı uygulamasında kullanılmaz.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Doğrulama
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run verify
 ```
+
+Bu komut lint kontrolünü, otomatik testleri ve üretim derlemesini birlikte
+çalıştırır. Supabase kurulum, migrasyon ve veri doğrulama adımları
+[`supabase/README.md`](supabase/README.md) dosyasında yer alır.
+
+## GitHub Pages
+
+`main` dalına gönderilen değişiklikler `.github/workflows/deploy-pages.yml`
+iş akışıyla yayınlanır. Repository **Settings → Secrets and variables →
+Actions** bölümünde şu iki secret tanımlanmalıdır:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+İş akışı bu değerleri doğrular, `npm run verify` komutunu çalıştırır ve yalnızca
+başarılı sonuçta `dist` çıktısını GitHub Pages'e gönderir.

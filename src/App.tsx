@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
   BatteryCharging,
+  Clock3,
   ChevronDown,
   FileChartColumn,
   FileSearch,
@@ -37,6 +38,17 @@ import {
   SCEV2Dashboard,
   SCEV2ScopeSelector,
 } from './components/sce-v2/SCEV2Dashboard';
+import {
+  restoreAuthUser,
+  signInWithUsername,
+  signOut,
+  type AuthUser,
+} from './lib/auth';
+import { canAccessDashboard, type AppMode } from './lib/access';
+
+const OvertimeDashboard = lazy(
+  () => import('./components/overtime/OvertimeDashboard'),
+);
 
 const SCE_V2_FACTORY_OPTIONS = [
   'ISKELE',
@@ -48,25 +60,6 @@ const SCE_V2_FACTORY_OPTIONS = [
   'PP',
   'PA',
 ];
-
-type AppMode =
-  | 'select'
-  | 'moc'
-  | 'legal'
-  | 'sce'
-  | 'sce-v2'
-  | 'energy'
-  | 'sat'
-  | 'rca';
-
-const AUTH_SESSION_KEY = 'moc-dashboard-authenticated';
-const AUTH_USERS = [
-  { username: 'sarkhan.hajizada', password: 'Sarxan*155' },
-  { username: 'kaan.ayaz', password: 'Kaan*570' },
-  { username: 'gokhan.kaya', password: 'gokhan*749' },
-  { username: 'ilhan.keskin', password: '122333444455555' },
-  { username: 'mehmet.zevker', password: 'zevker.123' },
-] as const;
 
 function compareRevisionWeeks(left: string, right: string) {
   const weekValue = (value: string) => {
@@ -81,49 +74,62 @@ function compareRevisionWeeks(left: string, right: string) {
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+  const [authenticatedUser, setAuthenticatedUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    void restoreAuthUser().then((user) => {
+      if (!active) return;
+      setAuthenticatedUser(user);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLogin(username: string, password: string) {
     try {
-      return window.localStorage.getItem(AUTH_SESSION_KEY) === 'true';
-    } catch {
-      return false;
+      const user = await signInWithUsername(username, password);
+      setAuthenticatedUser(user);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Kullanıcı adı veya şifre hatalı.',
+      };
     }
-  });
-
-  function handleLogin(username: string, password: string) {
-    const normalizedUsername = username.trim();
-    const valid = AUTH_USERS.some(
-      (user) =>
-        user.username === normalizedUsername && user.password === password,
-    );
-
-    if (!valid) return false;
-
-    try {
-      window.localStorage.setItem(AUTH_SESSION_KEY, 'true');
-    } catch {
-      // localStorage kapalıysa sadece mevcut sekme oturumu açık kalır.
-    }
-    setIsAuthenticated(true);
-    return true;
   }
 
-  function handleLogout() {
-    try {
-      window.localStorage.removeItem(AUTH_SESSION_KEY);
-    } catch {
-      // localStorage kapalıysa sessiz geç.
-    }
-    setIsAuthenticated(false);
+  async function handleLogout() {
+    await signOut();
+    setAuthenticatedUser(null);
   }
 
-  if (!isAuthenticated) {
+  if (authLoading) return <AuthLoadingScreen />;
+
+  if (!authenticatedUser) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  return <DashboardApp onLogout={handleLogout} />;
+  return (
+    <DashboardApp currentUser={authenticatedUser} onLogout={handleLogout} />
+  );
 }
 
-function DashboardApp({ onLogout }: { onLogout: () => void }) {
+function DashboardApp({
+  currentUser,
+  onLogout,
+}: {
+  currentUser: AuthUser;
+  onLogout: () => void;
+}) {
   const technicalFile = useDataStore((s) => s.technicalFile);
   const actionsFile = useDataStore((s) => s.actionsFile);
   const mocTakipFile = useDataStore((s) => s.mocTakipFile);
@@ -287,6 +293,10 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   );
   const [appMode, setAppMode] = useState<AppMode>('select');
 
+  function openDashboard(mode: AppMode) {
+    if (canAccessDashboard(currentUser, mode)) setAppMode(mode);
+  }
+
   const allLoaded = !!technicalFile && !!actionsFile && !!mocTakipFile;
   const showUploadPanel = !allLoaded || uploadsOpen;
 
@@ -340,6 +350,13 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   }
 
   if (appMode === 'select') {
+    const isOvertimeOnly = currentUser.access === 'overtime_only';
+    const isSCEOnly = currentUser.access === 'sce_only';
+    const restrictedCardClass = (mode: AppMode) =>
+      canAccessDashboard(currentUser, mode)
+        ? ''
+        : 'cursor-not-allowed border-white/5 bg-[#0a0a0a] opacity-45';
+
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
         <button
@@ -364,16 +381,21 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Enstrüman Bakım Müdürlüğü
                 </h1>
                 <p className="mt-2 text-sm text-white/50">
-                  Başlamak istediğiniz dashboard'u seçin.
+                  {isOvertimeOnly
+                    ? 'Bu hesap yalnızca Mesai Takibi bölümüne erişebilir.'
+                    : isSCEOnly
+                      ? 'Bu hesap yalnızca SCE Dashboard bölümüne erişebilir.'
+                    : "Başlamak istediğiniz dashboard'u seçin."}
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
               <button
                 type="button"
-                onClick={() => setAppMode('moc')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-red-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-red-400/30"
+                disabled={!canAccessDashboard(currentUser, 'moc')}
+                onClick={() => openDashboard('moc')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-red-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-red-400/30 ${restrictedCardClass('moc')}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-400 to-red-700 text-white shadow-sm ring-1 ring-white/10">
                   <GitCompareArrows size={25} strokeWidth={1.8} />
@@ -382,14 +404,17 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   MOC Dashboard
                 </div>
                 <div className="mt-3 text-sm text-white/50">
-                  Management of Change
+                  {!canAccessDashboard(currentUser, 'moc')
+                    ? 'Bu hesap için erişim yok'
+                    : 'Management of Change'}
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setAppMode('legal')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-sky-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+                disabled={!canAccessDashboard(currentUser, 'legal')}
+                onClick={() => openDashboard('legal')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-sky-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sky-400/30 ${restrictedCardClass('legal')}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-700 text-white shadow-sm ring-1 ring-white/10">
                   <ShieldCheck size={25} strokeWidth={1.8} />
@@ -398,14 +423,19 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Yasal Bakımlar Dashboard
                 </div>
                 <div className="mt-3 text-sm text-white/50">
-                  SCE ve Enerji Kritik Ekipmanlar
+                  {!canAccessDashboard(currentUser, 'legal')
+                    ? 'Bu hesap için erişim yok'
+                    : isSCEOnly
+                      ? 'Yalnızca SCE Dashboard'
+                      : 'SCE ve Enerji Kritik Ekipmanlar'}
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setAppMode('sat')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-cyan-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                disabled={!canAccessDashboard(currentUser, 'sat')}
+                onClick={() => openDashboard('sat')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-cyan-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30 ${restrictedCardClass('sat')}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-600 text-white shadow-sm">
                   <FileChartColumn size={25} strokeWidth={1.8} />
@@ -414,14 +444,17 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   SAT Takip Dashboard
                 </div>
                 <div className="mt-3 text-sm text-white/50">
-                  Satın Alma Talepleri ve Bütçe Takibi
+                  {!canAccessDashboard(currentUser, 'sat')
+                    ? 'Bu hesap için erişim yok'
+                    : 'Satın Alma Talepleri ve Bütçe Takibi'}
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setAppMode('rca')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-amber-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                disabled={!canAccessDashboard(currentUser, 'rca')}
+                onClick={() => openDashboard('rca')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-amber-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30 ${restrictedCardClass('rca')}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm">
                   <FileSearch size={25} strokeWidth={1.8} />
@@ -430,7 +463,28 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   RCA Dashboard
                 </div>
                 <div className="mt-3 text-sm text-white/50">
-                  Root Cause Analysis Aksiyon Takibi
+                  {!canAccessDashboard(currentUser, 'rca')
+                    ? 'Bu hesap için erişim yok'
+                    : 'Root Cause Analysis Aksiyon Takibi'}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                disabled={!canAccessDashboard(currentUser, 'overtime')}
+                onClick={() => openDashboard('overtime')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-violet-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-violet-400/30 ${restrictedCardClass('overtime')}`}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400 to-indigo-700 text-white shadow-sm ring-1 ring-white/10">
+                  <Clock3 size={25} strokeWidth={1.8} />
+                </div>
+                <div className="mt-8 text-3xl font-semibold text-white">
+                  Mesai Takibi
+                </div>
+                <div className="mt-3 text-sm text-white/50">
+                  {!canAccessDashboard(currentUser, 'overtime')
+                    ? 'Bu hesap için erişim yok'
+                    : 'Formen ve teknisyen mesai yönetimi'}
                 </div>
               </button>
             </div>
@@ -439,6 +493,58 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-medium text-white/45 shadow-elevated backdrop-blur">
           Copyright Sarkhan HAJIZADA
         </div>
+      </div>
+    );
+  }
+
+  if (appMode === 'overtime') {
+    return (
+      <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400 to-indigo-700 text-white shadow-sm ring-1 ring-white/10">
+                <Clock3 size={20} strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-200/65">
+                  Enstrüman Bakım Müdürlüğü
+                </p>
+                <h1 className="text-base font-semibold leading-tight text-white">
+                  Mesai Takibi
+                </h1>
+                <p className="text-xs text-white/50">
+                  Formen ve Teknisyen Mesai Yönetimi
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="hidden rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs text-white/55 sm:inline-flex">
+                {currentUser.username}
+              </span>
+              <button
+                type="button"
+                onClick={() => setAppMode('select')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-400/30"
+              >
+                <ArrowLeft size={16} />
+                Ana Ekran
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          <Suspense
+            fallback={
+              <div className="card p-10 text-center text-sm text-white/50">
+                Mesai Takibi hazırlanıyor…
+              </div>
+            }
+          >
+            <OvertimeDashboard overtimeRole={currentUser.overtimeRole} />
+          </Suspense>
+        </main>
       </div>
     );
   }
@@ -707,6 +813,11 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
   }
 
   if (appMode === 'legal') {
+    const canOpenSCE = canAccessDashboard(currentUser, 'sce-v2');
+    const canOpenEnergy = canAccessDashboard(currentUser, 'energy');
+    const restrictedLegalCardClass =
+      'cursor-not-allowed border-white/5 bg-[#0a0a0a] opacity-45';
+
     return (
       <div className="fintech-shell min-h-screen bg-[#303030] text-slate-100">
         <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur">
@@ -752,8 +863,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <button
                 type="button"
-                onClick={() => setAppMode('sce-v2')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-cyan-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                disabled={!canOpenSCE}
+                onClick={() => openDashboard('sce-v2')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-cyan-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-cyan-400/30 ${canOpenSCE ? '' : restrictedLegalCardClass}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-teal-700 text-white shadow-sm ring-1 ring-white/10">
                   <ListChecks size={25} strokeWidth={1.8} />
@@ -765,8 +877,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 
               <button
                 type="button"
-                onClick={() => setAppMode('energy')}
-                className="group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition hover:border-amber-400/70 hover:bg-white/[0.04] hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                disabled={!canOpenEnergy}
+                onClick={() => openDashboard('energy')}
+                className={`group min-h-56 rounded-lg border border-white/10 bg-[#0d0d0d] p-6 text-left shadow-card transition enabled:hover:border-amber-400/70 enabled:hover:bg-white/[0.04] enabled:hover:shadow-elevated focus:outline-none focus:ring-2 focus:ring-amber-400/30 ${canOpenEnergy ? '' : restrictedLegalCardClass}`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-700 text-white shadow-sm ring-1 ring-white/10">
                   <BatteryCharging size={25} strokeWidth={1.8} />
@@ -775,7 +888,9 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
                   Enerji Kritik Ekipmanlar Dashboard
                 </div>
                 <div className="mt-3 text-sm text-white/50">
-                  Enerji kritik ekipman takipleri
+                  {canOpenEnergy
+                    ? 'Enerji kritik ekipman takipleri'
+                    : 'Bu hesap için erişim yok'}
                 </div>
               </button>
             </div>
@@ -1597,17 +1712,23 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
 function LoginScreen({
   onLogin,
 }: {
-  onLogin: (username: string, password: string) => boolean;
+  onLogin: (
+    username: string,
+    password: string,
+  ) => Promise<{ success: boolean; message?: string }>;
 }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const valid = onLogin(username, password);
-    if (!valid) {
-      setError('Kullanıcı adı veya şifre hatalı.');
+    setSubmitting(true);
+    const result = await onLogin(username, password);
+    setSubmitting(false);
+    if (!result.success) {
+      setError(result.message ?? 'Kullanıcı adı veya şifre hatalı.');
       setPassword('');
       return;
     }
@@ -1726,16 +1847,28 @@ function LoginScreen({
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-cyan-300/35"
+                disabled={submitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-cyan-300/35"
               >
                 <LogIn size={17} />
-                Dashboard'a Gir
+                {submitting ? 'Giriş yapılıyor…' : "Dashboard'a Gir"}
               </button>
             </form>
 
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function AuthLoadingScreen() {
+  return (
+    <div className="fintech-shell flex min-h-screen items-center justify-center bg-[#303030] text-slate-100">
+      <div className="rounded-2xl border border-white/10 bg-[#0d0d0d] px-8 py-7 text-center shadow-elevated">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
+        <p className="mt-4 text-sm text-white/55">Güvenli oturum kontrol ediliyor…</p>
+      </div>
     </div>
   );
 }
