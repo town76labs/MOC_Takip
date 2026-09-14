@@ -38,7 +38,7 @@ planda kalır.
 ## Uygulama sırası
 
 İlk kurulum dosyaları daha önce uygulandıysa FM.xlsx aktarımı için SQL
-Editor'da şu altı dosya sırayla çalıştırılır:
+Editor'da şu yedi dosya sırayla çalıştırılır:
 
 1. `migrations/20260913090000_overtime_legacy_import_foundation.sql`
 2. `import-fm-20260912.sql`
@@ -46,6 +46,7 @@ Editor'da şu altı dosya sırayla çalıştırılır:
 4. `migrations/20260913123000_overtime_governance.sql`
 5. `migrations/20260913140000_overtime_hardening.sql`
 6. `migrations/20260913143000_overtime_production_fixes.sql`
+7. `migrations/20260914093000_correct_shift_calendar_2026.sql`
 
 Aktarım dosyası tekrar çalıştırılabilir. Kaynak referansları aynı Excel
 kaydının ikinci kez eklenmesini engeller. Ekipten ayrılan Celil Akyol hariç
@@ -77,6 +78,10 @@ dosyası SQL Editor'da çalıştırılır. Bu dosya veri değiştirmez. Vardiya
 takvimini, mesai kurallarını, çakışmaları, iptal kayıtlarını, rol tutarlılığını
 ve temel RLS ayrıcalıklarını kontrol eder. Sonuç tablosundaki bütün satırların
 `BASARILI` olması beklenir.
+
+2026 vardiya migrasyonu, Petrol-İş Aliağa vardiya kartındaki 40 takvim
+sütununu A/B/C/D grupları için birebir uygular. `L` grubu hafta içi 08:00–17:00,
+cumartesi ve pazar hafta tatili olarak tutulur.
 
 GitHub Pages dağıtımı için repository Actions secrets bölümünde
 `VITE_SUPABASE_URL` ve `VITE_SUPABASE_PUBLISHABLE_KEY` tanımlanmalıdır.

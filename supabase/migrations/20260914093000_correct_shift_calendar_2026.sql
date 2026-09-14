@@ -1,8 +1,5 @@
--- Petrol-İş Aliağa 2026 üçlü vardiya çizelgesi.
--- Kaynak kart 40 takvim sütunundan oluşur; A/B/C/D dizileri kartın
--- altındaki vardiya satırlarından sütun sütun aktarılmıştır.
--- 12-13.09.2026: A 00-08, B 08-16, C 16-24, D hafta tatili.
--- 14.09.2026: A 00-08, B 08-16, C hafta tatili, D 16-24.
+-- Replace the provisional 20-day inference with the 40-column pattern printed
+-- on the Petrol-İş Aliağa 2026 three-shift schedule card.
 
 with calendar_dates as (
   select day_value::date as work_date
@@ -129,12 +126,3 @@ set
   shift_code = excluded.shift_code,
   schedule_version = excluded.schedule_version,
   updated_at = now();
-
-select
-  work_date,
-  work_group,
-  shift_code,
-  schedule_version
-from public.shift_calendar
-where work_date between date '2026-09-12' and date '2026-09-15'
-order by work_date, work_group;
