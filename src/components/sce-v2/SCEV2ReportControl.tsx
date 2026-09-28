@@ -6,8 +6,10 @@ import {
   downloadSCEV2ReportPdf,
   type SCEV2ReportType,
 } from '../../lib/sceV2ReportPdf';
-import { energyCriticalFactoryLabel } from '../../lib/energyCriticalFactories';
-import { formatDate } from '../../lib/normalize';
+import {
+  buildSCEV2ExcelData,
+  getSCEV2ExcelColumnWidths,
+} from '../../lib/sceV2Excel';
 import { Modal } from '../common/Modal';
 
 interface SCEV2ReportControlProps {
@@ -240,80 +242,16 @@ function downloadFilteredExcel(
   activeFilterLabel: string,
 ) {
   const companyLabel = getCompanyLabel(company);
-  const data = rows.map((row) => ({
-    Şirket: companyLabel,
-    'Fabrika / Ünite':
-      company === 'STAR'
-        ? row.unit
-        : company === 'ENERGY'
-          ? energyCriticalFactoryLabel(row.businessArea)
-          : factoryLabel(row.factory),
-    Konsol: company === 'STAR' ? row.consoleName : '',
-    'Ekipman No': row.equipmentNo,
-    'Tag No / Teknik Birim': row.tagNo,
-    'Ekipman Tanımı': row.equipmentDescription,
-    'Ekipman Tipi': row.equipmentType,
-    'Kategori Tipi': row.categoryType,
-    ...(company !== 'STAR'
-      ? {
-          'Gömülü Bakım Kalemi Tanımı': row.raw.masterMaintenanceDescription,
-          'Sorumlu İşyeri': row.raw.masterWorkCenter,
-          'Planlama Grubu': row.raw.masterPlannerGroup,
-          'Gömülü Listedeki Son Sipariş': row.raw.masterLastOrder,
-          'Masraf Yeri': row.raw.masterCostCenter,
-        }
-      : {}),
-    'Sipariş No': row.orderNo,
-    'Bildirim No': row.notificationNo,
-    'Bakım Plan No': row.maintenancePlanNo,
-    'Bakım Kalemi': row.maintenanceItemNo,
-    'Bakım Periyodu': row.maintenancePeriod,
-    Revizyon: row.revision,
-    ...(company === 'PETKIM'
-      ? {
-          'Duruş Gereklilik / Yapılabilirlik': row.shutdownRequirement,
-          'Duruş Açıklaması': row.shutdownExplanation,
-        }
-      : {}),
-    'SAP Kullanıcı Durumu': row.userStatus,
-    'Bakım Durumu': maintenanceLabel(row),
-    'Deferral Durumu': deferralLabel(row),
-    Overdue: row.deferralIsOverdue ? 'Evet' : 'Hayır',
-    'Overdue Tarihi': formatDate(row.deferralOverdueDate),
-    'Kalibrasyon Raporu': calibrationLabel(row),
-    'Kalibrasyon PDF Sayısı': row.calibrationPdfCount,
-    'Toplam Doküman': row.calibrationDocumentCount,
-    'Rapor Dosyası': row.calibrationReportFile,
-    'Rapor Klasörü': row.calibrationReportFolder,
-    'Bakım Başlangıç Tarihi': formatDate(row.maintenanceStartDate),
-    'Bakım Bitiş Tarihi': formatDate(row.maintenanceEndDate),
-    'Planlanan Tamamlanma Tarihi': formatDate(row.plannedCompletionDate),
-    'Planlanan Tarih': formatDate(row.maintenanceDeadlineDate),
-    'Planlanan Tarih Durumu': maintenanceDeadlineLabel(row),
-    'Kontrol Notu': row.controlNote,
-    'Kontrol Eden': row.controlUpdatedBy,
-    'Kontrol Tarihi': formatDate(row.controlUpdatedAt),
-  }));
+  const data = buildSCEV2ExcelData(rows, company);
 
   const workbook = XLSX.utils.book_new();
   const listSheet = XLSX.utils.json_to_sheet(data);
   listSheet['!autofilter'] = {
-    ref: listSheet['!ref'] ?? `A1:AF${Math.max(rows.length + 1, 2)}`,
+    ref:
+      listSheet['!ref'] ??
+      `A1:${company === 'STAR' ? 'U' : 'AF'}${Math.max(rows.length + 1, 2)}`,
   };
-  listSheet['!cols'] = [
-    { wch: 10 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 24 },
-    { wch: 38 }, { wch: 34 }, { wch: 16 },
-    ...(company !== 'STAR'
-      ? [{ wch: 40 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 18 }]
-      : []),
-    { wch: 16 }, { wch: 16 },
-    { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
-    { wch: 16 },
-    ...(company === 'PETKIM' ? [{ wch: 34 }, { wch: 70 }] : []),
-    { wch: 28 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 18 },
-    { wch: 16 }, { wch: 34 }, { wch: 40 }, { wch: 20 }, { wch: 20 },
-    { wch: 24 }, { wch: 32 }, { wch: 18 }, { wch: 18 },
-  ];
+  listSheet['!cols'] = getSCEV2ExcelColumnWidths(company);
 
   const infoSheet = XLSX.utils.json_to_sheet([
     { Alan: 'Şirket', Değer: companyLabel },
@@ -338,46 +276,6 @@ function getCompanyLabel(company: SCEV2Company) {
   if (company === 'STAR') return 'Star';
   if (company === 'ENERGY') return 'Enerji Kritik';
   return 'Petkim';
-}
-
-function maintenanceLabel(row: SCEV2DashboardRow) {
-  if (row.maintenanceStatus === 'completed') return 'Tamamlandı';
-  if (row.maintenanceStatus === 'shutdown_deferred') return 'Duruşa Ertelendi';
-  if (row.maintenanceStatus === 'order_not_found') return 'Sipariş Kaydı Yok';
-  return 'Bakımı Yapılmadı';
-}
-
-function maintenanceDeadlineLabel(row: SCEV2DashboardRow) {
-  return {
-    not_applicable: 'Uygulanmaz',
-    completed: 'Tamamlandı',
-    overdue: 'Overdue',
-    due_soon: 'Overdue Yaklaşıyor',
-    on_track: 'Takviminde',
-  }[row.maintenanceDeadlineStatus];
-}
-
-function deferralLabel(row: SCEV2DashboardRow) {
-  if (row.deferralStatus === 'started') return 'Deferral Başlatıldı';
-  if (row.deferralStatus === 'required') return 'Deferral Başlatılmalı';
-  return 'Deferral Gerekmiyor';
-}
-
-function calibrationLabel(row: SCEV2DashboardRow) {
-  if (row.calibrationStatus === 'shared') return 'Paylaşıldı';
-  if (row.calibrationStatus === 'not_shared') return 'Paylaşılmadı';
-  if (row.calibrationStatus === 'not_applicable') return 'Uygulanmaz';
-  return 'Bilgi Bekleniyor';
-}
-
-function factoryLabel(value: string) {
-  const labels: Record<string, string> = {
-    ISKELE: 'İskele',
-    ETILEN: 'Etilen',
-    AROMATIKLER: 'Aromatikler',
-    DIGER: 'Diğer',
-  };
-  return labels[value] ?? value;
 }
 
 function slugify(value: string) {

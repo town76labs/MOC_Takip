@@ -185,42 +185,64 @@ export function SCEV2Dashboard({
     [scopeRows, selectedEquipmentType],
   );
   const metrics = useMemo(() => buildMetrics(rows), [rows]);
-  const maintenanceChartData: ChartDatum[] = [
-    {
-      name: 'Tamamlandı',
-      value: metrics.completed,
-      color: '#10b981',
-      filter: 'completed',
-    },
-    {
-      name: 'Duruşa Ertelendi',
-      value: metrics.shutdownDeferred,
-      color: '#f59e0b',
-      filter: 'shutdown_deferred',
-    },
-    {
-      name: 'Bakımı Yapılmadı',
-      value: metrics.notCompleted,
-      color: '#f43f5e',
-      filter: 'maintenance_not_completed',
-    },
-    {
-      name: 'Sipariş Kaydı Yok',
-      value: metrics.orderNotFound,
-      color: '#64748b',
-      filter: 'order_not_found',
-    },
-    ...(company !== 'ENERGY'
+  const maintenanceChartData: ChartDatum[] =
+    company === 'STAR'
       ? [
           {
-            name: 'Programa Girmeyenler',
-            value: metrics.notInProgram,
-            color: '#a78bfa',
-            filter: 'not_in_program' as const,
+            name: 'Tamamlandı',
+            value: metrics.completed,
+            color: '#10b981',
+            filter: 'completed',
+          },
+          {
+            name: 'Duruşa Ertelendi',
+            value: metrics.shutdownDeferred,
+            color: '#f59e0b',
+            filter: 'shutdown_deferred',
+          },
+          {
+            name: 'Overdue',
+            value: metrics.maintenanceOverdue,
+            color: '#ef4444',
+            filter: 'maintenance_overdue',
           },
         ]
-      : []),
-  ];
+      : [
+          {
+            name: 'Tamamlandı',
+            value: metrics.completed,
+            color: '#10b981',
+            filter: 'completed',
+          },
+          {
+            name: 'Duruşa Ertelendi',
+            value: metrics.shutdownDeferred,
+            color: '#f59e0b',
+            filter: 'shutdown_deferred',
+          },
+          {
+            name: 'Bakımı Yapılmadı',
+            value: metrics.notCompleted,
+            color: '#f43f5e',
+            filter: 'maintenance_not_completed',
+          },
+          {
+            name: 'Sipariş Kaydı Yok',
+            value: metrics.orderNotFound,
+            color: '#64748b',
+            filter: 'order_not_found',
+          },
+          ...(company !== 'ENERGY'
+            ? [
+                {
+                  name: 'Programa Girmeyenler',
+                  value: metrics.notInProgram,
+                  color: '#a78bfa',
+                  filter: 'not_in_program' as const,
+                },
+              ]
+            : []),
+        ];
   const deferralChartData: ChartDatum[] = [
     {
       name: 'Başlatıldı',
@@ -462,7 +484,11 @@ export function SCEV2Dashboard({
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <ModernChartCard
           title="Bakım Durumu"
-          subtitle="SAP kullanıcı durumlarının genel dağılımı"
+          subtitle={
+            company === 'STAR'
+              ? 'Tamamlandı, duruşa ertelendi ve overdue görünümü'
+              : 'SAP kullanıcı durumlarının genel dağılımı'
+          }
           accentClass="from-emerald-400/25 via-amber-400/10 to-rose-400/20"
         >
           <div className="relative h-60">
