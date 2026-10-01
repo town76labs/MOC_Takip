@@ -280,13 +280,21 @@ export function SCEV2Dashboard({
       color: '#fb7185',
       filter: 'calibration_not_shared',
     },
-    {
-      name: 'Bilgi Bekleniyor',
-      value: metrics.calibrationUnknown,
-      color: '#64748b',
-      filter: 'calibration_unknown',
-    },
+    ...(company === 'ENERGY'
+      ? [
+          {
+            name: 'Bilgi Bekleniyor',
+            value: metrics.calibrationUnknown,
+            color: '#64748b',
+            filter: 'calibration_unknown' as const,
+          },
+        ]
+      : []),
   ];
+  const calibrationChartTotal =
+    company === 'ENERGY'
+      ? metrics.calibrationApplicable
+      : metrics.calibrationShared + metrics.calibrationNotShared;
   const equipmentTypeChartData = useMemo(() => {
     const counts = new Map<string, number>();
     for (const row of scopeRows.filter((item) => matchesFilter(item, filter))) {
@@ -604,7 +612,11 @@ export function SCEV2Dashboard({
         </ModernChartCard>
 
         <ModernChartCard
-          title="Kalibrasyon Raporları"
+          title={
+            company === 'ENERGY'
+              ? 'Kalibrasyon Raporları'
+              : 'Doğrulama Raporları'
+          }
           subtitle={`Tamamlanan bakımların ${
             company === 'STAR'
               ? 'Star'
@@ -643,14 +655,14 @@ export function SCEV2Dashboard({
             <ChartCenterLabel
               value={`%${percent(
                 metrics.calibrationShared + metrics.calibrationNotShared,
-                metrics.calibrationApplicable,
+                calibrationChartTotal,
               )}`}
               label="Kontrol Edilen"
             />
           </div>
           <ChartLegend
             data={calibrationChartData}
-            total={metrics.calibrationApplicable}
+            total={calibrationChartTotal}
             activeFilter={filter}
             onSelect={selectDashboardFilter}
           />
