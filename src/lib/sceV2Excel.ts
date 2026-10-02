@@ -24,7 +24,6 @@ export const STAR_SCE_EXCEL_HEADERS = [
   'Deferral Durumu',
   'Overdue Durumu',
   'Overdue Tarihi',
-  'Kalibrasyon Raporu',
   'Planlanan Tamamlanma Tarihi',
 ] as const;
 
@@ -43,7 +42,7 @@ export function getSCEV2ExcelColumnWidths(company: SCEV2Company) {
   if (company === 'STAR') {
     return [
       10, 18, 14, 16, 24, 38, 34, 16, 16, 16, 16, 16, 16, 20, 22,
-      22, 22, 20, 18, 22, 26,
+      22, 22, 20, 18, 26,
     ].map((wch) => ({ wch }));
   }
 
@@ -81,7 +80,6 @@ function buildStarExcelRow(row: SCEV2DashboardRow): SCEV2ExcelRow {
     'Deferral Durumu': deferralLabel(row),
     'Overdue Durumu': maintenanceDeadlineLabel(row),
     'Overdue Tarihi': formatDate(row.maintenanceDeadlineDate),
-    'Kalibrasyon Raporu': calibrationLabel(row),
     'Planlanan Tamamlanma Tarihi': formatDate(row.plannedCompletionDate),
   };
 }

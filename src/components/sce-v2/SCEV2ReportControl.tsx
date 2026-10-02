@@ -159,7 +159,7 @@ export function SCEV2ReportControl({
                   </span>
                   <span className="mt-2 block text-xs leading-5 text-slate-500">
                     {option.type === 'detailed'
-                      ? 'Yönetici özetine ek olarak overdue, yaklaşan overdue ve diğer aksiyon gerektiren ekipman listeleri.'
+                      ? 'Yönetici özetine ek olarak overdue ve yaklaşan overdue ekipman listeleri.'
                       : option.description}
                   </span>
                 </button>
@@ -211,8 +211,7 @@ export function SCEV2ReportControl({
           </div>
           <p className="text-xs leading-5 text-slate-500">
             Listede ekipman ve tag numarası, bakım planı, sipariş, revizyon,
-            bakım durumu, deferral/overdue ve kalibrasyon raporu bilgileri
-            bulunur.
+            bakım durumu ve deferral/overdue bilgileri bulunur.
           </p>
           <button
             type="button"
@@ -249,7 +248,7 @@ function downloadFilteredExcel(
   listSheet['!autofilter'] = {
     ref:
       listSheet['!ref'] ??
-      `A1:${company === 'STAR' ? 'U' : 'AF'}${Math.max(rows.length + 1, 2)}`,
+      `A1:${company === 'STAR' ? 'T' : 'AF'}${Math.max(rows.length + 1, 2)}`,
   };
   listSheet['!cols'] = getSCEV2ExcelColumnWidths(company);
 

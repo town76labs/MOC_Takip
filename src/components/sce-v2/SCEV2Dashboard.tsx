@@ -842,7 +842,7 @@ export function SCEV2Dashboard({
                 <th className="px-4 py-3 font-medium">Sipariş</th>
                 <th className="px-4 py-3 font-medium">Kullanıcı Durumu</th>
                 <th className="px-4 py-3 font-medium">Bakım Durumu</th>
-                <th className="px-4 py-3 font-medium">Planlanan Tarih</th>
+                <th className="px-4 py-3 font-medium">Overdue Tarihi</th>
                 {company === 'PETKIM' && (
                   <th className="px-4 py-3 font-medium">Duruş Bilgisi</th>
                 )}
@@ -1725,7 +1725,7 @@ function EquipmentDetailModal({
             />
             <DetailStatus
               icon={<CalendarDays size={18} />}
-              label="Planlanan Tarih Durumu"
+              label="Overdue Durumu"
               value={maintenanceDeadlineLabel(row.maintenanceDeadlineStatus)}
               className={
                 row.maintenanceDeadlineStatus === 'overdue'
@@ -1790,7 +1790,7 @@ function EquipmentDetailModal({
               value={formatDate(row.maintenanceEndDate)}
             />
             <DetailItem
-              label="Planlanan Tarih"
+              label="Overdue Tarihi"
               value={formatDate(row.maintenanceDeadlineDate)}
             />
             {row.company !== 'PETKIM' && (

@@ -584,7 +584,8 @@ function buildSCEStarInventoryRows(
   sourceRows: SCEV2Row[],
 ) {
   const latestByEquipment = new Map<string, SCEV2Row>();
-  for (const row of deduplicateSAPRows(rows)) {
+  const orderConsolidatedRows = applySCEStarOrderCompletionRule(rows);
+  for (const row of deduplicateSAPRows(orderConsolidatedRows)) {
     const key = normalizeKey(row.equipmentNo);
     if (!key) continue;
     const current = latestByEquipment.get(key);
@@ -656,6 +657,31 @@ function buildSCEStarInventoryRows(
       raw: latestSource?.raw ?? {},
     };
   });
+}
+
+export function applySCEStarOrderCompletionRule(rows: SCEV2Row[]) {
+  const rowsByOrder = new Map<string, SCEV2Row[]>();
+  for (const row of rows) {
+    const key = normalizeKey(row.orderNo);
+    if (!key) continue;
+    rowsByOrder.set(key, [...(rowsByOrder.get(key) ?? []), row]);
+  }
+
+  const incompleteOrders = new Set(
+    [...rowsByOrder.entries()]
+      .filter(
+        ([, orderRows]) =>
+          orderRows.length > 1 &&
+          orderRows.some((row) => row.maintenanceStatus !== 'completed'),
+      )
+      .map(([key]) => key),
+  );
+
+  return rows.map((row) =>
+    incompleteOrders.has(normalizeKey(row.orderNo))
+      ? { ...row, maintenanceStatus: 'maintenance_not_completed' as const }
+      : row,
+  );
 }
 
 function buildSCEPetkimInventoryRows(

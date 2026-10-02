@@ -60,14 +60,15 @@ function makeRow(
 }
 
 describe('SCE v2 Excel export', () => {
-  it('STAR çıktısını istenen 21 sütunla ve doğru overdue alanlarıyla üretir', () => {
+  it('STAR çıktısını istenen 20 sütunla ve doğru overdue alanlarıyla üretir', () => {
     const [row] = buildSCEV2ExcelData([makeRow()], 'STAR');
 
     expect(Object.keys(row)).toEqual(STAR_SCE_EXCEL_HEADERS);
     expect(row['Overdue Durumu']).toBe('Overdue Yaklaşıyor');
     expect(row['Overdue Tarihi']).toBe('28.09.2026');
     expect(row['Planlanan Tamamlanma Tarihi']).toBe('28.09.2026');
-    expect(getSCEV2ExcelColumnWidths('STAR')).toHaveLength(21);
+    expect(row).not.toHaveProperty('Kalibrasyon Raporu');
+    expect(getSCEV2ExcelColumnWidths('STAR')).toHaveLength(20);
   });
 
   it('STAR çıktısından boş teknik ve kontrol sütunlarını kaldırır', () => {

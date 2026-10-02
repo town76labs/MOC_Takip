@@ -148,17 +148,11 @@ function buildReportContent(
     { label: 'Bakımı Tamamlanan', value: metrics.completed, color: COLORS.green },
     { label: 'Duruşa Ertelenen', value: metrics.deferred, color: COLORS.amber },
     { label: 'Bakımı Yapılmayan', value: metrics.notCompleted, color: COLORS.rose },
-    { label: 'Sipariş Kaydı Yok', value: metrics.orderNotFound, color: COLORS.gray },
-    ...(company !== 'ENERGY'
-      ? [
-          {
-            label: 'Programa Girmeyenler',
-            value: metrics.notInProgram,
-            color: COLORS.purple,
-          },
-        ]
-      : []),
   ];
+  const maintenanceStatusTotal = statusDistribution.reduce(
+    (total, item) => total + item.value,
+    0,
+  );
 
   const content: Content[] = [
     ...reportHeading(company, type, scopeLabel, accent),
@@ -201,7 +195,7 @@ function buildReportContent(
           width: '*',
           stack: [
             sectionTitle('Genel Bakım Durumu'),
-            vectorBarChart(statusDistribution, metrics.total, 330),
+            vectorBarChart(statusDistribution, maintenanceStatusTotal, 330),
           ],
         },
         { width: 18, text: '' },
@@ -240,7 +234,6 @@ function buildReportContent(
 
   content.push(
     buildMaintenanceOverviewPage(
-      rows,
       completionRows,
       accent,
       metrics,
@@ -258,11 +251,6 @@ function buildReportContent(
     const dueSoonRows = actionRows
       .filter((row) => row.maintenanceDeadlineStatus === 'due_soon')
       .sort(compareDeadlineRows);
-    const otherActionRows = actionRows.filter(
-      (row) =>
-        row.maintenanceDeadlineStatus !== 'overdue' &&
-        row.maintenanceDeadlineStatus !== 'due_soon',
-    );
     content.push(
       {
         stack: [
@@ -289,20 +277,6 @@ function buildReportContent(
         pageBreak: 'before',
       },
     );
-    if (otherActionRows.length > 0) {
-      content.push(
-        {
-          stack: [
-            {
-              text: `Diğer Aksiyon Gerektiren Ekipmanlar (${formatNumber(otherActionRows.length)})`,
-              style: 'section',
-            },
-            equipmentTable(otherActionRows, company),
-          ],
-          pageBreak: 'before',
-        },
-      );
-    }
   }
 
   return content;
@@ -536,7 +510,6 @@ function completionChart(rows: CompletionRow[], width: number, accent: string): 
 }
 
 function buildMaintenanceOverviewPage(
-  rows: SCEV2DashboardRow[],
   completionRows: CompletionRow[],
   accent: string,
   metrics: ReturnType<typeof buildMetrics>,
@@ -565,97 +538,10 @@ function buildMaintenanceOverviewPage(
         ],
       },
       {
-        stack: [controlStatusOverview(metrics, company)],
+        stack: [controlStatusOverview(metrics)],
         margin: [0, 5, 0, 0],
       },
-      deadlinePreviewColumns(rows, company),
     ],
-  };
-}
-
-function deadlinePreviewColumns(
-  rows: SCEV2DashboardRow[],
-  company: SCEV2Company,
-): Content {
-  const overdueRows = rows
-    .filter((row) => row.maintenanceDeadlineStatus === 'overdue')
-    .sort(compareDeadlineRows);
-  const dueSoonRows = rows
-    .filter((row) => row.maintenanceDeadlineStatus === 'due_soon')
-    .sort(compareDeadlineRows);
-  return {
-    columns: [
-      {
-        width: '*',
-        stack: [
-          deadlinePreviewTable(
-            'Overdue Ekipmanlar',
-            overdueRows,
-            COLORS.rose,
-            company,
-          ),
-        ],
-      },
-      { width: 18, text: '' },
-      {
-        width: '*',
-        stack: [
-          deadlinePreviewTable(
-            'Overdue Yaklaşan Ekipmanlar',
-            dueSoonRows,
-            COLORS.amber,
-            company,
-          ),
-        ],
-      },
-    ],
-    margin: [0, 8, 0, 0],
-  };
-}
-
-function deadlinePreviewTable(
-  title: string,
-  rows: SCEV2DashboardRow[],
-  color: string,
-  company: SCEV2Company,
-): Content {
-  const previewRows = rows.slice(0, 3);
-  return {
-    stack: [
-      {
-        text: `${title} (${formatNumber(rows.length)})`,
-        style: 'section',
-        color,
-      },
-      {
-        text:
-          rows.length > previewRows.length
-            ? `Planlanan tarih sırasındaki ilk ${previewRows.length} kayıt gösteriliyor.`
-            : 'Planlanan tarih sırasına göre tüm kayıtlar gösteriliyor.',
-        style: 'small',
-        margin: [0, 0, 0, 6],
-      },
-      previewRows.length > 0
-        ? standardTable(
-            [
-              company === 'STAR' ? 'Konsol / Ünite' : 'Fabrika',
-              'Tag / Ekipman',
-              'Planlanan Tarih',
-            ],
-            previewRows.map((row) => [
-              company === 'ENERGY'
-                ? energyCriticalFactoryLabel(row.businessArea) || 'Belirsiz'
-                : company === 'STAR'
-                  ? `${row.consoleName || '—'} / ${row.unit || '—'}`
-                  : FACTORY_LABELS[row.factory] ?? row.factory ?? 'Belirsiz',
-              row.tagNo || row.equipmentNo || '—',
-              formatDate(row.maintenanceDeadlineDate),
-            ]),
-            [70, 150, 75],
-          )
-        : emptyNote('Bu kategoride ekipman bulunmuyor.'),
-    ],
-    unbreakable: true,
   };
 }
 
@@ -707,13 +593,10 @@ function vectorBarChart(
 
 function controlStatusOverview(
   metrics: ReturnType<typeof buildMetrics>,
-  company: SCEV2Company,
 ): Content {
   const deferralTotal = metrics.deferralStarted + metrics.deferralRequired;
   const calibrationTotal =
-    metrics.calibrationShared +
-    metrics.calibrationNotShared +
-    metrics.calibrationUnknown;
+    metrics.calibrationShared + metrics.calibrationNotShared;
   const deferralRows: DistributionRow[] = [
     {
       label: 'Deferral Başlatıldı',
@@ -725,19 +608,10 @@ function controlStatusOverview(
       value: metrics.deferralRequired,
       color: COLORS.star,
     },
-    ...(company === 'ENERGY'
-      ? []
-      : [
-          {
-            label: 'Overdue Aksiyon',
-            value: metrics.deferralOverdue,
-            color: COLORS.amber,
-          },
-        ]),
   ];
   return {
     stack: [
-      sectionTitle('Deferral ve Kalibrasyon Takibi'),
+      sectionTitle('Deferral ve Doğrulama Takibi'),
       {
         columns: [
           {
@@ -753,10 +627,7 @@ function controlStatusOverview(
                     color: COLORS.navy,
                   },
                   {
-                    text:
-                      company === 'ENERGY'
-                        ? `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı`
-                        : `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı\nOverdue: ${metrics.deferralOverdue}`,
+                    text: `%${percent(metrics.deferralStarted, deferralTotal)} başlatıldı`,
                     width: 82,
                     alignment: 'right',
                     fontSize: 7.5,
@@ -777,7 +648,7 @@ function controlStatusOverview(
               {
                 columns: [
                   {
-                    text: 'Tamamlanan Bakımların Kalibrasyon Raporu',
+                    text: 'Tamamlanan Bakımların Doğrulama Raporu',
                     width: '*',
                     fontSize: 8,
                     bold: true,
@@ -805,11 +676,6 @@ function controlStatusOverview(
                     label: 'Paylaşılmadı',
                     value: metrics.calibrationNotShared,
                     color: COLORS.rose,
-                  },
-                  {
-                    label: 'Bilgi Bekleniyor',
-                    value: metrics.calibrationUnknown,
-                    color: COLORS.gray,
                   },
                 ],
                 calibrationTotal,
@@ -852,7 +718,6 @@ function equipmentTable(
       'Planlanan Tarih',
       'Termin Durumu',
       'Deferral',
-      'Kalibrasyon',
     ],
     rows.map((row) => [
       company === 'STAR'
@@ -871,11 +736,8 @@ function equipmentTable(
       formatDate(row.maintenanceDeadlineDate),
       maintenanceDeadlineLabel(row),
       deferralLabel(row),
-      calibrationLabel(row),
     ]),
-    [
-      48, 48, 58, 70, 45, 44, 45, 45, 54, 48, 52, 45, 48,
-    ],
+    [48, 48, 58, 70, 45, 44, 45, 45, 54, 48, 52, 45],
   );
 }
 
@@ -945,7 +807,6 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     notInProgram: rows.filter(isNotInProgram).length,
     deferralStarted: rows.filter((row) => row.deferralStatus === 'started').length,
     deferralRequired: rows.filter((row) => row.deferralStatus === 'required').length,
-    deferralOverdue: rows.filter((row) => row.deferralIsOverdue).length,
     maintenanceOverdue: rows.filter(
       (row) => row.maintenanceDeadlineStatus === 'overdue',
     ).length,
@@ -958,9 +819,6 @@ function buildMetrics(rows: SCEV2DashboardRow[]) {
     calibrationShared: rows.filter((row) => row.calibrationStatus === 'shared').length,
     calibrationNotShared: rows.filter(
       (row) => row.calibrationStatus === 'not_shared',
-    ).length,
-    calibrationUnknown: rows.filter(
-      (row) => row.calibrationStatus === 'unknown',
     ).length,
   };
 }
@@ -1036,13 +894,6 @@ function maintenanceDeadlineLabel(row: SCEV2DashboardRow) {
     due_soon: 'Overdue Yaklaşıyor',
     on_track: 'Takviminde',
   }[row.maintenanceDeadlineStatus];
-}
-
-function calibrationLabel(row: SCEV2DashboardRow) {
-  if (row.calibrationStatus === 'shared') return 'Paylaşıldı';
-  if (row.calibrationStatus === 'not_shared') return 'Paylaşılmadı';
-  if (row.calibrationStatus === 'not_applicable') return 'Uygulanmaz';
-  return 'Bilgi Bekleniyor';
 }
 
 function compareDeadlineRows(
