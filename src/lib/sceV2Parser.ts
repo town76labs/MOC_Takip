@@ -668,21 +668,37 @@ export function applySCEStarOrderCompletionRule(rows: SCEV2Row[]) {
     rowsByOrder.set(key, [...(rowsByOrder.get(key) ?? []), row]);
   }
 
-  const incompleteOrders = new Set(
-    [...rowsByOrder.entries()]
-      .filter(
-        ([, orderRows]) =>
-          orderRows.length > 1 &&
-          orderRows.some((row) => row.maintenanceStatus !== 'completed'),
-      )
-      .map(([key]) => key),
-  );
+  const consolidatedStatusByOrder = new Map<
+    string,
+    SCEV2MaintenanceStatus
+  >();
+  for (const [key, orderRows] of rowsByOrder) {
+    if (orderRows.length < 2) continue;
 
-  return rows.map((row) =>
-    incompleteOrders.has(normalizeKey(row.orderNo))
-      ? { ...row, maintenanceStatus: 'maintenance_not_completed' as const }
-      : row,
-  );
+    if (
+      orderRows.some(
+        (row) =>
+          row.maintenanceStatus === 'shutdown_deferred' ||
+          normalize(row.userStatus).includes('bek'),
+      )
+    ) {
+      consolidatedStatusByOrder.set(key, 'shutdown_deferred');
+      continue;
+    }
+
+    if (orderRows.some((row) => row.maintenanceStatus !== 'completed')) {
+      consolidatedStatusByOrder.set(key, 'maintenance_not_completed');
+    }
+  }
+
+  return rows.map((row) => {
+    const consolidatedStatus = consolidatedStatusByOrder.get(
+      normalizeKey(row.orderNo),
+    );
+    return consolidatedStatus
+      ? { ...row, maintenanceStatus: consolidatedStatus }
+      : row;
+  });
 }
 
 function buildSCEPetkimInventoryRows(

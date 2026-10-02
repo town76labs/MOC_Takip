@@ -44,7 +44,7 @@ function makeRow(
 }
 
 describe('STAR sipariş tamamlama kuralı', () => {
-  it('4416127 siparişindeki tarihsiz ve teyitsiz ikinci ENS adımını filtrelemeden önce hesaba katar', async () => {
+  it('4416127 siparişindeki BEK adımını filtrelemeden önce hesaba katar ve siparişi duruşa erteler', async () => {
     const headers = [
       'İşletme Alanı',
       'Bildirim',
@@ -120,11 +120,13 @@ describe('STAR sipariş tamamlama kuralı', () => {
 
     expect(result.error).toBeUndefined();
     expect(parsedRow?.orderNo).toBe('4416127');
-    expect(parsedRow?.maintenanceStatus).toBe('maintenance_not_completed');
-    expect(
-      buildSCEV2DashboardRows(parsedRow ? [parsedRow] : [], [])[0]
-        ?.maintenanceDeadlineStatus,
-    ).toBe('overdue');
+    expect(parsedRow?.maintenanceStatus).toBe('shutdown_deferred');
+    const dashboardRow = buildSCEV2DashboardRows(
+      parsedRow ? [parsedRow] : [],
+      [],
+    )[0];
+    expect(dashboardRow?.maintenanceDeadlineStatus).toBe('overdue');
+    expect(dashboardRow?.deferralStatus).toBe('required');
   });
 
   it('aynı siparişteki ENS adımlarından biri tamamlanmadıysa siparişin tamamını tamamlanmadı sayar', () => {
@@ -157,6 +159,21 @@ describe('STAR sipariş tamamlama kuralı', () => {
     ]);
 
     expect(rows.every((row) => row.maintenanceStatus === 'completed')).toBe(true);
+  });
+
+  it('aynı siparişte bir ENS adımı BEK ise teyit durumundan önce duruşa ertelendi sayar', () => {
+    const rows = applySCEStarOrderCompletionRule([
+      makeRow('row-1', '4416127', 'completed'),
+      {
+        ...makeRow('row-2', '4416127', 'maintenance_not_completed'),
+        userStatus: 'PLAN BEK1',
+      },
+    ]);
+
+    expect(rows.map((row) => row.maintenanceStatus)).toEqual([
+      'shutdown_deferred',
+      'shutdown_deferred',
+    ]);
   });
 
   it('tek satırlı siparişlerin mevcut durumunu değiştirmez', () => {
