@@ -206,13 +206,15 @@ export async function parseSCEV2SAPExcel(
       )
       .filter((row): row is SCEV2Row => row !== null)
       .filter((row) => !isExcludedMaintenanceText(row));
-    const reportingRows = parsed.filter((row) =>
+    const statusConsolidatedRows =
+      company === 'STAR' ? applySCEStarOrderCompletionRule(parsed) : parsed;
+    const reportingRows = statusConsolidatedRows.filter((row) =>
       isInSCEV2ReportingPeriod(row, company),
     );
     const data =
       company === 'STAR'
-        ? buildSCEStarInventoryRows(reportingRows, parsed)
-        : buildSCEPetkimInventoryRows(reportingRows, parsed);
+        ? buildSCEStarInventoryRows(reportingRows, statusConsolidatedRows)
+        : buildSCEPetkimInventoryRows(reportingRows, statusConsolidatedRows);
 
     if (data.length === 0) {
       return {
@@ -584,8 +586,7 @@ function buildSCEStarInventoryRows(
   sourceRows: SCEV2Row[],
 ) {
   const latestByEquipment = new Map<string, SCEV2Row>();
-  const orderConsolidatedRows = applySCEStarOrderCompletionRule(rows);
-  for (const row of deduplicateSAPRows(orderConsolidatedRows)) {
+  for (const row of deduplicateSAPRows(rows)) {
     const key = normalizeKey(row.equipmentNo);
     if (!key) continue;
     const current = latestByEquipment.get(key);

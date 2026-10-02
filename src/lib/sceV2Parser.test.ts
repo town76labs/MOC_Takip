@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import * as XLSX from 'xlsx';
 import type { SCEV2Row } from '../types';
 import { buildSCEV2DashboardRows } from './sceV2Logic';
-import { applySCEStarOrderCompletionRule } from './sceV2Parser';
+import {
+  applySCEStarOrderCompletionRule,
+  parseSCEV2SAPExcel,
+} from './sceV2Parser';
 
 function makeRow(
   rowId: string,
@@ -40,6 +44,89 @@ function makeRow(
 }
 
 describe('STAR sipariş tamamlama kuralı', () => {
+  it('4416127 siparişindeki tarihsiz ve teyitsiz ikinci ENS adımını filtrelemeden önce hesaba katar', async () => {
+    const headers = [
+      'İşletme Alanı',
+      'Bildirim',
+      'Sipariş',
+      'Ekipman',
+      'Tanım',
+      'Kullanıcı drm',
+      'İşlem sistem durumu',
+      'Yürütme Bşl Tarihi',
+      'Yürütme Bitiş Tarihi',
+      'Planlanan Bitiş Termini',
+      'Planlanan Tarih',
+      'Revizyon',
+      'Teknik Birim',
+      'Bakım Kalemi',
+      'Bakım Planı',
+    ];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        headers,
+        [
+          '430',
+          '10329344',
+          '4416127',
+          '3037251',
+          '430FT-0554 BAKIM PLANI',
+          'PLAN BEK1',
+          'TYTE JBFI ONAY PİT',
+          new Date(2026, 5, 24),
+          new Date(2026, 5, 25),
+          new Date(2026, 5, 25),
+          new Date(2026, 5, 25),
+          'W202626',
+          '430FT-0554',
+          '5000',
+          '43001',
+        ],
+        [
+          '430',
+          '10329344',
+          '4416127',
+          '3037251',
+          '430FT-0554 BAKIM PLANI',
+          'PLAN BEK1',
+          'ONAY',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '430FT-0554',
+          '5000',
+          '43001',
+        ],
+      ]),
+      'SAP',
+    );
+    const arrayBuffer = XLSX.write(workbook, {
+      type: 'array',
+      bookType: 'xlsx',
+    }) as ArrayBuffer;
+    const file = {
+      size: arrayBuffer.byteLength,
+      arrayBuffer: async () => arrayBuffer,
+    } as File;
+
+    const result = await parseSCEV2SAPExcel(file, 'STAR');
+    const parsedRow = result.data.find(
+      (row) => row.equipmentNo === '3037251',
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(parsedRow?.orderNo).toBe('4416127');
+    expect(parsedRow?.maintenanceStatus).toBe('maintenance_not_completed');
+    expect(
+      buildSCEV2DashboardRows(parsedRow ? [parsedRow] : [], [])[0]
+        ?.maintenanceDeadlineStatus,
+    ).toBe('overdue');
+  });
+
   it('aynı siparişteki ENS adımlarından biri tamamlanmadıysa siparişin tamamını tamamlanmadı sayar', () => {
     const rows = applySCEStarOrderCompletionRule([
       {
